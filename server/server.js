@@ -35,13 +35,24 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const distPath = path.join(__dirname, '../dist');
 const distExists = fs.existsSync(distPath);
 
+// Log startup info
+console.log('Starting server...');
+console.log(`  - NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`  - PORT: ${PORT}`);
+console.log(`  - __dirname: ${__dirname}`);
+console.log(`  - distPath: ${distPath}`);
+console.log(`  - distExists: ${distExists}`);
+
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 // Serve static files from the built frontend (if exists)
 if (distExists) {
+  console.log('Serving static files from:', distPath);
   app.use(express.static(distPath));
+} else {
+  console.log('WARNING: dist folder not found, frontend will not be served');
 }
 
 // Global error handler
@@ -107,6 +118,15 @@ app.get('/api/config', (req, res) => {
       'oauth',
       'tickets'
     ]
+  });
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    distAvailable: distExists
   });
 });
 
