@@ -10,9 +10,9 @@ const getServerUrl = (): string => {
       return ''; // Use relative URLs - same origin
     }
     
-    // Codespaces: replace port 3000 with 3001
+    // Codespaces: replace port 3000 with 8080
     if (hostname.includes('github.dev')) {
-      return window.location.origin.replace('-3000.', '-3001.');
+      return window.location.origin.replace('-3000.', '-8080.');
     }
   }
   
@@ -20,8 +20,8 @@ const getServerUrl = (): string => {
   const envUrl = (import.meta as unknown as { env: Record<string, string> }).env?.VITE_SERVER_URL;
   if (envUrl) return envUrl;
   
-  // Default for local development
-  return 'http://localhost:3001';
+  // Default for local development - use port 8080
+  return 'http://localhost:8080';
 };
 
 class HubSpotService {

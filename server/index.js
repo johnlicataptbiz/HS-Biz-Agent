@@ -3,7 +3,7 @@ import cors from 'cors';
 import 'dotenv/config';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 const HUBSPOT_BASE_URL = 'https://api.hubapi.com';
 
 // Middleware - Allow all origins for Codespaces compatibility

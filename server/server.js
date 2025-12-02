@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 console.log('__dirname:', __dirname);
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 console.log('Using PORT:', PORT);
 const HUBSPOT_BASE_URL = 'https://api.hubapi.com';
 
