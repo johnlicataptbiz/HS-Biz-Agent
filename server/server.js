@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
 
@@ -30,12 +31,24 @@ const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID;
 const HUBSPOT_CLIENT_SECRET = process.env.HUBSPOT_CLIENT_SECRET;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// Check if dist folder exists
+const distPath = path.join(__dirname, '../dist');
+const distExists = fs.existsSync(distPath);
+
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// Serve static files from the built frontend
-app.use(express.static(path.join(__dirname, '../dist')));
+// Serve static files from the built frontend (if exists)
+if (distExists) {
+  app.use(express.static(distPath));
+}
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 // Helper: Extract Bearer token from request
 const getToken = (req) => {
@@ -208,6 +221,19 @@ app.all('/api/hubspot/*', async (req, res) => {
 // MCP-Style Tool Endpoints
 // ============================================================
 
+// Validate connection / Get user details
+app.get('/api/tools/get-user-details', async (req, res) => {
+  const token = getToken(req);
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+  
+  try {
+    const data = await hubspotRequest('/integrations/v1/me', token);
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+});
+
 // List workflows
 app.get('/api/tools/list-workflows', async (req, res) => {
   const token = getToken(req);
@@ -302,7 +328,38 @@ app.get('/api/tools/get-schemas', async (req, res) => {
 // Catch-all: Serve React app for client-side routing
 // ============================================================
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  // Skip API routes that weren't matched
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  
+  const indexPath = path.join(__dirname, '../dist/index.html');
+  
+  // Check if the file exists before trying to serve it
+  if (!fs.existsSync(indexPath)) {
+    console.error('index.html not found at:', indexPath);
+    return res.status(500).json({ 
+      error: 'Application not built',
+      path: indexPath,
+      distExists: fs.existsSync(path.join(__dirname, '../dist'))
+    });
+  }
+  
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error('Error serving index.html:', err);
+      res.status(500).send('Error loading app');
+    }
+  });
+});
+
+// Handle uncaught errors
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
 });
 
 // Start server - bind to 0.0.0.0 for container environments
@@ -312,4 +369,12 @@ app.listen(PORT, HOST, () => {
   console.log(`   App URL: ${getAppUrl()}`);
   console.log(`   HubSpot App: ${HUBSPOT_CLIENT_ID ? 'Configured ✓' : 'Missing CLIENT_ID ✗'}`);
   console.log(`   Gemini AI: ${GEMINI_API_KEY ? 'Configured ✓' : 'Not configured'}`);
+  
+  // Check if dist folder exists
+  const distPath = path.join(__dirname, '../dist');
+  if (fs.existsSync(distPath)) {
+    console.log('   Static files: Found ✓');
+  } else {
+    console.log('   Static files: Missing ✗ - dist folder not found at', distPath);
+  }
 });

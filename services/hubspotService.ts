@@ -294,7 +294,7 @@ class HubSpotService {
   /**
    * Validates the connection and returns a detailed status.
    */
-  public async validateConnection(): Promise<{ success: boolean; error?: string }> {
+  public async validateConnection(): Promise<{ success: boolean; error?: string; portalId?: string; hubDomain?: string }> {
     try {
       const token = this.getToken();
       if (!token) return { success: false, error: "No token found" };
@@ -309,7 +309,11 @@ class HubSpotService {
       const data = await response.json();
       
       if (response.ok && data.success) {
-        return { success: true };
+        return { 
+          success: true,
+          portalId: data.data?.portalId?.toString(),
+          hubDomain: data.data?.hub_domain
+        };
       }
       
       return { success: false, error: data.error || `API Error: ${response.status}` };

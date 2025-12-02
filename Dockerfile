@@ -30,6 +30,6 @@ COPY --from=builder /app/server/node_modules ./server/node_modules
 # Set production environment
 ENV NODE_ENV=production
 
-EXPOSE 3001
+# Don't specify PORT - Railway sets it automatically to 8080
 
 CMD ["node", "server/server.js"]
