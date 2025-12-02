@@ -76,6 +76,16 @@ The AI system prompt (`PT_BIZ_SYSTEM_INSTRUCTION` in server files) encodes this 
 - Sales lifecycle: Lead → Discovery Call → Coaching Client → Renewal/Referral
 - Lead sources: Webinars, podcasts, referrals, paid ads targeting PT owners
 
+## HubSpot Platform Knowledge
+
+The AI has expert-level HubSpot knowledge including:
+
+**Hubs:** Smart CRM, Marketing Hub, Sales Hub, Service Hub, Content Hub, Operations Hub, Commerce Hub
+**Key Features:** Workflows (branching, delays, goals), Sequences (1:1 sales outreach), Lead Scoring, Custom Properties/Objects, Lists (active vs static), Deals/Pipelines, Reporting
+**Breeze AI:** Copilot, Agents (Social, Customer, Content, Prospecting), Content Remix, Custom Workflow Actions
+**Backend:** AWS cloud-native, 3,000+ microservices, REST/GraphQL APIs, webhooks, 1,900+ Marketplace integrations
+**Best Practices:** Data cleanliness (Operations Hub), automation, personalization at scale, multi-touch attribution
+
 ## Deployment
 
 Uses Docker (`Dockerfile`) or Railway (`railway.json`). Production runs single server on port 8080 serving both static files and API. The `start.sh` script handles Railway-specific startup.
