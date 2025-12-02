@@ -5,11 +5,19 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
 
+console.log('=== SERVER STARTUP ===');
+console.log('Imports successful');
+console.log('Node version:', process.version);
+console.log('CWD:', process.cwd());
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+console.log('__dirname:', __dirname);
+
 const app = express();
 const PORT = process.env.PORT || 3001;
+console.log('Using PORT:', PORT);
 const HUBSPOT_BASE_URL = 'https://api.hubapi.com';
 
 // Get app URL for redirects
