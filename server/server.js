@@ -137,11 +137,13 @@ app.get('/api/config', (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  console.log('Health check responding...');
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
     distAvailable: distExists
   });
+  console.log('Health check response sent');
 });
 
 // ============================================================
