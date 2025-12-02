@@ -136,7 +136,6 @@ app.get('/api/config', (req, res) => {
     'crm.objects.goals.read',
     'crm.objects.commercepayments.read',
     'crm.objects.subscriptions.read',
-    'crm.objects.pipelines.orders.read',
     'crm.objects.projects.read',
     'crm.objects.marketing_events.read',
     
@@ -160,7 +159,6 @@ app.get('/api/config', (req, res) => {
     'crm.objects.goals.write',
     'crm.objects.commercepayments.write',
     'crm.objects.subscriptions.write',
-    'crm.objects.pipelines.orders.write',
     'crm.objects.projects.write',
     'crm.objects.marketing_events.write',
     
@@ -242,7 +240,7 @@ app.get('/api/config', (req, res) => {
     'actions',
     'transactional-email',
     'record_images.signed_urls.read',
-    'feedback_submissions.read',
+
     'analytics.behavioral_events.send',
     'behavioral_events.event_definitions.read_write',
     'account-info.security.read',
@@ -252,11 +250,10 @@ app.get('/api/config', (req, res) => {
     'scheduler.meetings.meeting-link.read',
     
     // Extensions & Calling
-    'crm.extensions.calling_transcripts.read',
-    'crm.extensions.calling_transcripts.write',
+
     
     // Security
-    'security.security_health.read',
+
     
     // OAuth
     'oauth'

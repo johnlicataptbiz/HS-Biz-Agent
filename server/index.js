@@ -61,14 +61,14 @@ app.get('/api/config', (req, res) => {
     'crm.objects.partner-clients.read', 'crm.objects.services.read', 'crm.objects.appointments.read',
     'crm.objects.courses.read', 'crm.objects.listings.read', 'crm.objects.invoices.read',
     'crm.objects.goals.read', 'crm.objects.commercepayments.read', 'crm.objects.subscriptions.read',
-    'crm.objects.pipelines.orders.read', 'crm.objects.projects.read', 'crm.objects.marketing_events.read',
+    'crm.objects.projects.read', 'crm.objects.marketing_events.read',
     'crm.objects.contacts.write', 'crm.objects.companies.write', 'crm.objects.deals.write',
     'crm.objects.quotes.write', 'crm.objects.line_items.write', 'crm.objects.products.write',
     'crm.objects.custom.write', 'crm.objects.leads.write', 'crm.objects.carts.write',
     'crm.objects.orders.write', 'crm.objects.partner-clients.write', 'crm.objects.services.write',
     'crm.objects.appointments.write', 'crm.objects.courses.write', 'crm.objects.listings.write',
     'crm.objects.invoices.write', 'crm.objects.goals.write', 'crm.objects.commercepayments.write',
-    'crm.objects.subscriptions.write', 'crm.objects.pipelines.orders.write', 'crm.objects.projects.write',
+    'crm.objects.subscriptions.write', 'crm.objects.projects.write',
     'crm.objects.marketing_events.write', 'crm.schemas.contacts.read', 'crm.schemas.companies.read',
     'crm.schemas.deals.read', 'crm.schemas.quotes.read', 'crm.schemas.line_items.read',
     'crm.schemas.custom.read', 'crm.schemas.carts.read', 'crm.schemas.orders.read',
@@ -86,11 +86,10 @@ app.get('/api/config', (req, res) => {
     'files', 'files.ui_hidden.read', 'content', 'forms', 'forms-uploaded-files', 'hubdb',
     'media_bridge.read', 'media_bridge.write', 'integration-sync', 'crm.import', 'crm.export',
     'e-commerce', 'accounting', 'sales-email-read', 'social', 'timeline', 'business-intelligence',
-    'actions', 'transactional-email', 'record_images.signed_urls.read', 'feedback_submissions.read',
+    'actions', 'transactional-email', 'record_images.signed_urls.read',
     'analytics.behavioral_events.send', 'behavioral_events.event_definitions.read_write',
     'account-info.security.read', 'integrations.zoom-app.playbooks.read', 'external_integrations.forms.access',
-    'ctas.read', 'scheduler.meetings.meeting-link.read', 'crm.extensions.calling_transcripts.read',
-    'crm.extensions.calling_transcripts.write', 'security.security_health.read', 'oauth'
+    'ctas.read', 'scheduler.meetings.meeting-link.read', 'oauth'
   ];
   
   res.json({
