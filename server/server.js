@@ -305,9 +305,10 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 HubSpot AI Optimizer running on port ${PORT}`);
+// Start server - bind to 0.0.0.0 for container environments
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 HubSpot AI Optimizer running on ${HOST}:${PORT}`);
   console.log(`   App URL: ${getAppUrl()}`);
   console.log(`   HubSpot App: ${HUBSPOT_CLIENT_ID ? 'Configured ✓' : 'Missing CLIENT_ID ✗'}`);
   console.log(`   Gemini AI: ${GEMINI_API_KEY ? 'Configured ✓' : 'Not configured'}`);
