@@ -8,7 +8,7 @@ import BreezeTools from './pages/BreezeTools';
 import CoPilot from './pages/CoPilot';
 import AiChat from './components/AiChat';
 import AiModal from './components/AiModal';
-import SettingsModal from './components/SettingsModal';
+import SettingsModal from './components/SettingsModalSimple';
 import { ChatResponse } from './types';
 import { hubSpotService } from './services/hubspotService';
 
