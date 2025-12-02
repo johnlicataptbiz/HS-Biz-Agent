@@ -100,7 +100,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-indigo-50/30 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-indigo-50/30 flex overflow-x-hidden">
       {/* Sidebar */}
       <Sidebar 
         activeTab={activeTab} 
@@ -109,7 +109,7 @@ const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-72 min-w-0">
         {/* Top Header */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/50 sticky top-0 z-30 px-8 flex items-center justify-between">
             <div className="flex items-center gap-3">
