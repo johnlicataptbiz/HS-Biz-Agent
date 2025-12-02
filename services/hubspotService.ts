@@ -2,25 +2,23 @@ import { Workflow, Sequence, DataProperty } from '../types';
 
 // Helper to detect server URL
 const getServerUrl = (): string => {
-  // Check for explicit env var first
-  const envUrl = (import.meta as unknown as { env: Record<string, string> }).env?.VITE_SERVER_URL;
-  if (envUrl) return envUrl;
-  
-  // In production (Railway, etc.), frontend and backend are same origin
-  // Check if we're on a production domain (not localhost, not github.dev)
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    
+    // Production: same origin (Railway, etc.) - ignore VITE_SERVER_URL
+    if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1') && !hostname.includes('github.dev')) {
+      return ''; // Use relative URLs - same origin
+    }
     
     // Codespaces: replace port 3000 with 3001
     if (hostname.includes('github.dev')) {
       return window.location.origin.replace('-3000.', '-3001.');
     }
-    
-    // Production: same origin (Railway, etc.)
-    if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1')) {
-      return ''; // Use relative URLs - same origin
-    }
   }
+  
+  // Check for explicit env var (local dev only)
+  const envUrl = (import.meta as unknown as { env: Record<string, string> }).env?.VITE_SERVER_URL;
+  if (envUrl) return envUrl;
   
   // Default for local development
   return 'http://localhost:3001';
