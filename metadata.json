@@ -1,0 +1,5 @@
+{
+  "name": "HubSpot AI Optimizer",
+  "description": "An AI-powered RevOps co-pilot that audits, designs, and optimizes HubSpot workflows, sequences, and data models.",
+  "requestFramePermissions": []
+}
