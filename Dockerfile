@@ -31,6 +31,9 @@ COPY --from=builder /app/dist ./dist
 
 # Set production environment
 ENV NODE_ENV=production
+ENV PORT=8080
 
-# Railway sets PORT=8080 automatically
+# Expose port for Railway
+EXPOSE 8080
+
 CMD ["node", "server/server.js"]
