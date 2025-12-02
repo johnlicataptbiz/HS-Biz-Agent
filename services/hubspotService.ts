@@ -53,23 +53,54 @@ class HubSpotService {
 
   // --- AUTH CONFIGURATION ---
 
+  // Cache for server config
+  private serverConfig: { clientId: string; redirectUri: string; scopes: string[] } | null = null;
+
   public saveAuthConfig(clientId: string, clientSecret: string): void {
     localStorage.setItem(this.STORAGE_KEYS.CLIENT_ID, clientId);
     localStorage.setItem(this.STORAGE_KEYS.CLIENT_SECRET, clientSecret);
   }
 
-  public getAuthConfig() {
+  // Fetch config from server (for production where credentials are baked in)
+  private async fetchServerConfig(): Promise<{ clientId: string; redirectUri: string; scopes: string[] }> {
+    if (this.serverConfig) return this.serverConfig;
+    
+    try {
+      const response = await fetch(`${this.SERVER_URL}/api/config`);
+      if (response.ok) {
+        this.serverConfig = await response.json();
+        return this.serverConfig!;
+      }
+    } catch (e) {
+      console.log('Server config not available, using localStorage');
+    }
+    
+    // Fallback to localStorage config
     return {
       clientId: localStorage.getItem(this.STORAGE_KEYS.CLIENT_ID) || '',
+      redirectUri: window.location.origin,
+      scopes: []
+    };
+  }
+
+  public getAuthConfig() {
+    // Sync version - uses cached config or localStorage
+    const clientId = this.serverConfig?.clientId || localStorage.getItem(this.STORAGE_KEYS.CLIENT_ID) || '';
+    return {
+      clientId,
       clientSecret: localStorage.getItem(this.STORAGE_KEYS.CLIENT_SECRET) || '',
-      redirectUri: window.location.origin
+      redirectUri: this.serverConfig?.redirectUri || window.location.origin
     };
   }
 
   // --- OAUTH FLOW ---
 
   public async initiateOAuth(): Promise<Window | null> {
-    const { clientId, redirectUri } = this.getAuthConfig();
+    // Try to get config from server first (production mode)
+    const config = await this.fetchServerConfig();
+    const clientId = config.clientId || localStorage.getItem(this.STORAGE_KEYS.CLIENT_ID);
+    const redirectUri = config.redirectUri || window.location.origin;
+    
     if (!clientId) {
       throw new Error("Client ID is missing");
     }
@@ -94,13 +125,16 @@ class HubSpotService {
       'tickets'
     ].join(' ');
     
-    // Standard OAuth (no PKCE needed when using client_secret)
+    // Use server config scopes if available
+    const scopeString = config.scopes?.length ? config.scopes.join(' ') : scopes;
+    
+    // Standard OAuth (no PKCE needed when using client_secret on server)
     const authUrl = `${this.HUBSPOT_AUTH_URL}/oauth/authorize` +
       `?client_id=${encodeURIComponent(clientId)}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&scope=${encodeURIComponent(scopes)}`;
+      `&scope=${encodeURIComponent(scopeString)}`;
 
-    // Use direct redirect instead of popup (works better in Codespaces)
+    // Use direct redirect instead of popup (works better in production)
     window.location.href = authUrl;
     return null;
   }
@@ -112,20 +146,20 @@ class HubSpotService {
       return;
     }
 
-    const { clientId, clientSecret, redirectUri } = this.getAuthConfig();
+    // Get redirect URI (prefer server config)
+    const config = await this.fetchServerConfig();
+    const redirectUri = config.redirectUri || window.location.origin;
 
     // Basic cleanup in case user pasted a full URL
     const cleanCode = code.includes('code=') ? code.split('code=')[1].split('&')[0] : code;
 
     try {
-      // Use backend proxy to exchange code (avoids CORS)
+      // Use backend proxy to exchange code (server has client_id and client_secret)
       const response = await fetch(`${this.SERVER_URL}/api/oauth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: cleanCode,
-          client_id: clientId,
-          client_secret: clientSecret,
           redirect_uri: redirectUri
         })
       });

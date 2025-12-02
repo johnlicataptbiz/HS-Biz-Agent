@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Backend server providing MCP tools and OAuth proxy for HubSpot AI Optimizer",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node server.js",
     "dev": "node --watch index.js"
   },
   "dependencies": {
