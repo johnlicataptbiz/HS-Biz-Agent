@@ -49,6 +49,64 @@ const hubspotRequest = async (endpoint, token, options = {}) => {
 };
 
 // ============================================================
+// App Config Endpoint (provides client ID to frontend)
+// ============================================================
+app.get('/api/config', (req, res) => {
+  // All scopes configured in the HubSpot app
+  const scopes = [
+    'crm.objects.contacts.read', 'crm.objects.companies.read', 'crm.objects.deals.read',
+    'crm.objects.owners.read', 'crm.objects.quotes.read', 'crm.objects.line_items.read',
+    'crm.objects.products.read', 'crm.objects.custom.read', 'crm.objects.leads.read',
+    'crm.objects.users.read', 'crm.objects.carts.read', 'crm.objects.orders.read',
+    'crm.objects.partner-clients.read', 'crm.objects.services.read', 'crm.objects.appointments.read',
+    'crm.objects.courses.read', 'crm.objects.listings.read', 'crm.objects.invoices.read',
+    'crm.objects.goals.read', 'crm.objects.commercepayments.read', 'crm.objects.subscriptions.read',
+    'crm.objects.pipelines.orders.read', 'crm.objects.projects.read', 'crm.objects.marketing_events.read',
+    'crm.objects.contacts.write', 'crm.objects.companies.write', 'crm.objects.deals.write',
+    'crm.objects.quotes.write', 'crm.objects.line_items.write', 'crm.objects.products.write',
+    'crm.objects.custom.write', 'crm.objects.leads.write', 'crm.objects.carts.write',
+    'crm.objects.orders.write', 'crm.objects.partner-clients.write', 'crm.objects.services.write',
+    'crm.objects.appointments.write', 'crm.objects.courses.write', 'crm.objects.listings.write',
+    'crm.objects.invoices.write', 'crm.objects.goals.write', 'crm.objects.commercepayments.write',
+    'crm.objects.subscriptions.write', 'crm.objects.pipelines.orders.write', 'crm.objects.projects.write',
+    'crm.objects.marketing_events.write', 'crm.schemas.contacts.read', 'crm.schemas.companies.read',
+    'crm.schemas.deals.read', 'crm.schemas.quotes.read', 'crm.schemas.line_items.read',
+    'crm.schemas.custom.read', 'crm.schemas.carts.read', 'crm.schemas.orders.read',
+    'crm.schemas.services.read', 'crm.schemas.appointments.read', 'crm.schemas.courses.read',
+    'crm.schemas.listings.read', 'crm.schemas.invoices.read', 'crm.schemas.commercepayments.read',
+    'crm.schemas.subscriptions.read', 'crm.schemas.contacts.write', 'crm.lists.read', 'crm.lists.write',
+    'settings.users.read', 'settings.users.write', 'settings.users.teams.read', 'settings.users.teams.write',
+    'settings.billing.write', 'settings.currencies.read', 'settings.currencies.write',
+    'automation.sequences.read', 'automation.sequences.enrollments.write',
+    'conversations.read', 'conversations.write', 'conversations.visitor_identification.tokens.create',
+    'conversations.custom_channels.read', 'conversations.custom_channels.write',
+    'communication_preferences.read', 'communication_preferences.read_write', 'communication_preferences.write',
+    'communication_preferences.statuses.batch.read', 'communication_preferences.statuses.batch.write',
+    'marketing.campaigns.read', 'marketing.campaigns.write', 'marketing.campaigns.revenue.read', 'marketing-email',
+    'files', 'files.ui_hidden.read', 'content', 'forms', 'forms-uploaded-files', 'hubdb',
+    'media_bridge.read', 'media_bridge.write', 'integration-sync', 'crm.import', 'crm.export',
+    'e-commerce', 'accounting', 'sales-email-read', 'social', 'timeline', 'business-intelligence',
+    'actions', 'transactional-email', 'record_images.signed_urls.read', 'feedback_submissions.read',
+    'analytics.behavioral_events.send', 'behavioral_events.event_definitions.read_write',
+    'account-info.security.read', 'integrations.zoom-app.playbooks.read', 'external_integrations.forms.access',
+    'ctas.read', 'scheduler.meetings.meeting-link.read', 'crm.extensions.calling_transcripts.read',
+    'crm.extensions.calling_transcripts.write', 'security.security_health.read', 'oauth'
+  ];
+  
+  res.json({
+    clientId: process.env.HUBSPOT_CLIENT_ID,
+    redirectUri: process.env.APP_URL || 'http://localhost:3000',
+    hasGemini: !!process.env.GEMINI_API_KEY,
+    scopes: scopes
+  });
+});
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ============================================================
 // OAuth Endpoints (Proxy to avoid CORS)
 // ============================================================
 
