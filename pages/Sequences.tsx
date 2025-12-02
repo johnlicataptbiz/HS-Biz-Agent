@@ -143,6 +143,7 @@ const Sequences: React.FC = () => {
         contextType="sequence"
         contextId={selectedSeq?.id}
         contextName={selectedSeq?.name}
+        initialPrompt={selectedSeq ? `Optimize the "${selectedSeq.name}" sequence targeting "${selectedSeq.targetPersona}". It has ${selectedSeq.stepsCount} steps with a ${selectedSeq.replyRate}% reply rate and AI score of ${selectedSeq.aiScore}/100. Suggest improvements for higher engagement and conversions.` : ''}
       />
 
       <AiModal 
@@ -150,6 +151,7 @@ const Sequences: React.FC = () => {
         onClose={() => setShowGeneralAi(false)} 
         contextType="sequence"
         contextName="All Sequences"
+        initialPrompt="Generate a new 5-step cold outreach sequence for PT clinic owners. Focus on high reply rates, include personalization tokens, and follow best practices for B2B sales outreach."
       />
     </div>
   );

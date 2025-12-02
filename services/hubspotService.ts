@@ -32,10 +32,7 @@ class HubSpotService {
   private readonly STORAGE_KEYS = {
     ACCESS_TOKEN: 'HUBSPOT_ACCESS_TOKEN',
     REFRESH_TOKEN: 'HUBSPOT_REFRESH_TOKEN',
-    EXPIRES_AT: 'HUBSPOT_TOKEN_EXPIRES_AT',
-    CLIENT_ID: 'HUBSPOT_CLIENT_ID',
-    CLIENT_SECRET: 'HUBSPOT_CLIENT_SECRET',
-    PKCE_VERIFIER: 'HUBSPOT_PKCE_VERIFIER',
+    EXPIRES_AT: 'HUBSPOT_TOKEN_EXPIRES_AT'
   };
 
   // --- PKCE HELPER METHODS ---
@@ -65,39 +62,37 @@ class HubSpotService {
   // Cache for server config
   private serverConfig: { clientId: string; redirectUri: string; scopes: string[] } | null = null;
 
-  public saveAuthConfig(clientId: string, clientSecret: string): void {
-    localStorage.setItem(this.STORAGE_KEYS.CLIENT_ID, clientId);
-    localStorage.setItem(this.STORAGE_KEYS.CLIENT_SECRET, clientSecret);
+  public saveAuthConfig(): void {
+    throw new Error('HubSpot credentials are managed on the server. Remove client-side secrets.');
   }
 
   // Fetch config from server (for production where credentials are baked in)
   private async fetchServerConfig(): Promise<{ clientId: string; redirectUri: string; scopes: string[] }> {
     if (this.serverConfig) return this.serverConfig;
     
-    try {
-      const response = await fetch(`${this.SERVER_URL}/api/config`);
-      if (response.ok) {
-        this.serverConfig = await response.json();
-        return this.serverConfig!;
-      }
-    } catch (e) {
-      console.log('Server config not available, using localStorage');
+    const response = await fetch(`${this.SERVER_URL}/api/config`);
+    if (!response.ok) {
+      throw new Error('Unable to load server configuration. Check backend logs for details.');
     }
-    
-    // Fallback to localStorage config
-    return {
-      clientId: localStorage.getItem(this.STORAGE_KEYS.CLIENT_ID) || '',
-      redirectUri: window.location.origin,
-      scopes: []
+
+    const config = await response.json();
+    if (!config?.clientId) {
+      throw new Error('HubSpot client ID is missing on the server. Set HUBSPOT_CLIENT_ID.');
+    }
+
+    this.serverConfig = {
+      clientId: config.clientId,
+      redirectUri: config.redirectUri || window.location.origin,
+      scopes: Array.isArray(config.scopes) ? config.scopes : []
     };
+
+    return this.serverConfig;
   }
 
   public getAuthConfig() {
-    // Sync version - uses cached config or localStorage
-    const clientId = this.serverConfig?.clientId || localStorage.getItem(this.STORAGE_KEYS.CLIENT_ID) || '';
     return {
-      clientId,
-      clientSecret: localStorage.getItem(this.STORAGE_KEYS.CLIENT_SECRET) || '',
+      clientId: this.serverConfig?.clientId || '',
+      clientSecret: '',
       redirectUri: this.serverConfig?.redirectUri || window.location.origin
     };
   }
@@ -107,7 +102,7 @@ class HubSpotService {
   public async initiateOAuth(): Promise<Window | null> {
     // Try to get config from server first (production mode)
     const config = await this.fetchServerConfig();
-    const clientId = config.clientId || localStorage.getItem(this.STORAGE_KEYS.CLIENT_ID);
+    const clientId = config.clientId;
     const redirectUri = config.redirectUri || window.location.origin;
     
     if (!clientId) {
@@ -239,10 +234,9 @@ class HubSpotService {
 
   public async refreshAccessToken(): Promise<boolean> {
     const refreshToken = this.getRefreshToken();
-    const { clientId, clientSecret } = this.getAuthConfig();
     
-    if (!refreshToken || !clientId || !clientSecret) {
-      console.warn('Cannot refresh: missing refresh token or client credentials');
+    if (!refreshToken) {
+      console.warn('Cannot refresh: missing refresh token');
       return false;
     }
 
@@ -250,11 +244,7 @@ class HubSpotService {
       const response = await fetch(`${this.SERVER_URL}/api/oauth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          refresh_token: refreshToken,
-          client_id: clientId,
-          client_secret: clientSecret
-        })
+        body: JSON.stringify({ refresh_token: refreshToken })
       });
 
       if (!response.ok) {
@@ -295,7 +285,6 @@ class HubSpotService {
     localStorage.removeItem(this.STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(this.STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(this.STORAGE_KEYS.EXPIRES_AT);
-    localStorage.removeItem(this.STORAGE_KEYS.PKCE_VERIFIER);
   }
 
   // --- DATA FETCHING (via backend proxy) ---
@@ -351,19 +340,26 @@ class HubSpotService {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Workflow fetch failed:", response.status, errorData);
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
       
       const data = await response.json();
-      const workflows = data.workflows || [];
+      console.log("Raw workflow response:", data);
+      
+      // v4 API returns { flows: [...] } not { workflows: [...] }
+      const workflows = data.flows || data.workflows || data.results || [];
 
       return workflows.map((wf: Record<string, unknown>) => ({
-        id: String(wf.id),
+        id: String(wf.id || wf.flowId),
         name: (wf.name as string) || 'Untitled Workflow',
-        enabled: (wf.enabled as boolean) || false,
-        objectType: (wf.type as string) || 'Contact',
+        enabled: (wf.enabled as boolean) ?? (wf.isEnabled as boolean) ?? false,
+        objectType: (wf.type as string) || (wf.objectTypeId as string) || 'Contact',
         enrolledCount: ((wf.metrics as Record<string, number>)?.enrolled) || 0,
         aiScore: Math.floor(Math.random() * (95 - 60) + 60),
-        issues: wf.enabled ? [] : ['Workflow is inactive'],
+        issues: (wf.enabled || wf.isEnabled) ? [] : ['Workflow is inactive'],
         lastUpdated: wf.updatedAt ? new Date(wf.updatedAt as string).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
       }));
     } catch (e) {

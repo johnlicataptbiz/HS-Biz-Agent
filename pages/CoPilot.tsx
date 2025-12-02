@@ -1,33 +1,65 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Bot, Sparkles, ArrowRight, Zap, Database, Users, GitFork, MessageSquare, BrainCircuit } from 'lucide-react';
+import AiModal from '../components/AiModal';
+
+interface QuickAction {
+  title: string;
+  desc: string;
+  gradient: string;
+  icon: React.ElementType;
+  contextType: 'workflow' | 'sequence' | 'data' | 'breeze_tool';
+  prompt: string;
+}
 
 const CoPilot: React.FC = () => {
-  const quickActions = [
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    contextType: 'workflow' | 'sequence' | 'data' | 'breeze_tool';
+    prompt: string;
+  }>({ isOpen: false, contextType: 'workflow', prompt: '' });
+
+  const quickActions: QuickAction[] = [
     { 
       title: "Full Portal Scan", 
       desc: "Run a deep diagnostic on workflows, data, and assets.", 
       gradient: "from-indigo-500 to-purple-600",
-      icon: BrainCircuit
+      icon: BrainCircuit,
+      contextType: 'workflow',
+      prompt: "Run a full portal health scan. Audit all workflows, check data model for redundancies, and identify optimization opportunities."
     },
     { 
       title: "Sequence Generator", 
       desc: "Draft a 5-step outbound sequence for a specific persona.", 
       gradient: "from-emerald-500 to-teal-500",
-      icon: Users
+      icon: Users,
+      contextType: 'sequence',
+      prompt: "Generate a 5-step cold outreach sequence for PT clinic owners. Focus on high reply rates and include personalization tokens."
     },
     { 
       title: "Data Cleaner", 
       desc: "Identify and merge duplicate contacts and properties.", 
       gradient: "from-amber-500 to-orange-500",
-      icon: Database
+      icon: Database,
+      contextType: 'data',
+      prompt: "Audit the Contact schema for redundant or unused properties. Identify merge candidates and suggest cleanup actions."
     },
     { 
       title: "Journey Architect", 
       desc: "Design a lifecycle stage automation map.", 
       gradient: "from-pink-500 to-rose-500",
-      icon: GitFork
+      icon: GitFork,
+      contextType: 'workflow',
+      prompt: "Design a lifecycle automation workflow that moves contacts from Lead to MQL to SQL stages based on engagement signals."
     }
   ];
+
+  const handleActionClick = (action: QuickAction) => {
+    setModalState({
+      isOpen: true,
+      contextType: action.contextType,
+      prompt: action.prompt
+    });
+  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-500">
@@ -81,7 +113,8 @@ const CoPilot: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {quickActions.map((action, i) => (
             <button 
-              key={i} 
+              key={i}
+              onClick={() => handleActionClick(action)}
               className="group relative text-left p-6 bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 overflow-hidden"
             >
               {/* Gradient accent */}
@@ -127,12 +160,23 @@ const CoPilot: React.FC = () => {
               Use the global chat button in the bottom right corner to ask complex questions, troubleshoot errors, or get custom recommendations.
             </p>
           </div>
-          <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors shadow-lg">
+          <button 
+            onClick={() => setModalState({ isOpen: true, contextType: 'workflow', prompt: '' })}
+            className="flex items-center gap-2 px-6 py-3 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors shadow-lg"
+          >
             <Sparkles size={18} />
             Open Chat
           </button>
         </div>
       </div>
+
+      <AiModal 
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))}
+        contextType={modalState.contextType}
+        initialPrompt={modalState.prompt}
+        contextName="Co-Pilot Action"
+      />
     </div>
   );
 };

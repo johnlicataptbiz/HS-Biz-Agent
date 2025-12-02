@@ -13,7 +13,11 @@ interface DashboardStats {
   pendingIssues: number;
 }
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onNavigate?: (tab: string) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState<DashboardStats>({
     workflowCount: 0,
     sequenceCount: 0,
@@ -98,16 +102,20 @@ const Dashboard: React.FC = () => {
     { name: 'Segments', score: stats.dealCount > 0 ? 88 : 60, color: '#8b5cf6' },
   ];
 
-  const StatCard = ({ title, value, sub, icon: Icon, gradient, trend }: {
+  const StatCard = ({ title, value, sub, icon: Icon, gradient, trend, onClick }: {
     title: string;
     value: number | string;
     sub: string;
     icon: React.ElementType;
     gradient: string;
     trend?: boolean;
+    onClick?: () => void;
   }) => {
     return (
-      <div className="group relative bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 overflow-hidden">
+      <div 
+        onClick={onClick}
+        className={`group relative bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
+      >
         {/* Gradient accent line */}
         <div className={`absolute top-0 left-0 right-0 h-1 ${gradient}`} />
         
@@ -179,13 +187,15 @@ const Dashboard: React.FC = () => {
           icon={Activity} 
           gradient="bg-gradient-to-r from-indigo-500 to-purple-600" 
           trend={stats.healthScore >= 70}
+          onClick={() => onNavigate?.('copilot')}
         />
         <StatCard 
           title="Active Workflows" 
           value={stats.workflowCount} 
           sub={stats.workflowCount > 0 ? `${Math.max(0, stats.workflowCount - 3)} optimized` : "No workflows yet"} 
           icon={Zap} 
-          gradient="bg-gradient-to-r from-amber-500 to-orange-500" 
+          gradient="bg-gradient-to-r from-amber-500 to-orange-500"
+          onClick={() => onNavigate?.('workflows')}
         />
         <StatCard 
           title="Active Sequences" 
@@ -194,13 +204,15 @@ const Dashboard: React.FC = () => {
           icon={CheckCircle} 
           gradient="bg-gradient-to-r from-emerald-500 to-teal-500" 
           trend={stats.sequenceCount > 5}
+          onClick={() => onNavigate?.('sequences')}
         />
         <StatCard 
           title="Pending Issues" 
           value={stats.pendingIssues} 
           sub={stats.pendingIssues > 0 ? "Requires attention" : "All clear!"} 
           icon={AlertTriangle} 
-          gradient="bg-gradient-to-r from-rose-500 to-pink-500" 
+          gradient="bg-gradient-to-r from-rose-500 to-pink-500"
+          onClick={() => onNavigate?.('copilot')}
         />
       </div>
 

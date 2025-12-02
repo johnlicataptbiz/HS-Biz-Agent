@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { getBreezeTools } from '../services/mockService';
 import { BreezeTool } from '../types';
-import { Sparkles, Hammer, Box, Code, RefreshCw, Zap, ArrowUpRight, Plus } from 'lucide-react';
+import { Sparkles, Hammer, Box, Code, RefreshCw, Zap, ArrowUpRight, Plus, Terminal, ExternalLink } from 'lucide-react';
 import AiModal from '../components/AiModal';
 
 const BreezeTools: React.FC = () => {
   const [tools, setTools] = useState<BreezeTool[]>([]);
   const [showAi, setShowAi] = useState(false);
+  const [selectedTool, setSelectedTool] = useState<BreezeTool | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -51,6 +52,37 @@ const BreezeTools: React.FC = () => {
             <Sparkles size={16} />
             Draft New Tool
           </button>
+        </div>
+      </div>
+
+      {/* CLI Setup Banner */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-purple-500/20 rounded-xl">
+            <Terminal size={24} className="text-purple-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-white font-bold text-lg mb-1">Create Workflow Actions with HubSpot CLI</h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Use the HubSpot CLI to add workflow action features to your project. This enables custom actions in HubSpot workflows.
+            </p>
+            <div className="bg-black/40 rounded-xl p-4 font-mono text-sm mb-4 border border-slate-700">
+              <code className="text-emerald-400">hs project add --features=workflow-action-tool</code>
+            </div>
+            <div className="flex items-center gap-4">
+              <a 
+                href="https://developers.hubspot.com/docs/apps/developer-platform/add-features/app-objects/quickstart-guide-to-app-objects"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+              >
+                <ExternalLink size={14} />
+                View HubSpot Docs
+              </a>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-500 text-xs">Requires HubSpot CLI installed</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -113,11 +145,21 @@ const BreezeTools: React.FC = () => {
 
               {/* Actions */}
               <div className="flex gap-3 pt-4 border-t border-slate-100">
-                <button className="flex-1 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-xl border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-center gap-2 group/btn">
+                <button 
+                  onClick={() => {
+                    const json = JSON.stringify(tool, null, 2);
+                    navigator.clipboard.writeText(json);
+                    alert('JSON copied to clipboard!');
+                  }}
+                  className="flex-1 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-xl border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-center gap-2 group/btn"
+                >
                   <Code size={14} />
-                  View JSON
+                  Copy JSON
                 </button>
-                <button className="flex-1 py-2.5 text-sm font-semibold text-purple-600 hover:bg-purple-50 rounded-xl border border-purple-100 hover:border-purple-200 transition-all flex items-center justify-center gap-2 group/btn">
+                <button 
+                  onClick={() => setSelectedTool(tool)}
+                  className="flex-1 py-2.5 text-sm font-semibold text-purple-600 hover:bg-purple-50 rounded-xl border border-purple-100 hover:border-purple-200 transition-all flex items-center justify-center gap-2 group/btn"
+                >
                   <Sparkles size={14} />
                   Refine
                   <ArrowUpRight size={12} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
@@ -145,11 +187,22 @@ const BreezeTools: React.FC = () => {
         </button>
       </div>
 
+      {/* Modal for refining existing tool */}
+      <AiModal 
+        isOpen={!!selectedTool} 
+        onClose={() => setSelectedTool(null)} 
+        contextType="breeze_tool"
+        contextName={selectedTool?.name}
+        initialPrompt={selectedTool ? `Refine the "${selectedTool.name}" workflow action tool. Current config:\n- Action URL: ${selectedTool.actionUrl}\n- Input Fields: ${selectedTool.inputFields.map(f => f.label).join(', ')}\n\nSuggest improvements to make this action more robust and user-friendly for HubSpot workflows.` : ''}
+      />
+
+      {/* Modal for creating new tool */}
       <AiModal 
         isOpen={showAi} 
         onClose={() => setShowAi(false)} 
         contextType="breeze_tool"
-        contextName="All Tools"
+        contextName="New Workflow Action"
+        initialPrompt="Draft a new HubSpot Workflow Action tool for PT clinics. Generate an app.json configuration with:\n1. A descriptive name and action URL\n2. Required input fields (contact properties, custom data)\n3. Output fields for the workflow to consume\n\nFocus on a practical use case like patient reactivation or appointment reminders."
       />
     </div>
   );

@@ -1,8 +1,6 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
 # HubSpot AI Optimizer
+
+![HubSpot AI Optimizer Banner](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
 
 AI-powered optimization engine for HubSpot portals, focused on Physical Therapy clinic automation.
 
@@ -18,6 +16,7 @@ AI-powered optimization engine for HubSpot portals, focused on Physical Therapy 
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - A [Gemini API Key](https://ai.google.dev/)
 - HubSpot Developer Account (for OAuth) or Private App Token
@@ -30,28 +29,32 @@ npm install
 
 ### Environment Setup
 
-1. Copy the example env files:
+Copy the example env files:
+
 ```bash
 cp .env.example .env.local
 cp server/.env.example server/.env
 ```
 
-2. Add your Gemini API key to `.env.local`:
-```
+Add your Gemini API key to `.env.local`:
+
+```text
 GEMINI_API_KEY=your-gemini-api-key
-VITE_SERVER_URL=http://localhost:3001
+VITE_SERVER_URL=http://localhost:8080
 ```
 
 ### Running the App
 
-**Start both frontend and backend:**
+Start both frontend and backend:
+
 ```bash
 npm run dev:all
 ```
 
 Or run them separately:
+
 ```bash
-# Terminal 1: Backend server (port 3001)
+# Terminal 1: Backend server (port 8080)
 npm run dev:server
 
 # Terminal 2: Frontend (port 3000)
@@ -60,19 +63,21 @@ npm run dev
 
 ### Connecting to HubSpot
 
-**Option A: OAuth (Recommended)**
+#### Option A: OAuth (Recommended)
+
 1. Create an app in your [HubSpot Developer Account](https://developers.hubspot.com/)
 2. Add `http://localhost:3000` as a redirect URI
 3. Copy Client ID and Secret to the Settings modal in the app
 4. Click "Connect" to authorize
 
-**Option B: Private App Token**
+#### Option B: Private App Token
+
 1. Create a [Private App](https://knowledge.hubspot.com/integrations/private-apps) in your HubSpot portal
 2. Enter the token (starts with `pat-...`) in the Settings modal
 
 ## Architecture
 
-```
+```text
 Frontend (Vite + React)     Backend (Express)         HubSpot API
        │                          │                        │
        │  ──── API calls ────►    │  ──── Proxy ────►      │

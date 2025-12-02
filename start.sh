@@ -21,7 +21,7 @@ pkill -f "node.*server/index.js" 2>/dev/null
 pkill -f "vite" 2>/dev/null
 
 # Start backend server
-echo "📦 Starting backend server on port 3001..."
+echo "📦 Starting backend server on port 8080..."
 cd server && npm run dev &
 BACKEND_PID=$!
 cd ..
@@ -41,10 +41,10 @@ echo ""
 # Detect URLs
 if [ -n "$CODESPACE_NAME" ]; then
     echo "🔗 Frontend: https://${CODESPACE_NAME}-3000.app.github.dev"
-    echo "🔗 Backend:  https://${CODESPACE_NAME}-3001.app.github.dev"
+    echo "🔗 Backend:  https://${CODESPACE_NAME}-8080.app.github.dev"
 else
     echo "🔗 Frontend: http://localhost:3000"
-    echo "🔗 Backend:  http://localhost:3001"
+    echo "🔗 Backend:  http://localhost:8080"
 fi
 
 echo ""

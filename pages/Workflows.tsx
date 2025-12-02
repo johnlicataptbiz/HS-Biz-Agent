@@ -23,10 +23,19 @@ const Workflows: React.FC = () => {
     if (token) {
       try {
         const realData = await hubSpotService.fetchWorkflows();
-        setWorkflows(realData.length > 0 ? realData : []);
-        setSource('hubspot');
+        if (realData.length > 0) {
+          setWorkflows(realData);
+          setSource('hubspot');
+        } else {
+          // No workflows found in HubSpot - fall back to demo
+          console.log('No workflows returned from HubSpot, using demo data');
+          const mockData = await getWorkflows();
+          setWorkflows(mockData);
+          setSource('demo');
+        }
       } catch (e) {
-        // Fallback
+        // API error - Fallback to demo
+        console.error('Workflow fetch failed:', e);
         const mockData = await getWorkflows();
         setWorkflows(mockData);
         setSource('demo');
@@ -174,6 +183,7 @@ const Workflows: React.FC = () => {
         contextType="workflow"
         contextId={selectedWf?.id}
         contextName={selectedWf?.name}
+        initialPrompt={selectedWf ? `Analyze the "${selectedWf.name}" workflow (ID: ${selectedWf.id}). It currently has ${selectedWf.enrolledCount} enrollments and an AI score of ${selectedWf.aiScore}/100. ${selectedWf.issues.length > 0 ? `Known issues: ${selectedWf.issues.join(', ')}.` : ''} Suggest optimizations to improve conversion and reduce drop-off.` : ''}
       />
       
       <AiModal 

@@ -39,6 +39,14 @@ const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID;
 const HUBSPOT_CLIENT_SECRET = process.env.HUBSPOT_CLIENT_SECRET;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+const REQUIRED_ENV_VARS = ['HUBSPOT_CLIENT_ID', 'HUBSPOT_CLIENT_SECRET'];
+const missingEnvVars = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
+
+if (missingEnvVars.length) {
+  console.error('Missing required HubSpot OAuth env vars:', missingEnvVars.join(', '));
+  throw new Error('HubSpot OAuth credentials must be configured on the server');
+}
+
 // Check if dist folder exists
 const distPath = path.join(__dirname, '../dist');
 const distExists = fs.existsSync(distPath);
@@ -260,7 +268,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    distAvailable: distExists
+    distAvailable: distExists,
+    configured: true
   });
   console.log('Health check response sent');
 });
@@ -334,17 +343,6 @@ app.post('/api/oauth/refresh', async (req, res) => {
 });
 
 // ============================================================
-// Health Check
-// ============================================================
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    configured: !!(HUBSPOT_CLIENT_ID && HUBSPOT_CLIENT_SECRET)
-  });
-});
-
-// ============================================================
 // HubSpot API Proxy
 // ============================================================
 app.all('/api/hubspot/*', async (req, res) => {
@@ -396,8 +394,14 @@ app.get('/api/tools/list-workflows', async (req, res) => {
   
   try {
     const data = await hubspotRequest('/automation/v4/flows', token);
-    res.json(data);
+    console.log('Workflow API response:', JSON.stringify(data).substring(0, 500));
+    // Normalize response - v4 API returns { flows: [...] }
+    res.json({ 
+      workflows: data.flows || data.results || [],
+      total: data.total || (data.flows?.length) || 0
+    });
   } catch (error) {
+    console.error('Workflow fetch error:', error);
     res.status(error.status || 500).json(error.error || { error: 'Failed to list workflows' });
   }
 });
@@ -412,6 +416,19 @@ app.get('/api/tools/get-workflow/:id', async (req, res) => {
     res.json(data);
   } catch (error) {
     res.status(error.status || 500).json(error.error || { error: 'Failed to get workflow' });
+  }
+});
+
+// List sequences
+app.get('/api/tools/list-sequences', async (req, res) => {
+  const token = getToken(req);
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  
+  try {
+    const data = await hubspotRequest('/automation/v1/sequences', token);
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json(error.error || { error: 'Failed to list sequences' });
   }
 });
 
@@ -476,6 +493,165 @@ app.get('/api/tools/get-schemas', async (req, res) => {
     res.json(data);
   } catch (error) {
     res.status(error.status || 500).json(error.error || { error: 'Failed to get schemas' });
+  }
+});
+
+// ============================================================
+// AI Endpoints (Server-side Gemini calls)
+// ============================================================
+
+const PT_BIZ_SYSTEM_INSTRUCTION = `
+You are the "HubSpot AI Optimizer" for PT Biz.
+Your goal is to optimize HubSpot portals for Physical Therapy clinics using a "Cash-Based" or "Hybrid" business model.
+
+**ARCHITECTURE: MODEL CONTEXT PROTOCOL (MCP)**
+You are operating within an MCP architecture. You have access to "Tools" that can fetch real data from the HubSpot portal.
+- **DO NOT** hallucinate workflow names or data properties if you haven't fetched them yet.
+- **DO** use the toolCalls field to request data when the user asks for an audit, check, or list.
+- **Tools Available:**
+  1. list_workflows: Use this to check automation health.
+  2. audit_data_schema: Use this to check data model cleanliness.
+  3. list_sequences: Use this for sales outreach analysis.
+  4. get_breeze_tools: Use this to see existing custom tools.
+
+**Domain Knowledge:**
+- **Metrics:** Focus on "Revenue per Visit", "NPS", and "Discovery Call" conversion.
+- **Strategy:** Move clients from "Owner-Operator" to "CEO". Automate "New Lead Nurture" and "Reactivation".
+
+**Behavior:**
+- If the user asks for data that lives in the portal (workflows, properties, sequences), USE A TOOL CALL.
+- Do not act like you know the data unless you have called the tool.
+- If the user asks to "Create" or "Draft" something new, use the 'action' field to open the modal.
+- Tone: Tactical, direct, authoritative.
+`;
+
+// AI: Generate Optimization
+app.post('/api/ai/optimize', async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(503).json({ error: 'Gemini API key not configured' });
+  }
+
+  const { prompt, contextType, contextId } = req.body;
+  if (!prompt) {
+    return res.status(400).json({ error: 'Missing prompt' });
+  }
+
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `${PT_BIZ_SYSTEM_INSTRUCTION}
+
+Context Type: ${contextType || 'general'}
+Context ID: ${contextId || 'New/General'}
+User Request: ${prompt}
+
+Generate a specific optimization or creation plan for this request based on PT Biz best practices.
+If contextType is 'breeze_tool', generate a JSON definition suitable for a HubSpot App 'workflow-action-tool'.
+
+Respond with valid JSON matching this schema:
+{
+  "specType": "workflow_spec" | "sequence_spec" | "property_migration_spec" | "breeze_tool_spec",
+  "spec": { "name": "string", "focus": "string", "steps": [], "actions": [] },
+  "analysis": "Strategic explanation of WHY this optimization helps a PT business",
+  "diff": ["List of specific changes"]
+}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('Gemini API error:', data);
+      return res.status(500).json({ error: 'AI generation failed', details: data });
+    }
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      return res.status(500).json({ error: 'No response from AI' });
+    }
+
+    res.json(JSON.parse(text));
+  } catch (error) {
+    console.error('AI Optimize Error:', error);
+    res.status(500).json({ 
+      specType: 'workflow_spec',
+      spec: { name: 'Error Fallback' },
+      analysis: 'I encountered an error while processing your request. Please try again.',
+      diff: ['Retry Request']
+    });
+  }
+});
+
+// AI: Chat Response
+app.post('/api/ai/chat', async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(503).json({ error: 'Gemini API key not configured' });
+  }
+
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Missing message' });
+  }
+
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `${PT_BIZ_SYSTEM_INSTRUCTION}
+
+User Message: ${message}
+
+Respond with valid JSON matching this schema:
+{
+  "text": "Conversational response to the user",
+  "suggestions": ["3-4 short follow-up options"],
+  "toolCalls": [{"name": "tool_name", "arguments": {}}],
+  "action": {"type": "OPEN_MODAL", "payload": {"contextType": "workflow", "initialPrompt": ""}}
+}
+
+Only include toolCalls if the user asks to audit/check existing portal data.
+Only include action if the user asks to create/draft something new.`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('Gemini API error:', data);
+      return res.status(500).json({ error: 'AI chat failed', details: data });
+    }
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      return res.status(500).json({ error: 'No response from AI' });
+    }
+
+    res.json(JSON.parse(text));
+  } catch (error) {
+    console.error('AI Chat Error:', error);
+    res.status(500).json({ 
+      text: "I'm having trouble connecting right now. Please try again.",
+      suggestions: ["Retry"]
+    });
   }
 });
 
