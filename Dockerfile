@@ -5,11 +5,9 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY server/package*.json ./server/
 
-# Install dependencies
+# Install dependencies (includes express, cors, dotenv)
 RUN npm ci
-RUN cd server && npm ci
 
 # Copy source
 COPY . .
@@ -22,14 +20,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy server and built frontend
+# Copy node_modules from builder (has all deps including express)
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copy server code
 COPY --from=builder /app/server ./server
+
+# Copy built frontend
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server/node_modules ./server/node_modules
 
 # Set production environment
 ENV NODE_ENV=production
 
-# Don't specify PORT - Railway sets it automatically to 8080
-
+# Railway sets PORT=8080 automatically
 CMD ["node", "server/server.js"]
