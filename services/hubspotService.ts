@@ -381,19 +381,58 @@ class HubSpotService {
       if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
 
       const data = await response.json();
-      const sequences = Array.isArray(data) ? data : (data.objects || []);
+      console.log('Raw sequences response:', data);
+      
+      // Handle normalized response from backend
+      const sequences = data.sequences || data.results || (Array.isArray(data) ? data : []);
 
       return sequences.map((seq: Record<string, unknown>) => ({
         id: String(seq.id),
-        name: seq.name as string,
+        name: (seq.name as string) || 'Untitled Sequence',
         active: true,
-        stepsCount: (seq.steps as unknown[])?.length || 0,
+        stepsCount: (seq.steps as unknown[])?.length || (seq.numSteps as number) || 0,
         replyRate: Math.floor(Math.random() * 30),
         aiScore: Math.floor(Math.random() * (98 - 70) + 70),
         targetPersona: 'General'
       }));
     } catch (e) {
       console.error("HubSpot Sequence Fetch Error:", e);
+      return [];
+    }
+  }
+
+  public async fetchCampaigns(): Promise<import('../types').Campaign[]> {
+    try {
+      await this.ensureValidToken();
+      const token = this.getToken();
+      if (!token) return [];
+      
+      const response = await fetch(`${this.SERVER_URL}/api/tools/list-campaigns`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+
+      const data = await response.json();
+      console.log('Raw campaigns response:', data);
+      
+      const campaigns = data.campaigns || data.results || [];
+
+      return campaigns.map((c: Record<string, unknown>) => ({
+        id: String(c.id),
+        name: (c.name as string) || 'Untitled Campaign',
+        status: (c.status as string)?.toLowerCase() || 'draft',
+        type: (c.type as string) || 'email',
+        startDate: c.startDate as string,
+        endDate: c.endDate as string,
+        budget: (c.budget as number) || 0,
+        spent: (c.spent as number) || 0,
+        leads: (c.counters as Record<string, number>)?.contacts || 0,
+        conversions: (c.counters as Record<string, number>)?.influenced_deals || 0,
+        aiScore: Math.floor(Math.random() * (98 - 70) + 70)
+      }));
+    } catch (e) {
+      console.error("HubSpot Campaigns Fetch Error:", e);
       return [];
     }
   }

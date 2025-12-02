@@ -66,9 +66,15 @@ Tokens stored in localStorage. OAuth flow handled in `App.tsx` via `postMessage`
 
 ## Domain Context
 
-The AI system prompt (`PT_BIZ_SYSTEM_INSTRUCTION` in `aiService.ts`) encodes PT clinic domain knowledge. When modifying AI behavior, preserve:
-- Focus metrics: Revenue per Visit, NPS, Discovery Call conversion
-- Key automations: New Lead Nurture, Reactivation campaigns
+**PT Biz Business Model:**
+- PT Biz is a coaching company that sells coaching programs to Physical Therapy clinic owners
+- Contacts in HubSpot = PT clinic owners who are prospects or coaching clients
+- The app helps PT Biz employees optimize their sales/marketing HubSpot portal
+
+The AI system prompt (`PT_BIZ_SYSTEM_INSTRUCTION` in server files) encodes this domain knowledge. When modifying AI behavior, preserve:
+- Key metrics: Discovery Call booking rate, Coaching enrollment rate, Client retention, NPS, Referrals
+- Sales lifecycle: Lead → Discovery Call → Coaching Client → Renewal/Referral
+- Lead sources: Webinars, podcasts, referrals, paid ads targeting PT owners
 
 ## Deployment
 

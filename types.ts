@@ -45,6 +45,20 @@ export interface BreezeTool {
   aiScore: number;
 }
 
+export interface Campaign {
+  id: string;
+  name: string;
+  status: 'active' | 'paused' | 'draft' | 'completed';
+  type: string;
+  startDate?: string;
+  endDate?: string;
+  budget?: number;
+  spent?: number;
+  leads: number;
+  conversions: number;
+  aiScore: number;
+}
+
 export interface Metric {
   label: string;
   value: string | number;

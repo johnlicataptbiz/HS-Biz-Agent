@@ -419,16 +419,41 @@ app.get('/api/tools/get-workflow/:id', async (req, res) => {
   }
 });
 
-// List sequences
+// List sequences (v3 API)
 app.get('/api/tools/list-sequences', async (req, res) => {
   const token = getToken(req);
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
   
   try {
-    const data = await hubspotRequest('/automation/v1/sequences', token);
-    res.json(data);
+    // Try v3 sequences API first
+    const data = await hubspotRequest('/automation/v3/sequences', token);
+    console.log('Sequences API response:', JSON.stringify(data).substring(0, 500));
+    res.json({
+      sequences: data.results || data.sequences || [],
+      total: data.total || (data.results?.length) || 0
+    });
   } catch (error) {
-    res.status(error.status || 500).json(error.error || { error: 'Failed to list sequences' });
+    console.error('Sequences fetch error:', error);
+    // Return empty array instead of error for graceful degradation
+    res.json({ sequences: [], total: 0, error: error.message });
+  }
+});
+
+// List marketing campaigns
+app.get('/api/tools/list-campaigns', async (req, res) => {
+  const token = getToken(req);
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  
+  try {
+    const data = await hubspotRequest('/marketing/v3/campaigns', token);
+    console.log('Campaigns API response:', JSON.stringify(data).substring(0, 500));
+    res.json({
+      campaigns: data.results || data.campaigns || [],
+      total: data.total || (data.results?.length) || 0
+    });
+  } catch (error) {
+    console.error('Campaigns fetch error:', error);
+    res.json({ campaigns: [], total: 0, error: error.message });
   }
 });
 
@@ -501,8 +526,13 @@ app.get('/api/tools/get-schemas', async (req, res) => {
 // ============================================================
 
 const PT_BIZ_SYSTEM_INSTRUCTION = `
-You are the "HubSpot AI Optimizer" for PT Biz.
-Your goal is to optimize HubSpot portals for Physical Therapy clinics using a "Cash-Based" or "Hybrid" business model.
+You are the "HubSpot AI Optimizer" for PT Biz employees.
+
+**ABOUT PT BIZ:**
+PT Biz is a coaching company that helps Physical Therapy clinic owners grow their practices.
+- **Our Customers:** PT clinic owners who buy our coaching programs
+- **Our Goal:** Convert leads (PT owners) into coaching clients, retain them, and drive referrals
+- **Our Sales Process:** Discovery calls → Coaching enrollment → Ongoing success management
 
 **ARCHITECTURE: MODEL CONTEXT PROTOCOL (MCP)**
 You are operating within an MCP architecture. You have access to "Tools" that can fetch real data from the HubSpot portal.
@@ -515,14 +545,17 @@ You are operating within an MCP architecture. You have access to "Tools" that ca
   4. get_breeze_tools: Use this to see existing custom tools.
 
 **Domain Knowledge:**
-- **Metrics:** Focus on "Revenue per Visit", "NPS", and "Discovery Call" conversion.
-- **Strategy:** Move clients from "Owner-Operator" to "CEO". Automate "New Lead Nurture" and "Reactivation".
+- **Key Metrics:** Discovery Call booking rate, Coaching enrollment rate, Client retention, NPS, Referral rate
+- **Lead Sources:** Webinars, podcasts, referrals, paid ads targeting PT owners
+- **Sales Sequences:** Nurture PT owners toward booking discovery calls
+- **Lifecycle:** Lead → Discovery Call Booked → Coaching Client → Renewal/Referral
+- **Ideal Customer Profile:** PT clinic owners doing $500K-$2M revenue, want to scale or exit operations
 
 **Behavior:**
 - If the user asks for data that lives in the portal (workflows, properties, sequences), USE A TOOL CALL.
 - Do not act like you know the data unless you have called the tool.
 - If the user asks to "Create" or "Draft" something new, use the 'action' field to open the modal.
-- Tone: Tactical, direct, authoritative.
+- Tone: Tactical, direct, authoritative. You're helping PT Biz employees optimize their sales & marketing.
 `;
 
 // AI: Generate Optimization

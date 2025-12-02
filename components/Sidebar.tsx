@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, GitFork, Mail, Database, Settings, BrainCircuit, Bot, Hammer, Zap, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, GitFork, Mail, Database, Settings, BrainCircuit, Bot, Hammer, Zap, ChevronRight, Megaphone } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
 
 interface SidebarProps {
@@ -21,6 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
     { id: 'copilot', label: 'Co-Pilot', icon: Bot, description: 'AI assistant', badge: 'AI' },
     { id: 'workflows', label: 'Workflows', icon: GitFork, description: 'Automations' },
     { id: 'sequences', label: 'Sequences', icon: Mail, description: 'Sales outreach' },
+    { id: 'campaigns', label: 'Campaigns', icon: Megaphone, description: 'Marketing' },
     { id: 'datamodel', label: 'Data Model', icon: Database, description: 'CRM schema' },
     { id: 'breezetools', label: 'Breeze Tools', icon: Hammer, description: 'Custom actions', badge: 'Beta' },
   ];

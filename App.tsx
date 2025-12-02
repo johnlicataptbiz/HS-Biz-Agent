@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Workflows from './pages/Workflows';
 import Sequences from './pages/Sequences';
+import Campaigns from './pages/Campaigns';
 import DataModel from './pages/DataModel';
 import BreezeTools from './pages/BreezeTools';
 import CoPilot from './pages/CoPilot';
@@ -93,6 +94,7 @@ const App: React.FC = () => {
       case 'copilot': return <CoPilot />;
       case 'workflows': return <Workflows />;
       case 'sequences': return <Sequences />;
+      case 'campaigns': return <Campaigns />;
       case 'datamodel': return <DataModel />;
       case 'breezetools': return <BreezeTools />;
       default: return <Dashboard onNavigate={setActiveTab} />;
