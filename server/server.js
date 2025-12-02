@@ -55,6 +55,12 @@ console.log(`  - distExists: ${distExists}`);
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
+// Request logging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  next();
+});
+
 // Serve static files from the built frontend (if exists)
 if (distExists) {
   console.log('Serving static files from:', distPath);
