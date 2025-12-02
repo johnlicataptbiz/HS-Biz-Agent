@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, TrendingUp, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, TrendingUp, MoreHorizontal, Loader2, Sparkles, ArrowRight } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
 import * as mockService from '../services/mockService';
 
@@ -98,31 +98,33 @@ const Dashboard: React.FC = () => {
     { name: 'Segments', score: stats.dealCount > 0 ? 88 : 60, color: '#8b5cf6' },
   ];
 
-  const StatCard = ({ title, value, sub, icon: Icon, colorClass, trend }: {
+  const StatCard = ({ title, value, sub, icon: Icon, gradient, trend }: {
     title: string;
     value: number | string;
     sub: string;
     icon: React.ElementType;
-    colorClass: string;
+    gradient: string;
     trend?: boolean;
   }) => {
-    const baseColor = colorClass.split('-')[1]; 
-    
     return (
-      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-lg transition-all duration-300 relative overflow-hidden group">
-        <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${baseColor}-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500 ease-out`}></div>
+      <div className="group relative bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 overflow-hidden">
+        {/* Gradient accent line */}
+        <div className={`absolute top-0 left-0 right-0 h-1 ${gradient}`} />
         
-        <div className="relative z-10">
+        {/* Background decoration */}
+        <div className={`absolute -right-8 -top-8 w-32 h-32 ${gradient} opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity duration-500`} />
+        
+        <div className="relative p-6">
           <div className="flex justify-between items-start mb-4">
-             <div className={`p-3 rounded-xl bg-${baseColor}-50 text-${baseColor}-600`}>
-               <Icon size={24} />
-             </div>
-             {trend && (
-               <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full text-xs font-semibold">
-                 <TrendingUp size={12} />
-                 <span>+4%</span>
-               </div>
-             )}
+            <div className={`p-3 rounded-xl ${gradient} shadow-lg`}>
+              <Icon size={22} className="text-white" />
+            </div>
+            {trend && (
+              <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-xs font-semibold border border-emerald-100">
+                <TrendingUp size={12} />
+                <span>+4%</span>
+              </div>
+            )}
           </div>
           
           <div>
@@ -132,9 +134,9 @@ const Dashboard: React.FC = () => {
             <p className="text-sm font-medium text-slate-500 mt-1">{title}</p>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${colorClass}`}></div>
+          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
             <p className="text-xs text-slate-400 font-medium">{sub}</p>
+            <ArrowUpRight size={14} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
           </div>
         </div>
       </div>
@@ -143,26 +145,39 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Header Section */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Portal Overview</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">
+            Portal Overview
+          </h1>
           <p className="text-slate-500 mt-2 text-lg">Real-time optimization analysis of your HubSpot instance.</p>
         </div>
-        <div className={`border shadow-sm px-4 py-2 rounded-full flex items-center gap-2 ${isConnected ? 'bg-white border-slate-200' : 'bg-amber-50 border-amber-200'}`}>
-            <div className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></div>
-            <span className="text-sm font-semibold text-slate-700">
-              {isConnected ? 'Connected to HubSpot' : 'Using Demo Data'}
-            </span>
+        <div className={`px-4 py-2.5 rounded-xl flex items-center gap-3 ${
+          isConnected 
+            ? 'bg-white border border-slate-200 shadow-sm' 
+            : 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200'
+        }`}>
+          <div className="relative">
+            <div className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+            {isConnected && (
+              <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+            )}
+          </div>
+          <span className="text-sm font-semibold text-slate-700">
+            {isConnected ? 'Connected to HubSpot' : 'Using Demo Data'}
+          </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Overall Health Score" 
           value={stats.healthScore} 
           sub={stats.healthScore >= 70 ? "Top 15% of portals" : "Room for improvement"} 
           icon={Activity} 
-          colorClass="bg-indigo-600" 
+          gradient="bg-gradient-to-r from-indigo-500 to-purple-600" 
           trend={stats.healthScore >= 70}
         />
         <StatCard 
@@ -170,14 +185,14 @@ const Dashboard: React.FC = () => {
           value={stats.workflowCount} 
           sub={stats.workflowCount > 0 ? `${Math.max(0, stats.workflowCount - 3)} optimized` : "No workflows yet"} 
           icon={Zap} 
-          colorClass="bg-amber-500" 
+          gradient="bg-gradient-to-r from-amber-500 to-orange-500" 
         />
         <StatCard 
           title="Active Sequences" 
           value={stats.sequenceCount} 
           sub="12.4% avg reply rate" 
           icon={CheckCircle} 
-          colorClass="bg-emerald-500" 
+          gradient="bg-gradient-to-r from-emerald-500 to-teal-500" 
           trend={stats.sequenceCount > 5}
         />
         <StatCard 
@@ -185,87 +200,92 @@ const Dashboard: React.FC = () => {
           value={stats.pendingIssues} 
           sub={stats.pendingIssues > 0 ? "Requires attention" : "All clear!"} 
           icon={AlertTriangle} 
-          colorClass="bg-rose-500" 
+          gradient="bg-gradient-to-r from-rose-500 to-pink-500" 
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Chart Section */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-          <div className="mb-8 flex justify-between items-center">
-             <div>
-                <h3 className="text-lg font-bold text-slate-900">Health Breakdown</h3>
-                <p className="text-sm text-slate-500">Optimization scores by category</p>
-             </div>
-             <button className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-600">
-               <MoreHorizontal size={20} />
-             </button>
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Health Breakdown</h3>
+              <p className="text-sm text-slate-500">Optimization scores by category</p>
+            </div>
+            <button className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-slate-600 transition-colors">
+              <MoreHorizontal size={20} />
+            </button>
           </div>
-          <div className="flex-1 min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={healthData} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                <XAxis type="number" domain={[0, 100]} hide />
-                <YAxis 
+          <div className="p-6">
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={healthData} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                  <XAxis type="number" domain={[0, 100]} hide />
+                  <YAxis 
                     dataKey="name" 
                     type="category" 
                     width={100} 
                     tick={{ fontSize: 13, fill: '#64748b', fontWeight: 500 }} 
                     axisLine={false} 
                     tickLine={false} 
-                />
-                <Tooltip 
+                  />
+                  <Tooltip 
                     cursor={{fill: '#f8fafc'}}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar dataKey="score" radius={[0, 6, 6, 0]} barSize={32}>
-                  {healthData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)' }}
+                    labelStyle={{ fontWeight: 600 }}
+                  />
+                  <Bar dataKey="score" radius={[0, 8, 8, 0]} barSize={28}>
+                    {healthData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
         {/* Action List */}
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="mb-6 flex justify-between items-center">
-             <div>
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600">
+                <Sparkles size={16} className="text-white" />
+              </div>
+              <div>
                 <h3 className="text-lg font-bold text-slate-900">Priority Actions</h3>
-                <p className="text-sm text-slate-500">Suggested optimizations</p>
-             </div>
+                <p className="text-sm text-slate-500">AI-suggested optimizations</p>
+              </div>
+            </div>
           </div>
           
-          <div className="space-y-3">
+          <div className="p-4 space-y-2">
             {[
-              { label: 'Optimize "Abandoned Cart" Flow', impact: 'High', type: 'Auto', time: '5m' },
-              { label: 'Merge "Niche" properties', impact: 'Med', type: 'Data', time: '10m' },
-              { label: 'Update "Cold Outreach" Copy', impact: 'Med', type: 'Sales', time: '2m' },
-              { label: 'Fix broken branch in "Webinar"', impact: 'Crit', type: 'Auto', time: '1m' },
+              { label: 'Optimize "Abandoned Cart" Flow', impact: 'High', type: 'Auto', time: '5m', color: 'from-indigo-500 to-purple-500' },
+              { label: 'Merge "Niche" properties', impact: 'Med', type: 'Data', time: '10m', color: 'from-amber-500 to-orange-500' },
+              { label: 'Update "Cold Outreach" Copy', impact: 'Med', type: 'Sales', time: '2m', color: 'from-emerald-500 to-teal-500' },
+              { label: 'Fix broken branch in "Webinar"', impact: 'Crit', type: 'Auto', time: '1m', color: 'from-rose-500 to-pink-500' },
             ].map((item, i) => (
-              <div key={i} className="group flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/50 transition-all cursor-pointer">
-                <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm
-                        ${item.type === 'Auto' ? 'bg-indigo-100 text-indigo-700' : 
-                          item.type === 'Data' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {item.type.charAt(0)}
-                    </div>
-                    <div>
-                        <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-900 block">{item.label}</span>
-                        <span className="text-xs text-slate-400 group-hover:text-indigo-400">{item.time} est.</span>
-                    </div>
+              <div key={i} className="group flex items-center gap-3 p-3 rounded-xl border border-transparent hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white font-bold text-xs shadow-lg`}>
+                  {item.type.charAt(0)}
                 </div>
-                <div>
-                   <ArrowUpRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 block truncate">{item.label}</span>
+                  <span className="text-xs text-slate-400">{item.time} est. • {item.impact} impact</span>
                 </div>
+                <ArrowRight size={14} className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
               </div>
             ))}
           </div>
           
-          <button className="w-full mt-6 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
-            View All Recommendations
-          </button>
+          <div className="p-4 border-t border-slate-100">
+            <button className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2">
+              View All Recommendations
+              <ArrowRight size={14} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

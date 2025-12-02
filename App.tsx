@@ -100,7 +100,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-indigo-50/30 flex">
       {/* Sidebar */}
       <Sidebar 
         activeTab={activeTab} 
@@ -109,14 +109,21 @@ const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 ml-64">
+      <div className="flex-1 ml-72">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-slate-200 sticky top-0 z-30 px-8 flex items-center justify-between">
-            <div className="font-bold text-slate-800 capitalize">
-              {activeTab.replace(/([A-Z])/g, ' $1').trim()}
-            </div>
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/50 sticky top-0 z-30 px-8 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse" />
+              <span className="font-semibold text-slate-800 capitalize">
+                {activeTab === 'datamodel' ? 'Data Model' : activeTab === 'breezetools' ? 'Breeze Tools' : activeTab === 'copilot' ? 'Co-Pilot' : activeTab}
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/80 text-xs text-slate-500">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                All systems operational
+              </div>
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-indigo-500/25">
                 JD
               </div>
             </div>
