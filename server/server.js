@@ -400,7 +400,7 @@ process.on('unhandledRejection', (err) => {
 
 // Start server - bind to 0.0.0.0 for container environments
 const HOST = '0.0.0.0';
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`🚀 HubSpot AI Optimizer running on ${HOST}:${PORT}`);
   console.log(`   App URL: ${getAppUrl()}`);
   console.log(`   HubSpot App: ${HUBSPOT_CLIENT_ID ? 'Configured ✓' : 'Missing CLIENT_ID ✗'}`);
@@ -413,4 +413,18 @@ app.listen(PORT, HOST, () => {
   } else {
     console.log('   Static files: Missing ✗ - dist folder not found at', distPath);
   }
+});
+
+// Keep server running and log every 30 seconds
+setInterval(() => {
+  console.log(`[${new Date().toISOString()}] Server still running on port ${PORT}`);
+}, 30000);
+
+// Handle server errors
+server.on('error', (err) => {
+  console.error('Server error:', err);
+});
+
+server.on('close', () => {
+  console.log('Server closed');
 });
