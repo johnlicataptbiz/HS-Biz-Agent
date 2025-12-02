@@ -31,7 +31,7 @@ const getAppUrl = () => {
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  return process.env.APP_URL || 'http://localhost:3000';
+  return process.env.APP_URL || 'http://localhost:8080';
 };
 
 // HubSpot App credentials (set in Railway environment variables)
