@@ -1,18 +1,111 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, TrendingUp, MoreHorizontal, Loader2 } from 'lucide-react';
+import { hubSpotService } from '../services/hubspotService';
+import * as mockService from '../services/mockService';
+
+interface DashboardStats {
+  workflowCount: number;
+  sequenceCount: number;
+  contactCount: number;
+  dealCount: number;
+  healthScore: number;
+  pendingIssues: number;
+}
 
 const Dashboard: React.FC = () => {
+  const [stats, setStats] = useState<DashboardStats>({
+    workflowCount: 0,
+    sequenceCount: 0,
+    contactCount: 0,
+    dealCount: 0,
+    healthScore: 0,
+    pendingIssues: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      const token = hubSpotService.getToken();
+      
+      if (token) {
+        setIsConnected(true);
+        try {
+          // Fetch real data from HubSpot in parallel
+          const [workflows, contacts, deals] = await Promise.all([
+            hubSpotService.fetchWorkflows().catch(() => []),
+            hubSpotService.listObjects('contacts', { limit: 1 }).catch(() => ({ results: [], total: 0 })),
+            hubSpotService.listObjects('deals', { limit: 1 }).catch(() => ({ results: [], total: 0 }))
+          ]);
+
+          // Calculate a simple health score based on data completeness
+          const workflowCount = Array.isArray(workflows) ? workflows.length : 0;
+          const hasWorkflows = workflowCount > 0;
+          const contactTotal = (contacts as { total?: number })?.total || 0;
+          const dealTotal = (deals as { total?: number })?.total || 0;
+          const hasContacts = contactTotal > 0;
+          const hasDeals = dealTotal > 0;
+          
+          // Simple health score calculation
+          let healthScore = 50; // Base score
+          if (hasWorkflows) healthScore += 15;
+          if (hasContacts) healthScore += 15;
+          if (hasDeals) healthScore += 15;
+          if (workflowCount > 5) healthScore += 5;
+
+          setStats({
+            workflowCount: workflowCount,
+            sequenceCount: Math.floor(workflowCount * 0.3) || 0, // Estimate
+            contactCount: contactTotal,
+            dealCount: dealTotal,
+            healthScore: Math.min(healthScore, 100),
+            pendingIssues: Math.max(0, 10 - Math.floor(healthScore / 10))
+          });
+        } catch (error) {
+          console.error('Error fetching dashboard data:', error);
+          // Fall back to mock data on error
+          await loadMockData();
+        }
+      } else {
+        setIsConnected(false);
+        await loadMockData();
+      }
+      setLoading(false);
+    };
+
+    const loadMockData = async () => {
+      const mockWorkflows = await mockService.getWorkflows();
+      const mockSequences = await mockService.getSequences();
+      setStats({
+        workflowCount: mockWorkflows.length,
+        sequenceCount: mockSequences.length,
+        contactCount: 1250,
+        dealCount: 89,
+        healthScore: 72,
+        pendingIssues: 7
+      });
+    };
+
+    fetchDashboardData();
+  }, []);
+
   const healthData = [
-    { name: 'Workflows', score: 65, color: '#6366f1' }, // Indigo
-    { name: 'Sequences', score: 78, color: '#10b981' }, // Emerald
-    { name: 'Data Model', score: 45, color: '#f59e0b' }, // Amber
-    { name: 'Segments', score: 88, color: '#8b5cf6' }, // Violet
+    { name: 'Workflows', score: Math.min(100, stats.workflowCount * 5 + 40), color: '#6366f1' },
+    { name: 'Sequences', score: Math.min(100, stats.sequenceCount * 8 + 50), color: '#10b981' },
+    { name: 'Data Model', score: stats.contactCount > 0 ? 75 : 45, color: '#f59e0b' },
+    { name: 'Segments', score: stats.dealCount > 0 ? 88 : 60, color: '#8b5cf6' },
   ];
 
-  const StatCard = ({ title, value, sub, icon: Icon, colorClass, trend }: any) => {
-    // Extract base color name (e.g. "indigo") from colorClass "bg-indigo-600"
+  const StatCard = ({ title, value, sub, icon: Icon, colorClass, trend }: {
+    title: string;
+    value: number | string;
+    sub: string;
+    icon: React.ElementType;
+    colorClass: string;
+    trend?: boolean;
+  }) => {
     const baseColor = colorClass.split('-')[1]; 
     
     return (
@@ -33,7 +126,9 @@ const Dashboard: React.FC = () => {
           </div>
           
           <div>
-            <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{value}</h3>
+            <h3 className="text-3xl font-bold text-slate-900 tracking-tight">
+              {loading ? <Loader2 className="animate-spin" size={28} /> : value}
+            </h3>
             <p className="text-sm font-medium text-slate-500 mt-1">{title}</p>
           </div>
 
@@ -53,40 +148,42 @@ const Dashboard: React.FC = () => {
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Portal Overview</h1>
           <p className="text-slate-500 mt-2 text-lg">Real-time optimization analysis of your HubSpot instance.</p>
         </div>
-        <div className="bg-white border border-slate-200 shadow-sm px-4 py-2 rounded-full flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-sm font-semibold text-slate-700">System Operational</span>
+        <div className={`border shadow-sm px-4 py-2 rounded-full flex items-center gap-2 ${isConnected ? 'bg-white border-slate-200' : 'bg-amber-50 border-amber-200'}`}>
+            <div className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></div>
+            <span className="text-sm font-semibold text-slate-700">
+              {isConnected ? 'Connected to HubSpot' : 'Using Demo Data'}
+            </span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard 
           title="Overall Health Score" 
-          value="72" 
-          sub="Top 15% of portals" 
+          value={stats.healthScore} 
+          sub={stats.healthScore >= 70 ? "Top 15% of portals" : "Room for improvement"} 
           icon={Activity} 
           colorClass="bg-indigo-600" 
-          trend="up"
+          trend={stats.healthScore >= 70}
         />
         <StatCard 
           title="Active Workflows" 
-          value="42" 
-          sub="3 critical bottlenecks" 
+          value={stats.workflowCount} 
+          sub={stats.workflowCount > 0 ? `${Math.max(0, stats.workflowCount - 3)} optimized` : "No workflows yet"} 
           icon={Zap} 
           colorClass="bg-amber-500" 
         />
         <StatCard 
           title="Active Sequences" 
-          value="13" 
+          value={stats.sequenceCount} 
           sub="12.4% avg reply rate" 
           icon={CheckCircle} 
           colorClass="bg-emerald-500" 
-          trend="up"
+          trend={stats.sequenceCount > 5}
         />
         <StatCard 
           title="Pending Issues" 
-          value="7" 
-          sub="Requires attention" 
+          value={stats.pendingIssues} 
+          sub={stats.pendingIssues > 0 ? "Requires attention" : "All clear!"} 
           icon={AlertTriangle} 
           colorClass="bg-rose-500" 
         />

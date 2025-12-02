@@ -50,14 +50,27 @@ const App: React.FC = () => {
 
     window.addEventListener('message', handleMessage);
     
-    // Check if we are the popup window itself
+    // Check if we are the popup window itself OR direct redirect
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     if (code) {
-      // Send code to parent
+      // If we have an opener (popup mode), send to parent
       if (window.opener) {
-        window.opener.postMessage({ type: 'HUBSPOT_OAUTH_CODE', code }, window.location.origin);
+        window.opener.postMessage({ type: 'HUBSPOT_OAUTH_CODE', code }, '*');
         window.close();
+      } else {
+        // Direct redirect mode - handle token exchange here
+        (async () => {
+          try {
+            await hubSpotService.exchangeCodeForToken(code);
+            // Clear the code from URL and reload
+            window.history.replaceState({}, '', window.location.pathname);
+            window.location.reload();
+          } catch (error) {
+            console.error('OAuth Error:', error);
+            alert('Failed to exchange token. Check console.');
+          }
+        })();
       }
     }
 
