@@ -4,21 +4,22 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "cd server && node server.js",
+    "start": "node server/server.js",
     "dev": "vite",
     "dev:server": "cd server && npm run dev",
     "dev:all": "npm run dev & npm run dev:server",
     "build": "vite build",
-    "preview": "vite preview",
-    "server:install": "cd server && npm install",
-    "postinstall": "npm run server:install"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "lucide-react": "^0.554.0",
     "recharts": "^3.5.0",
-    "@google/genai": "latest"
+    "@google/genai": "latest",
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
