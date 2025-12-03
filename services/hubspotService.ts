@@ -30,7 +30,7 @@ class HubSpotService {
   private readonly HUBSPOT_AUTH_URL = 'https://app.hubspot.com';
   
   // Cache for server config
-  private serverConfig: { clientId: string; redirectUri: string; scopes: string[] } | null = null;
+  private serverConfig: { clientId: string; redirectUri: string; scopes: string[]; hasBreeze?: boolean } | null = null;
 
   // --- HELPER: Get headers with JWT auth ---
   
@@ -45,7 +45,7 @@ class HubSpotService {
   // --- AUTH CONFIGURATION ---
 
   // Fetch config from server
-  private async fetchServerConfig(): Promise<{ clientId: string; redirectUri: string; scopes: string[] }> {
+  private async fetchServerConfig(): Promise<{ clientId: string; redirectUri: string; scopes: string[]; hasBreeze?: boolean }> {
     if (this.serverConfig) return this.serverConfig;
     
     const response = await fetch(`${this.SERVER_URL}/api/config`);
@@ -61,7 +61,8 @@ class HubSpotService {
     this.serverConfig = {
       clientId: config.clientId,
       redirectUri: config.redirectUri || window.location.origin,
-      scopes: Array.isArray(config.scopes) ? config.scopes : []
+      scopes: Array.isArray(config.scopes) ? config.scopes : [],
+      hasBreeze: !!config.hasBreeze
     };
 
     return this.serverConfig;
@@ -73,6 +74,11 @@ class HubSpotService {
       clientSecret: '',
       redirectUri: this.serverConfig?.redirectUri || window.location.origin
     };
+  }
+
+  public async hasBreezeAgent(): Promise<boolean> {
+    const cfg = await this.fetchServerConfig();
+    return !!cfg.hasBreeze;
   }
 
   // --- OAUTH FLOW ---

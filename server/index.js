@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import * as db from './db.js';
+import { runAgentWithUserToken, upsertKnowledgeDoc } from './breeze.js';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -176,6 +177,7 @@ app.get('/api/config', (req, res) => {
     clientId: HUBSPOT_CLIENT_ID,
     redirectUri: getAppUrl(),
     hasGemini: !!GEMINI_API_KEY,
+    hasBreeze: !!process.env.BREEZE_AGENT_ID,
     scopes: scopes
   });
 });
@@ -395,6 +397,35 @@ app.post('/api/oauth/refresh', async (req, res) => {
   } catch (error) {
     console.error('OAuth refresh error:', error);
     res.status(500).json({ error: 'Token refresh failed' });
+  }
+});
+
+// ============================================================
+// Breeze Studio proxy endpoints (placeholders)
+// ============================================================
+app.post('/api/breeze/run', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { prompt, context, dryRun = true } = req.body || {};
+    const out = await runAgentWithUserToken(token, { prompt, context, dryRun });
+    if (!out.ok) return res.status(out.status || 500).json(out.data || { error: 'Agent run failed' });
+    res.json(out.data);
+  } catch (e) {
+    res.status(500).json({ error: 'Agent run error' });
+  }
+});
+
+app.post('/api/breeze/knowledge/upsert', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { title, text, tags } = req.body || {};
+    const out = await upsertKnowledgeDoc(token, { title, text, tags });
+    if (!out.ok) return res.status(out.status || 500).json(out.data || { error: 'Knowledge upsert failed' });
+    res.json(out.data);
+  } catch (e) {
+    res.status(500).json({ error: 'Knowledge upsert error' });
   }
 });
 

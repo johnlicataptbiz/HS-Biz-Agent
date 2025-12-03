@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Bot, Sparkles, ArrowRight, Zap, Database, Users, GitFork, MessageSquare, BrainCircuit } from 'lucide-react';
 import AiModal from '../components/AiModal';
+import { hubSpotService } from '../services/hubspotService';
+import { breezeService } from '../services/breezeService';
 
 interface QuickAction {
   title: string;
@@ -17,6 +19,15 @@ const CoPilot: React.FC = () => {
     contextType: 'workflow' | 'sequence' | 'data' | 'breeze_tool';
     prompt: string;
   }>({ isOpen: false, contextType: 'workflow', prompt: '' });
+  const [hasBreeze, setHasBreeze] = useState<boolean>(false);
+  const [agentLoading, setAgentLoading] = useState<boolean>(false);
+  const [agentOutput, setAgentOutput] = useState<string>('');
+
+  React.useEffect(() => {
+    (async () => {
+      try { setHasBreeze(await hubSpotService.hasBreezeAgent()); } catch { setHasBreeze(false); }
+    })();
+  }, []);
 
   const quickActions: QuickAction[] = [
     { 
@@ -59,6 +70,20 @@ const CoPilot: React.FC = () => {
       contextType: action.contextType,
       prompt: action.prompt
     });
+  };
+
+  const runAgent = async () => {
+    if (!modalState.prompt) return;
+    setAgentLoading(true);
+    setAgentOutput('');
+    try {
+      const out = (await breezeService.runAgent(modalState.prompt, { contextType: modalState.contextType }, true)) as Record<string, unknown>;
+      setAgentOutput(JSON.stringify(out, null, 2));
+    } catch (e) {
+      setAgentOutput('Agent run failed. Ensure Breeze agent is configured on the server.');
+    } finally {
+      setAgentLoading(false);
+    }
   };
 
   return (
@@ -177,6 +202,30 @@ const CoPilot: React.FC = () => {
         initialPrompt={modalState.prompt}
         contextName="Co-Pilot Action"
       />
+
+      {modalState.isOpen && hasBreeze && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur rounded-xl border border-slate-200 shadow-xl p-4 w-[90%] max-w-3xl">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Bot size={18} className="text-indigo-600" />
+              <span className="text-sm font-semibold text-slate-700">Run in HubSpot Agent (Breeze)</span>
+            </div>
+            <button
+              onClick={runAgent}
+              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold hover:from-indigo-700 hover:to-purple-700"
+              disabled={agentLoading}
+            >
+              {agentLoading ? 'Running...' : 'Dry-Run'}
+            </button>
+          </div>
+          {agentOutput && (
+            <pre className="max-h-64 overflow-auto text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-700 whitespace-pre-wrap">{agentOutput}</pre>
+          )}
+          {!agentOutput && !agentLoading && (
+            <p className="text-xs text-slate-500">Dry‑run the action with your HubSpot Agent for a preview. Execution still requires user confirmation in HubSpot.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };
