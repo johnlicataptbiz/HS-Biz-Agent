@@ -157,7 +157,7 @@ const AuthPage: React.FC = () => {
 
         {/* Footer */}
         <p className="text-center text-slate-500 text-sm mt-6">
-          Built for PT Biz coaching
+          Built by PT Biz • AI-powered HubSpot optimization
         </p>
       </div>
     </div>

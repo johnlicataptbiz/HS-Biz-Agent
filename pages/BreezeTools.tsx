@@ -202,7 +202,7 @@ const BreezeTools: React.FC = () => {
         onClose={() => setShowAi(false)} 
         contextType="breeze_tool"
         contextName="New Workflow Action"
-        initialPrompt="Draft a new HubSpot Workflow Action tool for PT clinics. Generate an app.json configuration with:\n1. A descriptive name and action URL\n2. Required input fields (contact properties, custom data)\n3. Output fields for the workflow to consume\n\nFocus on a practical use case like patient reactivation or appointment reminders."
+        initialPrompt="Draft a new HubSpot Workflow Action tool for PT Biz coaching. Generate an app.json configuration with:\n1. A descriptive name and action URL\n2. Required input fields (contact properties, custom data)\n3. Output fields for the workflow to consume\n\nFocus on practical use cases like lead nurturing, discovery call booking, or client onboarding automation."
       />
     </div>
   );
