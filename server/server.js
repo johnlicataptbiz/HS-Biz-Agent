@@ -267,6 +267,20 @@ app.post('/api/auth/login', async (req, res) => {
   });
 });
 
+// ============================================================
+// Usage tracking (basic)
+// ============================================================
+app.post('/api/usage/track', db.authMiddleware, (req, res) => {
+  try {
+    const { event, metadata } = req.body || {};
+    if (!event) return res.status(400).json({ error: 'Missing event' });
+    db.logUsage(req.user.userId, event, metadata || null);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to log usage' });
+  }
+});
+
 app.get('/api/auth/me', db.authMiddleware, (req, res) => {
   const user = db.getUserById(req.user.userId);
   if (!user) {
@@ -847,10 +861,8 @@ AVAILABLE TOOLS (use when user asks to audit/check):
 - get_breeze_tools: List custom workflow actions`;
 
 // AI: Optimize Content
-app.post('/api/ai/optimize', async (req, res) => {
-  if (!GEMINI_API_KEY) {
-    return res.status(503).json({ error: 'Gemini API key not configured' });
-  }
+app.post('/api/ai/optimize', db.authMiddleware, async (req, res) => {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
   const { content, context } = req.body;
   if (!content) {
@@ -858,41 +870,59 @@ app.post('/api/ai/optimize', async (req, res) => {
   }
 
   try {
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `${PT_BIZ_SYSTEM_INSTRUCTION}
+    if (GEMINI_API_KEY) {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `${PT_BIZ_SYSTEM_INSTRUCTION}
 
 Context: ${context || 'HubSpot automation'}
 Content to optimize: ${content}
 
 Provide specific optimization suggestions for this ${context || 'content'}.
 Format as actionable bullet points.`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1024
-        }
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024
+          }
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        console.error('Gemini API error:', data);
+        return res.status(500).json({ error: 'AI optimization failed', details: data });
+      }
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) return res.status(500).json({ error: 'No response from AI' });
+      return res.json({ suggestions: text });
+    }
+
+    if (!OPENAI_API_KEY) {
+      return res.status(503).json({ error: 'No AI provider configured' });
+    }
+    const openaiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: PT_BIZ_SYSTEM_INSTRUCTION },
+          { role: 'user', content: `Context: ${context || 'HubSpot automation'}\nContent to optimize: ${content}\n\nProvide specific optimization suggestions for this ${context || 'content'}. Format as actionable bullet points.` }
+        ]
       })
     });
-
-    const data = await response.json();
-    
-    if (!response.ok) {
-      console.error('Gemini API error:', data);
-      return res.status(500).json({ error: 'AI optimization failed', details: data });
+    const openaiJson = await openaiResp.json();
+    if (!openaiResp.ok) {
+      console.error('OpenAI error:', openaiJson);
+      return res.status(500).json({ error: 'AI optimization failed', details: openaiJson });
     }
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      return res.status(500).json({ error: 'No response from AI' });
-    }
-
-    res.json({ suggestions: text });
+    const text = openaiJson.choices?.[0]?.message?.content;
+    return res.json({ suggestions: text || '' });
   } catch (error) {
     console.error('AI Optimization Error:', error);
     res.status(500).json({ error: 'AI optimization failed' });
@@ -900,10 +930,8 @@ Format as actionable bullet points.`
 });
 
 // AI: Chat Response
-app.post('/api/ai/chat', async (req, res) => {
-  if (!GEMINI_API_KEY) {
-    return res.status(503).json({ error: 'Gemini API key not configured' });
-  }
+app.post('/api/ai/chat', db.authMiddleware, async (req, res) => {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
   const { message } = req.body;
   if (!message) {
@@ -911,13 +939,14 @@ app.post('/api/ai/chat', async (req, res) => {
   }
 
   try {
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `${PT_BIZ_SYSTEM_INSTRUCTION}
+    if (GEMINI_API_KEY) {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `${PT_BIZ_SYSTEM_INSTRUCTION}
 
 User Message: ${message}
 
@@ -931,28 +960,47 @@ Respond with valid JSON matching this schema:
 
 Only include toolCalls if the user asks to audit/check existing portal data.
 Only include action if the user asks to create/draft something new.`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          responseMimeType: "application/json"
-        }
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            responseMimeType: "application/json"
+          }
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        console.error('Gemini API error:', data);
+        return res.status(500).json({ error: 'AI chat failed', details: data });
+      }
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) return res.status(500).json({ error: 'No response from AI' });
+      return res.json(JSON.parse(text));
+    }
+
+    if (!OPENAI_API_KEY) {
+      return res.status(503).json({ error: 'No AI provider configured' });
+    }
+    const openaiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: PT_BIZ_SYSTEM_INSTRUCTION },
+          { role: 'user', content: message }
+        ]
       })
     });
-
-    const data = await response.json();
-    
-    if (!response.ok) {
-      console.error('Gemini API error:', data);
-      return res.status(500).json({ error: 'AI chat failed', details: data });
+    const openaiJson = await openaiResp.json();
+    if (!openaiResp.ok) {
+      console.error('OpenAI error:', openaiJson);
+      return res.status(500).json({ error: 'AI chat failed', details: openaiJson });
     }
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      return res.status(500).json({ error: 'No response from AI' });
-    }
-
-    res.json(JSON.parse(text));
+    const content = openaiJson.choices?.[0]?.message?.content;
+    if (!content) return res.status(500).json({ error: 'No response from AI' });
+    return res.json(JSON.parse(content));
   } catch (error) {
     console.error('AI Chat Error:', error);
     res.status(500).json({ 

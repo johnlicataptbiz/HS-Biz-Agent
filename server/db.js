@@ -30,6 +30,7 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     name TEXT,
+    role TEXT DEFAULT 'member',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -48,7 +49,27 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_connections_user ON hubspot_connections(user_id);
+
+  CREATE TABLE IF NOT EXISTS usage_events (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    event TEXT NOT NULL,
+    metadata TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 `);
+
+// Lightweight migration: ensure 'role' column exists on users (older DBs)
+try {
+  const columns = db.prepare("PRAGMA table_info(users)").all();
+  const hasRole = columns.some((c) => c.name === 'role');
+  if (!hasRole) {
+    db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'");
+  }
+} catch (e) {
+  // ignore if pragma unavailable
+}
 
 // JWT Secret (use env var in production!)
 const JWT_SECRET = process.env.JWT_SECRET || 'hs-biz-agent-dev-secret-change-in-production';
@@ -64,11 +85,11 @@ export function createUser(email, password, name = null) {
   
   try {
     const stmt = db.prepare(`
-      INSERT INTO users (id, email, password_hash, name)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO users (id, email, password_hash, name, role)
+      VALUES (?, ?, ?, ?, 'member')
     `);
     stmt.run(id, email.toLowerCase(), passwordHash, name);
-    return { id, email: email.toLowerCase(), name };
+    return { id, email: email.toLowerCase(), name, role: 'member' };
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
       throw new Error('Email already registered');
@@ -89,7 +110,7 @@ export function authenticateUser(email, password) {
 }
 
 export function getUserById(id) {
-  const stmt = db.prepare('SELECT id, email, name, created_at FROM users WHERE id = ?');
+  const stmt = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?');
   return stmt.get(id);
 }
 
@@ -204,6 +225,19 @@ export function isTokenExpired(connection) {
 
 export function closeDatabase() {
   db.close();
+}
+
+// ============================================================
+// Usage Tracking
+// ============================================================
+
+export function logUsage(userId, event, metadata = null) {
+  const id = randomUUID();
+  const stmt = db.prepare(`
+    INSERT INTO usage_events (id, user_id, event, metadata)
+    VALUES (?, ?, ?, ?)
+  `);
+  stmt.run(id, userId, event, metadata ? JSON.stringify(metadata) : null);
 }
 
 export default db;

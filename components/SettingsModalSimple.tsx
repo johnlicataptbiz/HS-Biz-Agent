@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, AlertCircle, Loader2, LogIn, LogOut, Sparkles, Key, ExternalLink } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { hubSpotService } from '../services/hubspotService';
+import { modeService } from '../services/modeService';
+import { usageService } from '../services/usageService';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -14,6 +16,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [showPatInput, setShowPatInput] = useState(false);
   const [patToken, setPatToken] = useState('');
+  const [demoMode, setDemoMode] = useState(modeService.isDemoMode());
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +47,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setConnectionStatus('checking');
     
     try {
+      await usageService.track('oauth_initiated');
       await hubSpotService.initiateOAuth();
       // OAuth will redirect, so we don't need to do anything else here
     } catch (e: unknown) {
@@ -54,8 +58,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleDisconnect = async () => {
-    // TODO: Add server endpoint to disconnect HubSpot
-    // For now, just refresh auth state
+    try {
+      await usageService.track('oauth_disconnected');
+      const token = localStorage.getItem('HS_BIZ_AUTH_TOKEN');
+      await fetch('/api/oauth/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+      });
+    } catch {}
     await refreshAuth();
     setConnectionStatus('idle');
     setErrorMessage('');
@@ -87,6 +97,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       // Verify the connection works
       const result = await hubSpotService.validateConnection();
       if (result.success) {
+        await usageService.track('pat_connected');
         setConnectionStatus('success');
         setShowPatInput(false);
         setPatToken('');
@@ -188,7 +199,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <p className="text-slate-500 mt-2 max-w-sm mx-auto">
                   Securely connect your HubSpot portal to analyze and optimize your marketing automation.
                 </p>
-              </div>
+          </div>
 
               {errorMessage && (
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 px-4 py-3 rounded-lg">
@@ -196,6 +207,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   {errorMessage}
                 </div>
               )}
+
+              {/* Demo mode toggle */}
+              <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-200">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Demo Mode</p>
+                  <p className="text-xs text-slate-500">Use sample data instead of live HubSpot</p>
+                </div>
+                <button
+                  onClick={() => { const next = !demoMode; setDemoMode(next); modeService.setDemoMode(next); }}
+                  className={`w-12 h-7 rounded-full relative transition-colors ${demoMode ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                >
+                  <span className={`absolute top-0.5 ${demoMode ? 'right-0.5' : 'left-0.5'} w-6 h-6 bg-white rounded-full shadow transition-all`} />
+                </button>
+              </div>
 
               {showPatInput ? (
                 <div className="space-y-3">

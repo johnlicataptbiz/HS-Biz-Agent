@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { hubSpotService } from '../services/hubspotService';
+import { modeService } from '../services/modeService';
 import * as mockService from '../services/mockService';
 import { Workflow } from '../types';
 import { Zap, RefreshCw, Sparkles, AlertTriangle, CheckCircle2, PlayCircle, PauseCircle, ArrowUpRight, Search, Filter } from 'lucide-react';
@@ -21,8 +22,9 @@ const Workflows: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     const token = hubSpotService.getToken();
+    const demo = modeService.isDemoMode();
 
-    if (token) {
+    if (token && !demo) {
       setIsConnected(true);
       try {
         const data = await hubSpotService.fetchWorkflows();

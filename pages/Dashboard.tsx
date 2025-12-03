@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, TrendingUp, MoreHorizontal, Loader2, Sparkles, ArrowRight } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
+import { usageService } from '../services/usageService';
+import { modeService } from '../services/modeService';
 import * as mockService from '../services/mockService';
 
 interface DashboardStats {
@@ -28,13 +30,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   });
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
+      setError('');
       const token = hubSpotService.getToken();
+      const demo = modeService.isDemoMode();
       
-      if (token) {
+      if (token && !demo) {
         setIsConnected(true);
         try {
           // Fetch real data from HubSpot in parallel
@@ -69,6 +74,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           });
         } catch (error) {
           console.error('Error fetching dashboard data:', error);
+          setError('Failed to load live data. Showing demo metrics.');
           // Fall back to mock data on error
           await loadMockData();
         }
@@ -175,8 +181,27 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <span className="text-sm font-semibold text-slate-700">
             {isConnected ? 'Connected to HubSpot' : 'Using Demo Data'}
           </span>
+          {!isConnected && (
+            <button
+              onClick={async () => {
+                try {
+                  await usageService.track('click_connect');
+                } catch {}
+                await hubSpotService.initiateOAuth();
+              }}
+              className="ml-3 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-amber-700 border border-amber-200 hover:bg-amber-50"
+            >
+              Connect to see live data
+            </button>
+          )}
         </div>
       </div>
+      {error && (
+        <div className="flex items-center gap-2 bg-amber-50 text-amber-800 px-4 py-3 rounded-xl text-sm">
+          <AlertTriangle size={16} />
+          {error}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -293,7 +318,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
           
           <div className="p-4 border-t border-slate-100">
-            <button className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2">
+            <button onClick={() => onNavigate?.('copilot')} className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2">
               View All Recommendations
               <ArrowRight size={14} />
             </button>

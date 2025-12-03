@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { hubSpotService } from '../services/hubspotService';
+import { modeService } from '../services/modeService';
 import * as mockService from '../services/mockService';
 import { Sequence } from '../types';
 import { Mail, RefreshCw, Sparkles, ArrowUpRight, Search, TrendingUp, Users, Clock, PlayCircle, PauseCircle } from 'lucide-react';
@@ -20,8 +21,9 @@ const Sequences: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     const token = hubSpotService.getToken();
+    const demo = modeService.isDemoMode();
 
-    if (token) {
+    if (token && !demo) {
       setIsConnected(true);
       try {
         const data = await hubSpotService.fetchSequences();

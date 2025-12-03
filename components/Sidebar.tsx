@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LayoutDashboard, GitFork, Mail, Database, Settings, BrainCircuit, Bot, Hammer, Zap, ChevronRight, Megaphone } from 'lucide-react';
-import { hubSpotService } from '../services/hubspotService';
+import { useAuth } from './AuthContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -9,12 +9,12 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsClick }) => {
+  const { hasHubSpotConnection } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const token = hubSpotService.getToken();
-    setIsConnected(!!token);
-  }, []);
+    setIsConnected(hasHubSpotConnection);
+  }, [hasHubSpotConnection]);
 
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, description: 'Portal health' },
