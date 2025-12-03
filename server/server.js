@@ -5,7 +5,10 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import * as db from './db.js';
-import { runAgentWithUserToken, upsertKnowledgeDoc } from './breeze.js';
+import { 
+  getWorkflow, patchWorkflow, getSequence, patchSequence,
+  getProperty as hsGetProperty, patchProperty as hsPatchProperty, buildPreview
+} from './hubspotActions.js';
 
 console.log('=== PRODUCTION SERVER STARTUP ===');
 console.log('Node version:', process.version);
@@ -1024,31 +1027,103 @@ if (distExists) {
 }
 
 // ============================================================
-// Breeze Studio proxy endpoints (placeholders)
+// Role helper
 // ============================================================
-app.post('/api/breeze/run', db.authMiddleware, async (req, res) => {
+function requireAdmin(req, res, next) {
+  if (!req.user?.userId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!db.isAdmin(req.user.userId)) return res.status(403).json({ error: 'Admin role required' });
+  next();
+}
+
+// ============================================================
+// Actions (subset used in production server)
+// ============================================================
+app.post('/api/actions/workflows/preview', db.authMiddleware, async (req, res) => {
   try {
     const token = await getHubSpotToken(req);
     if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
-    const { prompt, context, dryRun = true } = req.body || {};
-    const out = await runAgentWithUserToken(token, { prompt, context, dryRun });
-    if (!out.ok) return res.status(out.status || 500).json(out.data || { error: 'Agent run failed' });
-    res.json(out.data);
+    const { workflowId, updates } = req.body || {};
+    if (!workflowId || !updates) return res.status(400).json({ error: 'workflowId and updates required' });
+    const before = await getWorkflow(token, workflowId);
+    const preview = buildPreview(before, updates);
+    db.logUsage(req.user.userId, 'workflow_preview', { workflowId });
+    res.json({ dryRun: true, ...preview });
   } catch (e) {
-    res.status(500).json({ error: 'Agent run error' });
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
   }
 });
 
-app.post('/api/breeze/knowledge/upsert', db.authMiddleware, async (req, res) => {
+app.post('/api/actions/workflows/execute', db.authMiddleware, requireAdmin, async (req, res) => {
   try {
     const token = await getHubSpotToken(req);
     if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
-    const { title, text, tags } = req.body || {};
-    const out = await upsertKnowledgeDoc(token, { title, text, tags });
-    if (!out.ok) return res.status(out.status || 500).json(out.data || { error: 'Knowledge upsert failed' });
-    res.json(out.data);
+    const { workflowId, updates } = req.body || {};
+    if (!workflowId || !updates) return res.status(400).json({ error: 'workflowId and updates required' });
+    const out = await patchWorkflow(token, workflowId, updates);
+    db.logUsage(req.user.userId, 'workflow_execute', { workflowId });
+    res.json(out);
   } catch (e) {
-    res.status(500).json({ error: 'Knowledge upsert error' });
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+app.post('/api/actions/sequences/preview', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { sequenceId, updates } = req.body || {};
+    if (!sequenceId || !updates) return res.status(400).json({ error: 'sequenceId and updates required' });
+    const before = await getSequence(token, sequenceId);
+    const preview = buildPreview(before, updates);
+    db.logUsage(req.user.userId, 'sequence_preview', { sequenceId });
+    res.json({ dryRun: true, ...preview });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+app.post('/api/actions/sequences/execute', db.authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { sequenceId, updates } = req.body || {};
+    if (!sequenceId || !updates) return res.status(400).json({ error: 'sequenceId and updates required' });
+    const out = await patchSequence(token, sequenceId, updates);
+    db.logUsage(req.user.userId, 'sequence_execute', { sequenceId });
+    res.json(out);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+app.post('/api/actions/properties/merge/preview', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { objectType, sourceProperty, targetProperty } = req.body || {};
+    if (!objectType || !sourceProperty || !targetProperty) return res.status(400).json({ error: 'objectType, sourceProperty, targetProperty required' });
+    const source = await hsGetProperty(token, objectType, sourceProperty);
+    const target = await hsGetProperty(token, objectType, targetProperty);
+    const updates = { hidden: true, description: `Merged into ${targetProperty} on ${new Date().toISOString()}` };
+    const preview = buildPreview(source, updates);
+    db.logUsage(req.user.userId, 'property_merge_preview', { objectType, sourceProperty, targetProperty });
+    res.json({ dryRun: true, ...preview, target });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+app.post('/api/actions/properties/merge/execute', db.authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { objectType, sourceProperty, targetProperty } = req.body || {};
+    if (!objectType || !sourceProperty || !targetProperty) return res.status(400).json({ error: 'objectType, sourceProperty, targetProperty required' });
+    const out = await hsPatchProperty(token, objectType, sourceProperty, { hidden: true, description: `Merged into ${targetProperty} on ${new Date().toISOString()}` });
+    db.logUsage(req.user.userId, 'property_merge_execute', { objectType, sourceProperty, targetProperty });
+    res.json(out);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
   }
 });
 

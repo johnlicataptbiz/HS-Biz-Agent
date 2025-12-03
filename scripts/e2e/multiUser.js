@@ -63,6 +63,16 @@ async function run() {
   await page2.click('button:has-text("Sequences")');
   await page2.waitForSelector('h1:has-text("Sequences")');
 
+  // Role restriction smoke test: second user (likely member) should not see enabled Execute state in CoPilot panel
+  await page2.click('button:has-text("Co-Pilot")');
+  await page2.waitForSelector('h1:has-text("HubSpot Co-Pilot")');
+  // Open modal
+  await page2.click('button:has-text("Open Chat")');
+  // CoPilot bottom panel buttons may be visible; ensure Execute button is disabled
+  const execButtons = await page2.$$eval('button', els => els.map(e => ({ text: e.textContent || '', disabled: e.disabled })));
+  const execDisabled = execButtons.some(b => b.text.includes('Execute') && b.disabled);
+  console.log('Execute button disabled for member:', execDisabled);
+
   console.log('E2E multi-user flow completed');
   await browser.close();
 }
@@ -71,4 +81,3 @@ run().catch((err) => {
   console.error('E2E failed:', err);
   process.exit(1);
 });
-

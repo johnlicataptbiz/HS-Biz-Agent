@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Bot, Sparkles, ArrowRight, Zap, Database, Users, GitFork, MessageSquare, BrainCircuit } from 'lucide-react';
 import AiModal from '../components/AiModal';
 import { hubSpotService } from '../services/hubspotService';
-import { breezeService } from '../services/breezeService';
+import { actionsService } from '../services/actionsService';
+import { useAuth } from '../components/AuthContext';
 
 interface QuickAction {
   title: string;
@@ -19,15 +20,17 @@ const CoPilot: React.FC = () => {
     contextType: 'workflow' | 'sequence' | 'data' | 'breeze_tool';
     prompt: string;
   }>({ isOpen: false, contextType: 'workflow', prompt: '' });
-  const [hasBreeze, setHasBreeze] = useState<boolean>(false);
-  const [agentLoading, setAgentLoading] = useState<boolean>(false);
-  const [agentOutput, setAgentOutput] = useState<string>('');
+  const { isAdmin } = useAuth();
+  const [execLoading, setExecLoading] = useState<boolean>(false);
+  const [previewOutput, setPreviewOutput] = useState<string>('');
+  const [execOutput, setExecOutput] = useState<string>('');
+  const [targetId, setTargetId] = useState<string>('');
+  const [updatesJson, setUpdatesJson] = useState<string>('{\n  "name": "Improved name"\n}');
 
   React.useEffect(() => {
-    (async () => {
-      try { setHasBreeze(await hubSpotService.hasBreezeAgent()); } catch { setHasBreeze(false); }
-    })();
-  }, []);
+    setPreviewOutput('');
+    setExecOutput('');
+  }, [modalState]);
 
   const quickActions: QuickAction[] = [
     { 
@@ -72,17 +75,45 @@ const CoPilot: React.FC = () => {
     });
   };
 
-  const runAgent = async () => {
-    if (!modalState.prompt) return;
-    setAgentLoading(true);
-    setAgentOutput('');
+  const doPreview = async () => {
+    setExecLoading(true);
+    setPreviewOutput('');
     try {
-      const out = (await breezeService.runAgent(modalState.prompt, { contextType: modalState.contextType }, true)) as Record<string, unknown>;
-      setAgentOutput(JSON.stringify(out, null, 2));
+      const updates = JSON.parse(updatesJson || '{}');
+      if (modalState.contextType === 'workflow') {
+        const out = await actionsService.previewWorkflow(targetId, updates);
+        setPreviewOutput(JSON.stringify(out, null, 2));
+      } else if (modalState.contextType === 'sequence') {
+        const out = await actionsService.previewSequence(targetId, updates);
+        setPreviewOutput(JSON.stringify(out, null, 2));
+      } else {
+        setPreviewOutput('Preview supported for workflows and sequences.');
+      }
     } catch (e) {
-      setAgentOutput('Agent run failed. Ensure Breeze agent is configured on the server.');
+      setPreviewOutput('Preview failed. Ensure a valid ID and JSON updates.');
     } finally {
-      setAgentLoading(false);
+      setExecLoading(false);
+    }
+  };
+
+  const doExecute = async () => {
+    setExecLoading(true);
+    setExecOutput('');
+    try {
+      const updates = JSON.parse(updatesJson || '{}');
+      if (modalState.contextType === 'workflow') {
+        const out = await actionsService.executeWorkflow(targetId, updates);
+        setExecOutput(JSON.stringify(out, null, 2));
+      } else if (modalState.contextType === 'sequence') {
+        const out = await actionsService.executeSequence(targetId, updates);
+        setExecOutput(JSON.stringify(out, null, 2));
+      } else {
+        setExecOutput('Execution supported for workflows and sequences.');
+      }
+    } catch (e) {
+      setExecOutput('Execution failed or forbidden. Only admins can execute.');
+    } finally {
+      setExecLoading(false);
     }
   };
 
@@ -203,27 +234,26 @@ const CoPilot: React.FC = () => {
         contextName="Co-Pilot Action"
       />
 
-      {modalState.isOpen && hasBreeze && (
+      {modalState.isOpen && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur rounded-xl border border-slate-200 shadow-xl p-4 w-[90%] max-w-3xl">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Bot size={18} className="text-indigo-600" />
-              <span className="text-sm font-semibold text-slate-700">Run in HubSpot Agent (Breeze)</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="md:col-span-1 space-y-2">
+              <label className="text-xs font-semibold text-slate-600">Target ID</label>
+              <input value={targetId} onChange={(e) => setTargetId(e.target.value)} placeholder={modalState.contextType === 'workflow' ? 'workflowId' : 'sequenceId'} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+              <label className="text-xs font-semibold text-slate-600">Updates (JSON)</label>
+              <textarea value={updatesJson} onChange={(e) => setUpdatesJson(e.target.value)} rows={6} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono" />
+              <div className="flex gap-2">
+                <button onClick={doPreview} disabled={!targetId || execLoading} className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-semibold disabled:opacity-50">Preview</button>
+                <button onClick={doExecute} disabled={!isAdmin || !targetId || execLoading} className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${isAdmin ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'}`}>Execute (admin)</button>
+              </div>
             </div>
-            <button
-              onClick={runAgent}
-              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold hover:from-indigo-700 hover:to-purple-700"
-              disabled={agentLoading}
-            >
-              {agentLoading ? 'Running...' : 'Dry-Run'}
-            </button>
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-xs font-semibold text-slate-600">Preview Output</label>
+              <pre className="max-h-40 overflow-auto text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-700 whitespace-pre-wrap">{previewOutput || '—'}</pre>
+              <label className="text-xs font-semibold text-slate-600">Execution Result</label>
+              <pre className="max-h-40 overflow-auto text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-700 whitespace-pre-wrap">{execOutput || (isAdmin ? '—' : 'Execution requires admin role.')}</pre>
+            </div>
           </div>
-          {agentOutput && (
-            <pre className="max-h-64 overflow-auto text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-700 whitespace-pre-wrap">{agentOutput}</pre>
-          )}
-          {!agentOutput && !agentLoading && (
-            <p className="text-xs text-slate-500">Dry‑run the action with your HubSpot Agent for a preview. Execution still requires user confirmation in HubSpot.</p>
-          )}
         </div>
       )}
     </div>

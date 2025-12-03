@@ -82,14 +82,17 @@ const JWT_EXPIRES_IN = '7d';
 export function createUser(email, password, name = null) {
   const id = randomUUID();
   const passwordHash = bcrypt.hashSync(password, 10);
-  
+  // First user becomes admin to bootstrap access
+  const countRow = db.prepare('SELECT COUNT(1) as c FROM users').get();
+  const role = (countRow?.c || 0) === 0 ? 'admin' : 'member';
+
   try {
     const stmt = db.prepare(`
       INSERT INTO users (id, email, password_hash, name, role)
-      VALUES (?, ?, ?, ?, 'member')
+      VALUES (?, ?, ?, ?, ?)
     `);
-    stmt.run(id, email.toLowerCase(), passwordHash, name);
-    return { id, email: email.toLowerCase(), name, role: 'member' };
+    stmt.run(id, email.toLowerCase(), passwordHash, name, role);
+    return { id, email: email.toLowerCase(), name, role };
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
       throw new Error('Email already registered');
@@ -101,12 +104,10 @@ export function createUser(email, password, name = null) {
 export function authenticateUser(email, password) {
   const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
   const user = stmt.get(email.toLowerCase());
-  
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return null;
   }
-  
-  return { id: user.id, email: user.email, name: user.name };
+  return { id: user.id, email: user.email, name: user.name, role: user.role };
 }
 
 export function getUserById(id) {
@@ -238,6 +239,26 @@ export function logUsage(userId, event, metadata = null) {
     VALUES (?, ?, ?, ?)
   `);
   stmt.run(id, userId, event, metadata ? JSON.stringify(metadata) : null);
+}
+
+// ============================================================
+// Admin helpers
+// ============================================================
+
+export function isAdmin(userId) {
+  const row = db.prepare('SELECT role FROM users WHERE id = ?').get(userId);
+  return row?.role === 'admin';
+}
+
+export function listUsers() {
+  return db.prepare('SELECT id, email, name, role, created_at FROM users ORDER BY created_at ASC').all();
+}
+
+export function setUserRoleByEmail(email, role) {
+  const valid = ['admin', 'member'];
+  if (!valid.includes(role)) throw new Error('Invalid role');
+  const res = db.prepare('UPDATE users SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?').run(role, email.toLowerCase());
+  return res.changes > 0;
 }
 
 export default db;

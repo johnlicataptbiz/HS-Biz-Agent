@@ -15,7 +15,8 @@ AI-powered optimization engine for HubSpot portals, now supporting multi-user Sa
  - 👥 **Multi-User SaaS Auth** - Users register/login to the app, connect their own HubSpot OAuth or PAT, and collaborate on the same portal
  - 🔐 **Secure Token Handling** - HubSpot OAuth/PAT tokens stored server-side per user with auto-refresh
  - 🔀 **Demo vs Live Mode** - Toggle demo data on/off in Settings (per-user)
- - 🧪 **E2E Tests** - Puppeteer script to simulate multi-user flows
+- 🧪 **E2E Tests** - Puppeteer script to simulate multi-user flows
+ - ⚙️ **Direct HubSpot Actions** - Preview/execute changes to workflows (v3), sequences (v4 beta), and properties (v3) with dry‑run safeguards; admin‑restricted execute
 
 ## Quick Start
 
@@ -132,6 +133,18 @@ The backend implements HubSpot MCP server patterns:
 - **PAT tokens** don't expire and skip refresh logic
 - All API methods call `ensureValidToken()` automatically
 
+### HubSpot Actions (Workflows, Sequences, Properties)
+
+- Endpoints (use per‑user OAuth tokens internally):
+  - `POST /api/actions/workflows/preview` → body: `{ workflowId, updates }` → returns `{ dryRun, before, proposed }`
+  - `POST /api/actions/workflows/execute` (admin only) → applies updates via `/automation/v3/workflows/{id}`
+  - `POST /api/actions/sequences/preview` → `{ sequenceId, updates }` → returns preview; uses `/automation/v4/sequences/{id}` (beta)
+  - `POST /api/actions/sequences/execute` (admin only) → applies updates via v4 Sequences
+  - `POST /api/actions/properties/merge/preview` → `{ objectType, sourceProperty, targetProperty }` → returns plan to hide source and annotate
+  - `POST /api/actions/properties/merge/execute` (admin only) → hides source via `/crm/v3/properties/{objectType}/{property}`
+
+Notes: obey HubSpot rate limits; retries/backoff recommended for production workloads.
+
 ## SaaS & Ops
 
 - Roles: server stores `role` per user (`member` by default)
@@ -145,6 +158,7 @@ The backend implements HubSpot MCP server patterns:
   - `HUBSPOT_CLIENT_ID`, `HUBSPOT_CLIENT_SECRET`, `JWT_SECRET`
   - `FRONTEND_URL` set to your Railway domain (e.g., https://your-app.up.railway.app)
   - One of `GEMINI_API_KEY` or `OPENAI_API_KEY`
+  - Optional search tweaks: `HUBSPOT_SEARCH_SCOPE` (not required; context fetched with `/search/v3/search` best‑effort)
 - Optional: `DATABASE_PATH` (defaults to `server/data/app.db`)
 
 ### Deploy Steps
@@ -177,6 +191,24 @@ npm run e2e
 ```
 
 The test registers two users, opens Settings, connects via PAT if provided (or toggles Demo Mode), and navigates to Workflows/Sequences.
+
+## E2E Testing (Breeze dry-run)
+Use the API dry‑run preview and role restriction checks:
+
+```
+E2E_BASE_URL=http://localhost:8080 \
+E2E_JWT=eyJ... \
+npm run e2e:api
+```
+
+Preview should 200, execute should 403 for non‑admins.
+
+## Knowledge Vault Setup (Manual)
+
+- In HubSpot UI, create a Knowledge Vault and upload:
+  - HubSpot API reference snippets and guides
+  - Your PT Biz playbooks and portal documentation
+- The app augments AI prompts with dynamic context via `/search/v3/search` using the user’s OAuth token to simulate vault access.
 
 ## Development
 

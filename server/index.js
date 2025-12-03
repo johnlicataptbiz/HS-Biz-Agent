@@ -2,7 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import * as db from './db.js';
-import { runAgentWithUserToken, upsertKnowledgeDoc } from './breeze.js';
+import { 
+  getWorkflow, listWorkflows as hsListWorkflows, patchWorkflow, createWorkflow,
+  getSequence, listSequences as hsListSequences, patchSequence, createSequence,
+  getProperty as hsGetProperty, listProperties as hsListProperties, patchProperty as hsPatchProperty, createProperty as hsCreateProperty,
+  listStaticLists, buildPreview
+} from './hubspotActions.js';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -401,31 +406,133 @@ app.post('/api/oauth/refresh', async (req, res) => {
 });
 
 // ============================================================
-// Breeze Studio proxy endpoints (placeholders)
+// Role helper
 // ============================================================
-app.post('/api/breeze/run', db.authMiddleware, async (req, res) => {
+function requireAdmin(req, res, next) {
+  if (!req.user?.userId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!db.isAdmin(req.user.userId)) return res.status(403).json({ error: 'Admin role required' });
+  next();
+}
+
+// ============================================================
+// Actions: Workflows (v3)
+// ============================================================
+app.post('/api/actions/workflows/preview', db.authMiddleware, async (req, res) => {
   try {
     const token = await getHubSpotToken(req);
     if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
-    const { prompt, context, dryRun = true } = req.body || {};
-    const out = await runAgentWithUserToken(token, { prompt, context, dryRun });
-    if (!out.ok) return res.status(out.status || 500).json(out.data || { error: 'Agent run failed' });
-    res.json(out.data);
+    const { workflowId, updates } = req.body || {};
+    if (!workflowId || !updates) return res.status(400).json({ error: 'workflowId and updates required' });
+    const before = await getWorkflow(token, workflowId);
+    const preview = buildPreview(before, updates);
+    db.logUsage(req.user.userId, 'workflow_preview', { workflowId });
+    res.json({ dryRun: true, ...preview });
   } catch (e) {
-    res.status(500).json({ error: 'Agent run error' });
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
   }
 });
 
-app.post('/api/breeze/knowledge/upsert', db.authMiddleware, async (req, res) => {
+app.post('/api/actions/workflows/execute', db.authMiddleware, requireAdmin, async (req, res) => {
   try {
     const token = await getHubSpotToken(req);
     if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
-    const { title, text, tags } = req.body || {};
-    const out = await upsertKnowledgeDoc(token, { title, text, tags });
-    if (!out.ok) return res.status(out.status || 500).json(out.data || { error: 'Knowledge upsert failed' });
-    res.json(out.data);
+    const { workflowId, updates } = req.body || {};
+    if (!workflowId || !updates) return res.status(400).json({ error: 'workflowId and updates required' });
+    const out = await patchWorkflow(token, workflowId, updates);
+    db.logUsage(req.user.userId, 'workflow_execute', { workflowId });
+    res.json(out);
   } catch (e) {
-    res.status(500).json({ error: 'Knowledge upsert error' });
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+// ============================================================
+// Actions: Sequences (v4 beta)
+// ============================================================
+app.post('/api/actions/sequences/preview', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { sequenceId, updates } = req.body || {};
+    if (!sequenceId || !updates) return res.status(400).json({ error: 'sequenceId and updates required' });
+    const before = await getSequence(token, sequenceId);
+    const preview = buildPreview(before, updates);
+    db.logUsage(req.user.userId, 'sequence_preview', { sequenceId });
+    res.json({ dryRun: true, ...preview });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+app.post('/api/actions/sequences/execute', db.authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { sequenceId, updates } = req.body || {};
+    if (!sequenceId || !updates) return res.status(400).json({ error: 'sequenceId and updates required' });
+    const out = await patchSequence(token, sequenceId, updates);
+    db.logUsage(req.user.userId, 'sequence_execute', { sequenceId });
+    res.json(out);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+// ============================================================
+// Actions: Properties (merge/hide) (v3)
+// ============================================================
+app.post('/api/actions/properties/merge/preview', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { objectType, sourceProperty, targetProperty } = req.body || {};
+    if (!objectType || !sourceProperty || !targetProperty) return res.status(400).json({ error: 'objectType, sourceProperty, targetProperty required' });
+    const source = await hsGetProperty(token, objectType, sourceProperty);
+    const target = await hsGetProperty(token, objectType, targetProperty);
+    const updates = { hidden: true, description: `Merged into ${targetProperty} on ${new Date().toISOString()}` };
+    const preview = buildPreview(source, updates);
+    db.logUsage(req.user.userId, 'property_merge_preview', { objectType, sourceProperty, targetProperty });
+    res.json({ dryRun: true, ...preview, target });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+app.post('/api/actions/properties/merge/execute', db.authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { objectType, sourceProperty, targetProperty } = req.body || {};
+    if (!objectType || !sourceProperty || !targetProperty) return res.status(400).json({ error: 'objectType, sourceProperty, targetProperty required' });
+    const out = await hsPatchProperty(token, objectType, sourceProperty, { hidden: true, description: `Merged into ${targetProperty} on ${new Date().toISOString()}` });
+    db.logUsage(req.user.userId, 'property_merge_execute', { objectType, sourceProperty, targetProperty });
+    res.json(out);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+// ============================================================
+// Admin: user role management
+// ============================================================
+app.get('/api/admin/users', db.authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const users = db.listUsers();
+    res.json({ users });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to list users' });
+  }
+});
+
+app.post('/api/admin/users/role', db.authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const { email, role } = req.body || {};
+    if (!email || !role) return res.status(400).json({ error: 'email and role required' });
+    const changed = db.setUserRoleByEmail(email, role);
+    if (!changed) return res.status(404).json({ error: 'User not found' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
   }
 });
 
@@ -981,17 +1088,29 @@ You are operating within an MCP architecture. You have access to "Tools" that ca
 
 // AI: Generate Optimization
 app.post('/api/ai/optimize', db.authMiddleware, async (req, res) => {
-  if (!GEMINI_API_KEY) {
-    return res.status(503).json({ error: 'Gemini API key not configured' });
-  }
-
   const { prompt, contextType, contextId } = req.body;
   if (!prompt) {
     return res.status(400).json({ error: 'Missing prompt' });
   }
 
+  // Pull dynamic HubSpot context via Search API (best-effort)
+  let contextText = '';
   try {
-    // Prefer Gemini if configured, otherwise fall back to OpenAI if available
+    const token = await getHubSpotToken(req);
+    if (token) {
+      const searchResp = await fetch(`${HUBSPOT_BASE_URL}/search/v3/search`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: String(prompt).slice(0, 64), limit: 3 })
+      });
+      if (searchResp.ok) {
+        const searchJson = await searchResp.json();
+        contextText = JSON.stringify(searchJson).slice(0, 2000);
+      }
+    }
+  } catch {}
+
+  try {
     if (GEMINI_API_KEY) {
       const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY, {
         method: 'POST',
@@ -1004,6 +1123,7 @@ app.post('/api/ai/optimize', db.authMiddleware, async (req, res) => {
 Context Type: ${contextType || 'general'}
 Context ID: ${contextId || 'New/General'}
 User Request: ${prompt}
+Relevant HubSpot context (search excerpts): ${contextText}
 
 Generate a specific optimization or creation plan for this request based on PT Biz best practices.
 If contextType is 'breeze_tool', generate a JSON definition suitable for a HubSpot App 'workflow-action-tool'.
@@ -1023,7 +1143,6 @@ Respond with valid JSON matching this schema:
           }
         })
       });
-
       const data = await response.json();
       if (!response.ok) {
         console.error('Gemini API error:', data);
@@ -1034,7 +1153,6 @@ Respond with valid JSON matching this schema:
       return res.json(JSON.parse(text));
     }
 
-    // OpenAI fallback
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
     if (!OPENAI_API_KEY) {
       return res.status(503).json({ error: 'No AI provider configured' });
@@ -1050,7 +1168,7 @@ Respond with valid JSON matching this schema:
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: PT_BIZ_SYSTEM_INSTRUCTION },
-          { role: 'user', content: `Context Type: ${contextType || 'general'}\nContext ID: ${contextId || 'New/General'}\nUser Request: ${prompt}\n\nGenerate a specific optimization or creation plan for this request based on PT Biz best practices. If contextType is 'breeze_tool', generate a JSON definition suitable for a HubSpot App 'workflow-action-tool'. Respond with the JSON schema described.` }
+          { role: 'user', content: `Context Type: ${contextType || 'general'}\nContext ID: ${contextId || 'New/General'}\nUser Request: ${prompt}\nRelevant HubSpot context: ${contextText}\n\nGenerate a specific optimization or creation plan for this request based on PT Biz best practices. If contextType is 'breeze_tool', generate a JSON definition suitable for a HubSpot App 'workflow-action-tool'. Respond with the JSON schema described.` }
         ]
       })
     });
@@ -1075,14 +1193,27 @@ Respond with valid JSON matching this schema:
 
 // AI: Chat Response
 app.post('/api/ai/chat', db.authMiddleware, async (req, res) => {
-  if (!GEMINI_API_KEY) {
-    return res.status(503).json({ error: 'Gemini API key not configured' });
-  }
-
   const { message } = req.body;
   if (!message) {
     return res.status(400).json({ error: 'Missing message' });
   }
+
+  // Pull dynamic HubSpot context via Search API (best-effort)
+  let contextText = '';
+  try {
+    const token = await getHubSpotToken(req);
+    if (token) {
+      const searchResp = await fetch(`${HUBSPOT_BASE_URL}/search/v3/search`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: String(message).slice(0, 64), limit: 3 })
+      });
+      if (searchResp.ok) {
+        const searchJson = await searchResp.json();
+        contextText = JSON.stringify(searchJson).slice(0, 2000);
+      }
+    }
+  } catch {}
 
   try {
     if (GEMINI_API_KEY) {
@@ -1095,6 +1226,7 @@ app.post('/api/ai/chat', db.authMiddleware, async (req, res) => {
               text: `${PT_BIZ_SYSTEM_INSTRUCTION}
 
 User Message: ${message}
+Relevant HubSpot context: ${contextText}
 
 Respond with valid JSON matching this schema:
 {
@@ -1137,7 +1269,7 @@ Only include action if the user asks to create/draft something new.`
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: PT_BIZ_SYSTEM_INSTRUCTION },
-          { role: 'user', content: message }
+          { role: 'user', content: `${message}\n\nRelevant HubSpot context: ${contextText}` }
         ]
       })
     });

@@ -8,6 +8,8 @@ interface AuthContextType {
   hasHubSpotConnection: boolean;
   portalId: string | null;
   hubDomain: string | null;
+  role: 'admin' | 'member' | null;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
@@ -34,6 +36,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [hasHubSpotConnection, setHasHubSpotConnection] = useState(false);
   const [portalId, setPortalId] = useState<string | null>(null);
   const [hubDomain, setHubDomain] = useState<string | null>(null);
+  const [role, setRole] = useState<'admin' | 'member' | null>(null);
 
   const refreshAuth = async () => {
     setIsLoading(true);
@@ -44,11 +47,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setHasHubSpotConnection(meData.hasHubSpotConnection);
         setPortalId(meData.portalId || null);
         setHubDomain(meData.hubDomain || null);
+        setRole((meData.user.role as 'admin' | 'member') || null);
       } else {
         setUser(null);
         setHasHubSpotConnection(false);
         setPortalId(null);
         setHubDomain(null);
+        setRole(null);
       }
     } catch (error) {
       console.error('Auth refresh failed:', error);
@@ -72,6 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(result.user);
     setHasHubSpotConnection(result.hasHubSpotConnection || false);
     setPortalId(result.portalId || null);
+    setRole((result.user.role as 'admin' | 'member') || null);
   };
 
   const register = async (email: string, password: string, name?: string) => {
@@ -79,6 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(result.user);
     setHasHubSpotConnection(false);
     setPortalId(null);
+    setRole((result.user.role as 'admin' | 'member') || null);
   };
 
   const logout = () => {
@@ -96,6 +103,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     hasHubSpotConnection,
     portalId,
     hubDomain,
+    role,
+    isAdmin: role === 'admin',
     login,
     register,
     logout,

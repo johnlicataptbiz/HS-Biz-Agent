@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { hubSpotService } from '../services/hubspotService';
 import { modeService } from '../services/modeService';
 import { usageService } from '../services/usageService';
+import { useAuth } from './AuthContext';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -11,12 +12,15 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { hasHubSpotConnection, portalId, refreshAuth } = useAuth();
+  const { hasHubSpotConnection, portalId, refreshAuth, role, isAdmin } = useAuth();
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [showPatInput, setShowPatInput] = useState(false);
   const [patToken, setPatToken] = useState('');
   const [demoMode, setDemoMode] = useState(modeService.isDemoMode());
+  const [roleEmail, setRoleEmail] = useState('');
+  const [roleValue, setRoleValue] = useState<'admin' | 'member'>('member');
+  const [roleMsg, setRoleMsg] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -141,6 +145,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
         {/* Content */}
         <div className="p-6">
+          {/* Role badge */}
+          <div className="mb-4 text-xs text-slate-500">Your role: <span className={`font-semibold ${isAdmin ? 'text-emerald-600' : 'text-slate-700'}`}>{role || 'member'}</span></div>
           {connectionStatus === 'success' || (hasHubSpotConnection && connectionStatus !== 'error') ? (
             /* Connected State */
             <div className="text-center space-y-4">
@@ -221,6 +227,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   <span className={`absolute top-0.5 ${demoMode ? 'right-0.5' : 'left-0.5'} w-6 h-6 bg-white rounded-full shadow transition-all`} />
                 </button>
               </div>
+
+              {/* Admin: Set role */}
+              {isAdmin && (
+                <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
+                  <p className="text-sm font-semibold text-slate-700">User Roles</p>
+                  <div className="flex items-center gap-2">
+                    <input value={roleEmail} onChange={(e) => setRoleEmail(e.target.value)} placeholder="user@company.com" className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <select value={roleValue} onChange={(e) => setRoleValue(e.target.value as 'admin' | 'member')} className="px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                      <option value="member">member</option>
+                      <option value="admin">admin</option>
+                    </select>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setRoleMsg('');
+                          const token = localStorage.getItem('HS_BIZ_AUTH_TOKEN');
+                          const resp = await fetch('/api/admin/users/role', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+                            body: JSON.stringify({ email: roleEmail, role: roleValue })
+                          });
+                          if (resp.ok) setRoleMsg('Role updated'); else setRoleMsg('Update failed');
+                        } catch { setRoleMsg('Update failed'); }
+                      }}
+                      className="px-3 py-2 rounded-lg bg-slate-800 text-white text-xs"
+                    >
+                      Update Role
+                    </button>
+                  </div>
+                  {roleMsg && <div className="text-xs text-slate-500">{roleMsg}</div>}
+                </div>
+              )}
 
               {showPatInput ? (
                 <div className="space-y-3">
