@@ -13,6 +13,8 @@ const Sequences: React.FC = () => {
   const [showAi, setShowAi] = useState(false);
   const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     loadData();
@@ -57,6 +59,7 @@ const Sequences: React.FC = () => {
     seq.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     seq.targetPersona.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const paged = filteredSequences.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -131,7 +134,7 @@ const Sequences: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredSequences.map((sequence) => (
+          {paged.map((sequence) => (
             <div 
               key={sequence.id}
               className="group bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all"
@@ -186,6 +189,15 @@ const Sequences: React.FC = () => {
               <Mail size={40} className="mx-auto mb-4 text-slate-300" />
               <p className="font-medium">No sequences found</p>
               <p className="text-sm mt-1">Try adjusting your search or connect to HubSpot</p>
+            </div>
+          )}
+          {filteredSequences.length > 0 && (
+            <div className="col-span-2 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-xs text-slate-500">Page {page} of {Math.max(1, Math.ceil(filteredSequences.length / pageSize))}</span>
+              <div className="flex gap-2">
+                <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">Previous</button>
+                <button onClick={() => setPage(Math.min(Math.ceil(filteredSequences.length / pageSize), page + 1))} disabled={page >= Math.ceil(filteredSequences.length / pageSize)} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">Next</button>
+              </div>
             </div>
           )}
         </div>

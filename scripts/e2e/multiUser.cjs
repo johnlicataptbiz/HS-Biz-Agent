@@ -37,7 +37,11 @@ async function registerAndMaybeConnect(page, { email, password, name }) {
     if (toggles.length) await toggles[0].click();
   }
 
-  // Close modal (click backdrop)
+  // Toggle demo mode to ensure UI populates
+  const toggles = await page.$$('[class*="rounded-full"]');
+  if (toggles.length) await toggles[0].click().catch(()=>{});
+
+  // Close modal (Esc)
   await page.keyboard.press('Escape').catch(() => {});
 }
 
@@ -56,12 +60,14 @@ async function run() {
   await registerAndMaybeConnect(page1, { email: email1, password, name: 'E2E User 1' });
   await registerAndMaybeConnect(page2, { email: email2, password, name: 'E2E User 2' });
 
-  // Navigate to Workflows and verify page renders
+  // Navigate to Workflows and verify page renders + pagination visible
   await page1.click('button:has-text("Workflows")');
   await page1.waitForSelector('h1:has-text("Workflows")');
+  await page1.waitForSelector('button:has-text("Next")');
 
   await page2.click('button:has-text("Sequences")');
   await page2.waitForSelector('h1:has-text("Sequences")');
+  await page2.waitForSelector('button:has-text("Next")');
 
   // Role restriction smoke test: second user (likely member) should not see enabled Execute state in CoPilot panel
   await page2.click('button:has-text("Co-Pilot")');
@@ -72,6 +78,13 @@ async function run() {
   const execButtons = await page2.$$eval('button', els => els.map(e => ({ text: e.textContent || '', disabled: e.disabled })));
   const execDisabled = execButtons.some(b => b.text.includes('Execute') && b.disabled);
   console.log('Execute button disabled for member:', execDisabled);
+
+  // View All Recommendations
+  await page1.click('button:has-text("Dashboard")');
+  await page1.waitForSelector('h1:has-text("Portal Overview")');
+  await page1.click('button:has-text("View All Recommendations")');
+  await page1.waitForSelector('h1:has-text("Recommendations")');
+  await page1.waitForSelector('button:has-text("Next")');
 
   console.log('E2E multi-user flow completed');
   await browser.close();

@@ -21,6 +21,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [roleEmail, setRoleEmail] = useState('');
   const [roleValue, setRoleValue] = useState<'admin' | 'member'>('member');
   const [roleMsg, setRoleMsg] = useState('');
+  const [saveMsg, setSaveMsg] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -270,20 +271,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 font-mono"
                   />
                   <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowPatInput(false); setPatToken(''); setErrorMessage(''); }}
+                  className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
                     <button
-                      onClick={() => { setShowPatInput(false); setPatToken(''); setErrorMessage(''); }}
-                      className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handlePatConnect}
-                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all"
-                    >
-                      Connect
-                    </button>
-                  </div>
-                </div>
+                  onClick={async () => { setSaveMsg(''); await handlePatConnect(); if (!errorMessage) setSaveMsg('Connected successfully'); }}
+                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all"
+                >
+                  Connect
+                </button>
+              </div>
+              </div>
               ) : (
                 <>
                   <button
@@ -316,6 +317,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <p className="text-xs text-slate-400">
                 OAuth redirects to HubSpot for authorization. Private App Tokens can be created in HubSpot Settings → Integrations → Private Apps.
               </p>
+              {saveMsg && (
+                <div className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{saveMsg}</div>
+              )}
             </div>
           )}
         </div>

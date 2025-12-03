@@ -318,7 +318,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
           
           <div className="p-4 border-t border-slate-100">
-            <button onClick={() => onNavigate?.('copilot')} className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2">
+            <button onClick={() => onNavigate?.('recommendations')} className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2">
               View All Recommendations
               <ArrowRight size={14} />
             </button>

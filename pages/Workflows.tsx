@@ -14,6 +14,8 @@ const Workflows: React.FC = () => {
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEnabled, setFilterEnabled] = useState<'all' | 'enabled' | 'disabled'>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     loadData();
@@ -55,6 +57,8 @@ const Workflows: React.FC = () => {
       (filterEnabled === 'disabled' && !wf.enabled);
     return matchesSearch && matchesFilter;
   });
+
+  const paged = filteredWorkflows.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -144,7 +148,7 @@ const Workflows: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredWorkflows.map((workflow) => (
+          {paged.map((workflow) => (
             <div 
               key={workflow.id}
               className="group bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all"
@@ -213,6 +217,15 @@ const Workflows: React.FC = () => {
               <Zap size={40} className="mx-auto mb-4 text-slate-300" />
               <p className="font-medium">No workflows found</p>
               <p className="text-sm mt-1">Try adjusting your filters or connect to HubSpot</p>
+            </div>
+          )}
+          {filteredWorkflows.length > 0 && (
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-xs text-slate-500">Page {page} of {Math.max(1, Math.ceil(filteredWorkflows.length / pageSize))}</span>
+              <div className="flex gap-2">
+                <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">Previous</button>
+                <button onClick={() => setPage(Math.min(Math.ceil(filteredWorkflows.length / pageSize), page + 1))} disabled={page >= Math.ceil(filteredWorkflows.length / pageSize)} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">Next</button>
+              </div>
             </div>
           )}
         </div>

@@ -10,8 +10,9 @@
     "dev:all": "npm run dev & npm run dev:server",
     "build": "vite build",
     "preview": "vite preview",
-    "e2e": "node scripts/e2e/multiUser.js",
-    "e2e:api": "node scripts/e2e/apiDryRun.js"
+    "e2e": "node scripts/e2e/multiUser.cjs",
+    "e2e:api": "node scripts/e2e/apiDryRun.cjs",
+    "e2e:full": "node scripts/e2e/fullInteraction.cjs"
   },
   "dependencies": {
     "react": "^19.2.0",

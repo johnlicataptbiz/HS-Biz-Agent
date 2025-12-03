@@ -12,6 +12,7 @@ import AuthPage from './pages/AuthPage';
 import AiChat from './components/AiChat';
 import AiModal from './components/AiModal';
 import SettingsModal from './components/SettingsModalSimple';
+import Recommendations from './pages/Recommendations';
 import { ChatResponse } from './types';
 import { authService } from './services/authService';
 import { Loader2 } from 'lucide-react';
@@ -82,6 +83,7 @@ const MainApp: React.FC = () => {
       case 'campaigns': return <Campaigns />;
       case 'datamodel': return <DataModel />;
       case 'breezetools': return <BreezeTools />;
+      case 'recommendations': return <Recommendations />;
       default: return <Dashboard onNavigate={setActiveTab} />;
     }
   };
