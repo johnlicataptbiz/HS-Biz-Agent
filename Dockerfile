@@ -6,11 +6,15 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (includes express, cors, dotenv)
+# Install root dependencies (frontend + shared)
 RUN npm ci
 
 # Copy source
 COPY . .
+
+# Install server dependencies (separate package.json)
+RUN apk add --no-cache python3 make g++
+RUN cd server && npm ci --omit=dev
 
 # Build frontend
 RUN npm run build
@@ -20,11 +24,14 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy node_modules from builder (has all deps including express)
+# Copy node_modules from builder (root deps)
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy server code
 COPY --from=builder /app/server ./server
+
+# Copy server node_modules (native deps like better-sqlite3)
+COPY --from=builder /app/server/node_modules ./server/node_modules
 
 # Copy built frontend
 COPY --from=builder /app/dist ./dist
