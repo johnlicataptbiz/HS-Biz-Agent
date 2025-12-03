@@ -4,7 +4,6 @@ import { useAuth } from './AuthContext';
 import { hubSpotService } from '../services/hubspotService';
 import { modeService } from '../services/modeService';
 import { usageService } from '../services/usageService';
-import { useAuth } from './AuthContext';
 
 interface SettingsModalProps {
   isOpen: boolean;

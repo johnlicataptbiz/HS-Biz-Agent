@@ -10,6 +10,8 @@ const DataModel: React.FC = () => {
   const [showAi, setShowAi] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [source, setSource] = useState<'demo' | 'hubspot'>('demo');
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     loadData();
@@ -111,7 +113,7 @@ const DataModel: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {properties.map((prop) => (
+              {properties.slice((page - 1) * pageSize, page * pageSize).map((prop) => (
                 <tr key={prop.name} className="group hover:bg-slate-50/80 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -157,6 +159,31 @@ const DataModel: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {properties.length > pageSize && (
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-xs text-slate-500">
+              Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, properties.length)} of {properties.length}
+            </span>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setPage(Math.max(1, page - 1))} 
+                disabled={page <= 1} 
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button 
+                onClick={() => setPage(Math.min(Math.ceil(properties.length / pageSize), page + 1))} 
+                disabled={page >= Math.ceil(properties.length / pageSize)} 
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <AiModal 

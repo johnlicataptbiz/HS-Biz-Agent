@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "e2e": "node scripts/e2e/multiUser.cjs",
     "e2e:api": "node scripts/e2e/apiDryRun.cjs",
-    "e2e:full": "node scripts/e2e/fullInteraction.cjs"
+    "e2e:full": "node scripts/e2e/fullInteraction.cjs",
+    "e2e:crawl": "node scripts/e2e/fullCrawl.cjs"
   },
   "dependencies": {
     "react": "^19.2.0",

@@ -1,0 +1,237 @@
+{
+  "auditDate": "2025-12-03",
+  "summary": {
+    "totalIssuesFound": 5,
+    "issuesFixed": 5,
+    "issuesDeferred": 0,
+    "pagesAudited": 9,
+    "apiEndpointsAudited": 35
+  },
+  "repoFacts": {
+    "frontend": "React 19.2 + Vite 6.2 + TypeScript",
+    "backend": "Express 4.21 + SQLite (better-sqlite3)",
+    "auth": "JWT (server-side) + per-user HubSpot OAuth/PAT tokens",
+    "testTooling": "Puppeteer 23.11",
+    "externalIntegrations": ["HubSpot API", "Gemini AI", "OpenAI (fallback)"],
+    "deployment": "Railway (Docker)"
+  },
+  "appMap": {
+    "pages": [
+      {
+        "id": "dashboard",
+        "route": "/",
+        "purpose": "Portal health overview with key metrics",
+        "apiDeps": ["/api/hubspot/workflows", "/api/tools/list-objects"],
+        "interactiveElements": ["View All Recommendations", "Connect HubSpot", "StatCard clicks to navigate"],
+        "pagination": "N/A (summary view)"
+      },
+      {
+        "id": "copilot",
+        "route": "/copilot",
+        "purpose": "AI assistant with quick actions and preview/execute panel",
+        "apiDeps": ["/api/ai/chat", "/api/actions/*/preview", "/api/actions/*/execute"],
+        "interactiveElements": ["Quick Actions (4)", "Open Chat", "Preview/Execute buttons"],
+        "pagination": "N/A"
+      },
+      {
+        "id": "workflows",
+        "route": "/workflows",
+        "purpose": "List and optimize HubSpot workflows",
+        "apiDeps": ["/api/hubspot/workflows"],
+        "interactiveElements": ["Draft Workflow", "Refresh", "Search", "Filter", "Optimize per-workflow", "Pagination"],
+        "pagination": "✅ Client-side + server-side Load More"
+      },
+      {
+        "id": "sequences",
+        "route": "/sequences",
+        "purpose": "List and optimize sales sequences",
+        "apiDeps": ["/api/hubspot/sequences"],
+        "interactiveElements": ["Draft Sequence", "Refresh", "Search", "Optimize per-sequence", "Pagination"],
+        "pagination": "✅ Client-side + server-side Load More"
+      },
+      {
+        "id": "campaigns",
+        "route": "/campaigns",
+        "purpose": "Marketing campaign analysis",
+        "apiDeps": ["/api/tools/list-campaigns"],
+        "interactiveElements": ["Plan Campaign", "Refresh", "Search", "Filter by status", "Analyze per-campaign"],
+        "pagination": "✅ Added client-side pagination"
+      },
+      {
+        "id": "datamodel",
+        "route": "/datamodel",
+        "purpose": "CRM property audit and cleanup",
+        "apiDeps": ["/api/tools/list-properties/contacts"],
+        "interactiveElements": ["Run Schema Audit", "Refresh"],
+        "pagination": "✅ Added client-side pagination"
+      },
+      {
+        "id": "breezetools",
+        "route": "/breezetools",
+        "purpose": "Custom workflow actions (Beta)",
+        "apiDeps": ["Mock data only (Breeze not fetchable via PAT)"],
+        "interactiveElements": ["Draft New Tool", "Refresh", "Copy JSON", "Refine per-tool"],
+        "pagination": "N/A (few items)"
+      },
+      {
+        "id": "recommendations",
+        "route": "/recommendations",
+        "purpose": "AI-generated optimization recommendations",
+        "apiDeps": ["/api/recommendations"],
+        "interactiveElements": ["Load More"],
+        "pagination": "✅ Client-side + server-side Load More"
+      },
+      {
+        "id": "auth",
+        "route": "/auth",
+        "purpose": "Login and registration",
+        "apiDeps": ["/api/auth/register", "/api/auth/login"],
+        "interactiveElements": ["Sign In/Create Account tabs", "Submit form"],
+        "pagination": "N/A"
+      }
+    ],
+    "apiEndpoints": {
+      "auth": [
+        "POST /api/auth/register",
+        "POST /api/auth/login",
+        "GET /api/auth/me"
+      ],
+      "oauth": [
+        "POST /api/oauth/token",
+        "POST /api/oauth/disconnect",
+        "POST /api/oauth/refresh"
+      ],
+      "hubspot": [
+        "GET /api/hubspot/workflows",
+        "GET /api/hubspot/sequences"
+      ],
+      "actions": [
+        "POST /api/actions/workflows/preview",
+        "POST /api/actions/workflows/execute",
+        "POST /api/actions/sequences/preview",
+        "POST /api/actions/sequences/execute",
+        "POST /api/actions/properties/merge/preview",
+        "POST /api/actions/properties/merge/execute"
+      ],
+      "tools": [
+        "GET /api/tools/list-objects/:type",
+        "POST /api/tools/search-objects/:type",
+        "GET /api/tools/list-properties/:type",
+        "GET /api/tools/list-workflows",
+        "GET /api/tools/get-workflow/:id",
+        "GET /api/tools/list-sequences",
+        "GET /api/tools/list-campaigns",
+        "POST /api/tools/batch-create/:type",
+        "POST /api/tools/batch-update/:type",
+        "GET /api/tools/list-associations/:from/:id/:to",
+        "POST /api/tools/create-engagement",
+        "GET /api/tools/get-schemas",
+        "GET /api/tools/get-portal-link"
+      ],
+      "admin": [
+        "GET /api/admin/users",
+        "POST /api/admin/users/role"
+      ],
+      "ai": [
+        "POST /api/ai/optimize",
+        "POST /api/ai/chat"
+      ],
+      "other": [
+        "GET /api/config",
+        "GET /api/health",
+        "POST /api/usage/track",
+        "POST /api/recommendations"
+      ]
+    }
+  },
+  "findings": {
+    "blocking": [],
+    "major": [
+      {
+        "id": "M1",
+        "description": "Duplicate import of useAuth in SettingsModalSimple.tsx",
+        "location": "components/SettingsModalSimple.tsx:7",
+        "status": "FIXED",
+        "resolution": "Removed duplicate import line"
+      }
+    ],
+    "minor": [
+      {
+        "id": "m1",
+        "description": "Campaigns page missing pagination",
+        "location": "pages/Campaigns.tsx",
+        "status": "FIXED",
+        "resolution": "Added client-side pagination with pageSize=5"
+      },
+      {
+        "id": "m2",
+        "description": "DataModel page missing pagination for properties table",
+        "location": "pages/DataModel.tsx",
+        "status": "FIXED",
+        "resolution": "Added client-side pagination with pageSize=10"
+      },
+      {
+        "id": "m3",
+        "description": "No comprehensive E2E crawler test",
+        "location": "scripts/e2e/",
+        "status": "FIXED",
+        "resolution": "Created fullCrawl.cjs with systematic page/button testing"
+      },
+      {
+        "id": "m4",
+        "description": "Missing e2e:crawl npm script",
+        "location": "package.json",
+        "status": "FIXED",
+        "resolution": "Added e2e:crawl script"
+      }
+    ]
+  },
+  "testsAdded": [
+    {
+      "file": "scripts/e2e/fullCrawl.cjs",
+      "coverage": [
+        "User registration flow",
+        "Navigation to all 8 pages",
+        "Pagination controls on list pages",
+        "Modal open/close (Settings, AI)",
+        "Button functionality verification",
+        "Console error detection",
+        "Network error detection",
+        "Basic accessibility checks"
+      ]
+    }
+  ],
+  "existingTests": [
+    {
+      "file": "scripts/e2e/multiUser.cjs",
+      "coverage": ["Multi-user registration", "Workflow/Sequence pages", "Pagination", "Role restrictions"]
+    },
+    {
+      "file": "scripts/e2e/fullInteraction.cjs",
+      "coverage": ["Full interaction flow", "PAT connection", "Load More", "Console error assertions"]
+    },
+    {
+      "file": "scripts/e2e/apiDryRun.cjs",
+      "coverage": ["Preview/Execute API endpoints", "Role-based access control"]
+    }
+  ],
+  "howToRun": {
+    "install": "npm install && cd server && npm install",
+    "startApp": "npm run dev:all",
+    "runE2E": {
+      "all": "npm run e2e:crawl",
+      "multiUser": "npm run e2e",
+      "fullInteraction": "npm run e2e:full",
+      "apiDryRun": "E2E_JWT=<token> npm run e2e:api"
+    },
+    "envVars": {
+      "required": ["HUBSPOT_CLIENT_ID", "HUBSPOT_CLIENT_SECRET"],
+      "optional": ["GEMINI_API_KEY", "JWT_SECRET", "E2E_BASE_URL", "E2E_HUBSPOT_PAT"]
+    }
+  },
+  "tradeoffs": [
+    "BreezeTools page uses mock data only - Breeze API requires special app registration",
+    "Campaigns API may return empty in some HubSpot portals without Marketing Hub",
+    "E2E tests run in headless mode - use headless: false for debugging"
+  ]
+}

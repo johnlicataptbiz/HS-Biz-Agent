@@ -13,6 +13,8 @@ const Campaigns: React.FC = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'paused' | 'draft' | 'completed'>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
   useEffect(() => {
     loadData();
@@ -70,6 +72,9 @@ const Campaigns: React.FC = () => {
     const matchesFilter = filterStatus === 'all' || c.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
+
+  const paged = filteredCampaigns.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredCampaigns.length / pageSize));
 
   const totalLeads = campaigns.reduce((acc, c) => acc + c.leads, 0);
   const totalConversions = campaigns.reduce((acc, c) => acc + c.conversions, 0);
@@ -161,7 +166,7 @@ const Campaigns: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredCampaigns.map((campaign) => (
+          {paged.map((campaign) => (
             <div 
               key={campaign.id}
               className="group bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all"
@@ -225,6 +230,29 @@ const Campaigns: React.FC = () => {
               <Megaphone size={40} className="mx-auto mb-4 text-slate-300" />
               <p className="font-medium">No campaigns found</p>
               <p className="text-sm mt-1">Try adjusting your filters or connect to HubSpot</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {filteredCampaigns.length > 0 && (
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setPage(Math.max(1, page - 1))} 
+                  disabled={page <= 1} 
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button 
+                  onClick={() => setPage(Math.min(totalPages, page + 1))} 
+                  disabled={page >= totalPages} 
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
