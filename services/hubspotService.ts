@@ -1,11 +1,12 @@
-import { Workflow, Sequence, DataProperty } from '../types';
+import { Workflow, Sequence, DataProperty, Campaign } from '../types';
+import { authService } from './authService';
 
 // Helper to detect server URL
 const getServerUrl = (): string => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     
-    // Production: same origin (Railway, etc.) - ignore VITE_SERVER_URL
+    // Production: same origin (Railway, etc.)
     if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1') && !hostname.includes('github.dev')) {
       return ''; // Use relative URLs - same origin
     }
@@ -25,48 +26,25 @@ const getServerUrl = (): string => {
 };
 
 class HubSpotService {
-  // Backend server URL (proxy for HubSpot API to avoid CORS)
   private readonly SERVER_URL = getServerUrl();
   private readonly HUBSPOT_AUTH_URL = 'https://app.hubspot.com';
   
-  private readonly STORAGE_KEYS = {
-    ACCESS_TOKEN: 'HUBSPOT_ACCESS_TOKEN',
-    REFRESH_TOKEN: 'HUBSPOT_REFRESH_TOKEN',
-    EXPIRES_AT: 'HUBSPOT_TOKEN_EXPIRES_AT'
-  };
+  // Cache for server config
+  private serverConfig: { clientId: string; redirectUri: string; scopes: string[] } | null = null;
 
-  // --- PKCE HELPER METHODS ---
-
-  private base64UrlEncode(array: Uint8Array): string {
-    return btoa(String.fromCharCode.apply(null, Array.from(array)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-  }
-
-  private generateCodeVerifier(): string {
-    const array = new Uint8Array(32);
-    window.crypto.getRandomValues(array);
-    return this.base64UrlEncode(array);
-  }
-
-  private async generateCodeChallenge(verifier: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(verifier);
-    const hash = await window.crypto.subtle.digest('SHA-256', data);
-    return this.base64UrlEncode(new Uint8Array(hash));
+  // --- HELPER: Get headers with JWT auth ---
+  
+  private getAuthHeaders(): HeadersInit {
+    const token = authService.getToken();
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
   }
 
   // --- AUTH CONFIGURATION ---
 
-  // Cache for server config
-  private serverConfig: { clientId: string; redirectUri: string; scopes: string[] } | null = null;
-
-  public saveAuthConfig(): void {
-    throw new Error('HubSpot credentials are managed on the server. Remove client-side secrets.');
-  }
-
-  // Fetch config from server (for production where credentials are baked in)
+  // Fetch config from server
   private async fetchServerConfig(): Promise<{ clientId: string; redirectUri: string; scopes: string[] }> {
     if (this.serverConfig) return this.serverConfig;
     
@@ -100,7 +78,11 @@ class HubSpotService {
   // --- OAUTH FLOW ---
 
   public async initiateOAuth(): Promise<Window | null> {
-    // Try to get config from server first (production mode)
+    // Must be logged in first
+    if (!authService.isAuthenticated()) {
+      throw new Error('Please log in before connecting HubSpot');
+    }
+
     const config = await this.fetchServerConfig();
     const clientId = config.clientId;
     const redirectUri = config.redirectUri || window.location.origin;
@@ -111,8 +93,8 @@ class HubSpotService {
     
     console.log("Initiating OAuth with Redirect URI:", redirectUri);
 
-    // Scopes - streamlined for core functionality
-    const scopes = [
+    // Use server config scopes if available
+    const defaultScopes = [
       'crm.objects.contacts.read',
       'crm.objects.contacts.write',
       'crm.objects.companies.read',
@@ -129,181 +111,80 @@ class HubSpotService {
       'tickets'
     ].join(' ');
     
-    // Use server config scopes if available
-    const scopeString = config.scopes?.length ? config.scopes.join(' ') : scopes;
+    const scopeString = config.scopes?.length ? config.scopes.join(' ') : defaultScopes;
     
-    // Standard OAuth (no PKCE needed when using client_secret on server)
+    // Standard OAuth with state for CSRF protection
+    const state = btoa(JSON.stringify({ 
+      returnUrl: window.location.pathname,
+      timestamp: Date.now()
+    }));
+    sessionStorage.setItem('oauth_state', state);
+    
     const authUrl = `${this.HUBSPOT_AUTH_URL}/oauth/authorize` +
       `?client_id=${encodeURIComponent(clientId)}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&scope=${encodeURIComponent(scopeString)}`;
+      `&scope=${encodeURIComponent(scopeString)}` +
+      `&state=${encodeURIComponent(state)}`;
 
-    // Use direct redirect instead of popup (works better in production)
+    // Use direct redirect
     window.location.href = authUrl;
     return null;
   }
 
+  /**
+   * Exchange OAuth code for tokens (called after redirect)
+   * Now handled server-side - frontend just calls /api/oauth/token
+   */
   public async exchangeCodeForToken(code: string): Promise<void> {
-    // 1. Support direct Private App Token (PAT) input
-    if (code.trim().startsWith('pat-')) {
-      this.saveToken(code.trim());
-      return;
+    if (!authService.isAuthenticated()) {
+      throw new Error('Must be logged in to connect HubSpot');
     }
 
-    // Get redirect URI (prefer server config)
     const config = await this.fetchServerConfig();
     const redirectUri = config.redirectUri || window.location.origin;
 
-    // Basic cleanup in case user pasted a full URL
+    // Clean the code in case user pasted a full URL
     const cleanCode = code.includes('code=') ? code.split('code=')[1].split('&')[0] : code;
 
-    try {
-      // Use backend proxy to exchange code (server has client_id and client_secret)
-      const response = await fetch(`${this.SERVER_URL}/api/oauth/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: cleanCode,
-          redirect_uri: redirectUri
-        })
-      });
+    // Exchange via authenticated endpoint - server stores tokens in DB
+    const response = await authService.apiRequest('/api/oauth/token', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: cleanCode,
+        redirect_uri: redirectUri
+      })
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("HubSpot OAuth Error Response:", errorData);
-        throw new Error(`Token exchange failed: ${errorData.message || response.status}`);
-      }
-
-      const data = await response.json();
-      this.saveToken(data.access_token, data.refresh_token, data.expires_in);
-
-    } catch (error: unknown) {
-      console.error("Token Exchange Error:", error);
-      throw error;
-    }
-  }
-
-  // --- REQUEST HELPER (via backend proxy) ---
-
-  private async request<T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = this.getToken();
-    
-    // Route through backend proxy to avoid CORS
-    const url = `${this.SERVER_URL}/api/hubspot${endpoint}`;
-    const headers = new Headers(options.headers);
-    headers.set('Content-Type', 'application/json');
-    headers.set('Authorization', `Bearer ${token}`);
-
-    const response = await fetch(url, { ...options, headers });
-    
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || `Request failed: ${response.status}`);
-    }
-    
-    return response.json();
-  }
-
-  // --- TOKEN MANAGEMENT ---
-
-  public saveToken(accessToken: string, refreshToken?: string, expiresIn?: number): void {
-    localStorage.setItem(this.STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-    if (refreshToken) localStorage.setItem(this.STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-    if (expiresIn) {
-      const expiresAt = Date.now() + (expiresIn * 1000);
-      localStorage.setItem(this.STORAGE_KEYS.EXPIRES_AT, expiresAt.toString());
-    }
-  }
-
-  public getToken(): string {
-    return localStorage.getItem(this.STORAGE_KEYS.ACCESS_TOKEN) || '';
-  }
-
-  public getRefreshToken(): string {
-    return localStorage.getItem(this.STORAGE_KEYS.REFRESH_TOKEN) || '';
-  }
-
-  public isTokenExpired(): boolean {
-    const expiresAt = localStorage.getItem(this.STORAGE_KEYS.EXPIRES_AT);
-    if (!expiresAt) return false; // PAT tokens don't expire
-    
-    // Consider expired if less than 5 minutes remaining
-    const bufferMs = 5 * 60 * 1000;
-    return Date.now() > (parseInt(expiresAt, 10) - bufferMs);
-  }
-
-  public async refreshAccessToken(): Promise<boolean> {
-    const refreshToken = this.getRefreshToken();
-    
-    if (!refreshToken) {
-      console.warn('Cannot refresh: missing refresh token');
-      return false;
+      const errorData = await response.json();
+      console.error("HubSpot OAuth Error Response:", errorData);
+      throw new Error(`Token exchange failed: ${errorData.message || response.status}`);
     }
 
-    try {
-      const response = await fetch(`${this.SERVER_URL}/api/oauth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken })
-      });
-
-      if (!response.ok) {
-        console.error('Token refresh failed:', response.status);
-        return false;
-      }
-
-      const data = await response.json();
-      this.saveToken(data.access_token, data.refresh_token, data.expires_in);
-      console.log('Token refreshed successfully');
-      return true;
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      return false;
-    }
+    // Tokens are now stored server-side, no need to save locally
+    console.log('HubSpot connected successfully');
   }
+
+  // --- CONNECTION STATUS ---
 
   /**
-   * Ensures we have a valid token, refreshing if necessary.
-   * Call this before making API requests.
+   * Check if user has a valid HubSpot connection (via auth service)
    */
-  public async ensureValidToken(): Promise<boolean> {
-    const token = this.getToken();
-    if (!token) return false;
-    
-    // PAT tokens (start with 'pat-') don't expire
-    if (token.startsWith('pat-')) return true;
-    
-    // Check if OAuth token needs refresh
-    if (this.isTokenExpired()) {
-      return await this.refreshAccessToken();
-    }
-    
-    return true;
+  public isConnected(): boolean {
+    const user = authService.getUser();
+    return (user as { hasHubSpotConnection?: boolean })?.hasHubSpotConnection || false;
   }
-
-  public disconnect(): void {
-    localStorage.removeItem(this.STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(this.STORAGE_KEYS.REFRESH_TOKEN);
-    localStorage.removeItem(this.STORAGE_KEYS.EXPIRES_AT);
-  }
-
-  // --- DATA FETCHING (via backend proxy) ---
 
   /**
-   * Validates the connection and returns a detailed status.
+   * Validates the connection and returns detailed status.
    */
   public async validateConnection(): Promise<{ success: boolean; error?: string; portalId?: string; hubDomain?: string }> {
     try {
-      const token = this.getToken();
-      if (!token) return { success: false, error: "No token found" };
+      if (!authService.isAuthenticated()) {
+        return { success: false, error: "Not logged in" };
+      }
 
-      // Try to refresh if needed
-      await this.ensureValidToken();
-
-      const response = await fetch(`${this.SERVER_URL}/api/tools/get-user-details`, {
-        headers: { 'Authorization': `Bearer ${this.getToken()}` }
-      });
-      
+      const response = await authService.apiRequest('/api/tools/get-user-details');
       const data = await response.json();
       
       if (response.ok && data.success) {
@@ -327,18 +208,13 @@ class HubSpotService {
     return result.success;
   }
 
-  /**
-   * Fetches workflows from HubSpot via backend proxy.
-   */
+  // --- DATA FETCHING ---
+
   public async fetchWorkflows(): Promise<Workflow[]> {
     try {
-      await this.ensureValidToken();
-      const token = this.getToken();
-      if (!token) return [];
+      if (!authService.isAuthenticated()) return [];
 
-      const response = await fetch(`${this.SERVER_URL}/api/tools/list-workflows`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authService.apiRequest('/api/tools/list-workflows');
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -349,7 +225,7 @@ class HubSpotService {
       const data = await response.json();
       console.log("Raw workflow response:", data);
       
-      // v4 API returns { flows: [...] } not { workflows: [...] }
+      // v4 API returns { flows: [...] }
       const workflows = data.flows || data.workflows || data.results || [];
 
       return workflows.map((wf: Record<string, unknown>) => ({
@@ -370,20 +246,15 @@ class HubSpotService {
 
   public async fetchSequences(): Promise<Sequence[]> {
     try {
-      await this.ensureValidToken();
-      const token = this.getToken();
-      if (!token) return [];
+      if (!authService.isAuthenticated()) return [];
       
-      const response = await fetch(`${this.SERVER_URL}/api/tools/list-sequences`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authService.apiRequest('/api/tools/list-sequences');
 
       if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
 
       const data = await response.json();
       console.log('Raw sequences response:', data);
       
-      // Handle normalized response from backend
       const sequences = data.sequences || data.results || (Array.isArray(data) ? data : []);
 
       return sequences.map((seq: Record<string, unknown>) => ({
@@ -401,15 +272,11 @@ class HubSpotService {
     }
   }
 
-  public async fetchCampaigns(): Promise<import('../types').Campaign[]> {
+  public async fetchCampaigns(): Promise<Campaign[]> {
     try {
-      await this.ensureValidToken();
-      const token = this.getToken();
-      if (!token) return [];
+      if (!authService.isAuthenticated()) return [];
       
-      const response = await fetch(`${this.SERVER_URL}/api/tools/list-campaigns`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authService.apiRequest('/api/tools/list-campaigns');
 
       if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
 
@@ -439,13 +306,9 @@ class HubSpotService {
 
   public async fetchProperties(): Promise<DataProperty[]> {
     try {
-      await this.ensureValidToken();
-      const token = this.getToken();
-      if (!token) return [];
+      if (!authService.isAuthenticated()) return [];
 
-      const response = await fetch(`${this.SERVER_URL}/api/tools/list-properties/contacts`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authService.apiRequest('/api/tools/list-properties/contacts');
 
       if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
 
@@ -474,17 +337,14 @@ class HubSpotService {
     properties?: string[];
     associations?: string[];
   } = {}): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
     const params = new URLSearchParams();
     if (options.limit) params.set('limit', options.limit.toString());
     if (options.after) params.set('after', options.after);
     if (options.properties) params.set('properties', options.properties.join(','));
     if (options.associations) params.set('associations', options.associations.join(','));
     
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/list-objects/${objectType}?${params}`,
-      { headers: { 'Authorization': `Bearer ${token}` } }
+    const response = await authService.apiRequest(
+      `/api/tools/list-objects/${objectType}?${params}`
     );
     return response.json();
   }
@@ -500,16 +360,10 @@ class HubSpotService {
     properties?: string[];
     limit?: number;
   }): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/search-objects/${objectType}`,
+    const response = await authService.apiRequest(
+      `/api/tools/search-objects/${objectType}`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(searchBody)
       }
     );
@@ -517,53 +371,31 @@ class HubSpotService {
   }
 
   public async getSchemas(): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(`${this.SERVER_URL}/api/tools/get-schemas`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const response = await authService.apiRequest('/api/tools/get-schemas');
     return response.json();
   }
 
   // --- BATCH OPERATIONS ---
 
   public async batchCreateObjects(objectType: string, inputs: Array<{ properties: Record<string, string> }>): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(`${this.SERVER_URL}/api/tools/batch-create/${objectType}`, {
+    const response = await authService.apiRequest(`/api/tools/batch-create/${objectType}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ inputs })
     });
     return response.json();
   }
 
   public async batchUpdateObjects(objectType: string, inputs: Array<{ id: string; properties: Record<string, string> }>): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(`${this.SERVER_URL}/api/tools/batch-update/${objectType}`, {
+    const response = await authService.apiRequest(`/api/tools/batch-update/${objectType}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ inputs })
     });
     return response.json();
   }
 
   public async batchReadObjects(objectType: string, ids: string[], properties?: string[]): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(`${this.SERVER_URL}/api/tools/batch-read/${objectType}`, {
+    const response = await authService.apiRequest(`/api/tools/batch-read/${objectType}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({
         inputs: ids.map(id => ({ id })),
         properties: properties || []
@@ -575,11 +407,8 @@ class HubSpotService {
   // --- ASSOCIATIONS ---
 
   public async listAssociations(fromObjectType: string, fromObjectId: string, toObjectType: string): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/list-associations/${fromObjectType}/${fromObjectId}/${toObjectType}`,
-      { headers: { 'Authorization': `Bearer ${token}` } }
+    const response = await authService.apiRequest(
+      `/api/tools/list-associations/${fromObjectType}/${fromObjectId}/${toObjectType}`
     );
     return response.json();
   }
@@ -591,14 +420,8 @@ class HubSpotService {
     toObjectId: string,
     associationType: number
   ): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(`${this.SERVER_URL}/api/tools/create-association`, {
+    const response = await authService.apiRequest('/api/tools/create-association', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({
         fromObjectType,
         fromObjectId,
@@ -619,16 +442,10 @@ class HubSpotService {
       types: Array<{ associationCategory: string; associationTypeId: number }>;
     }>
   ): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/batch-create-associations/${fromObjectType}/${toObjectType}`,
+    const response = await authService.apiRequest(
+      `/api/tools/batch-create-associations/${fromObjectType}/${toObjectType}`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({ inputs })
       }
     );
@@ -636,11 +453,8 @@ class HubSpotService {
   }
 
   public async getAssociationDefinitions(fromObjectType: string, toObjectType: string): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/association-definitions/${fromObjectType}/${toObjectType}`,
-      { headers: { 'Authorization': `Bearer ${token}` } }
+    const response = await authService.apiRequest(
+      `/api/tools/association-definitions/${fromObjectType}/${toObjectType}`
     );
     return response.json();
   }
@@ -648,40 +462,25 @@ class HubSpotService {
   // --- ENGAGEMENTS (Notes, Tasks, etc.) ---
 
   public async createEngagement(engagementType: 'notes' | 'tasks' | 'emails' | 'calls' | 'meetings', properties: Record<string, string>): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(`${this.SERVER_URL}/api/tools/create-engagement`, {
+    const response = await authService.apiRequest('/api/tools/create-engagement', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ engagementType, ...properties })
     });
     return response.json();
   }
 
   public async getEngagement(engagementType: string, engagementId: string): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/get-engagement/${engagementType}/${engagementId}`,
-      { headers: { 'Authorization': `Bearer ${token}` } }
+    const response = await authService.apiRequest(
+      `/api/tools/get-engagement/${engagementType}/${engagementId}`
     );
     return response.json();
   }
 
   public async updateEngagement(engagementType: string, engagementId: string, properties: Record<string, string>): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/update-engagement/${engagementType}/${engagementId}`,
+    const response = await authService.apiRequest(
+      `/api/tools/update-engagement/${engagementType}/${engagementId}`,
       {
         method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(properties)
       }
     );
@@ -691,11 +490,8 @@ class HubSpotService {
   // --- PROPERTIES ---
 
   public async getProperty(objectType: string, propertyName: string): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/get-property/${objectType}/${propertyName}`,
-      { headers: { 'Authorization': `Bearer ${token}` } }
+    const response = await authService.apiRequest(
+      `/api/tools/get-property/${objectType}/${propertyName}`
     );
     return response.json();
   }
@@ -709,30 +505,18 @@ class HubSpotService {
     description?: string;
     options?: Array<{ label: string; value: string }>;
   }): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(`${this.SERVER_URL}/api/tools/create-property/${objectType}`, {
+    const response = await authService.apiRequest(`/api/tools/create-property/${objectType}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify(propertyDefinition)
     });
     return response.json();
   }
 
   public async updateProperty(objectType: string, propertyName: string, updates: Record<string, unknown>): Promise<unknown> {
-    await this.ensureValidToken();
-    const token = this.getToken();
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/update-property/${objectType}/${propertyName}`,
+    const response = await authService.apiRequest(
+      `/api/tools/update-property/${objectType}/${propertyName}`,
       {
         method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(updates)
       }
     );
@@ -746,18 +530,27 @@ class HubSpotService {
     objectId?: string;
     linkType?: 'record' | 'workflow' | 'sequence' | 'list';
   } = {}): Promise<{ url: string; portalId: string }> {
-    await this.ensureValidToken();
-    const token = this.getToken();
     const params = new URLSearchParams();
     if (options.objectType) params.set('objectType', options.objectType);
     if (options.objectId) params.set('objectId', options.objectId);
     if (options.linkType) params.set('linkType', options.linkType);
     
-    const response = await fetch(
-      `${this.SERVER_URL}/api/tools/get-portal-link?${params}`,
-      { headers: { 'Authorization': `Bearer ${token}` } }
+    const response = await authService.apiRequest(
+      `/api/tools/get-portal-link?${params}`
     );
     return response.json();
+  }
+
+  // --- DEPRECATED METHODS (for backwards compat) ---
+
+  /** @deprecated Use authService.isAuthenticated() instead */
+  public getToken(): string {
+    return authService.getToken() || '';
+  }
+
+  /** @deprecated HubSpot tokens now stored server-side */
+  public disconnect(): void {
+    console.warn('HubSpot disconnect should be done via settings');
   }
 }
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
+import * as db from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -47,6 +48,42 @@ const getToken = (req) => {
     return authHeader.substring(7);
   }
   return null;
+};
+
+// Helper: Get HubSpot token for authenticated user (with auto-refresh)
+const getHubSpotToken = async (req) => {
+  if (!req.user?.userId) return null;
+  
+  const connection = db.getHubSpotConnection(req.user.userId);
+  if (!connection) return null;
+  
+  // Check if token needs refresh
+  if (db.isTokenExpired(connection) && connection.refresh_token) {
+    try {
+      const params = new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: HUBSPOT_CLIENT_ID,
+        client_secret: HUBSPOT_CLIENT_SECRET,
+        refresh_token: connection.refresh_token
+      });
+      
+      const response = await fetch(`${HUBSPOT_BASE_URL}/oauth/v1/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        db.updateHubSpotTokens(req.user.userId, data.access_token, data.refresh_token, data.expires_in);
+        return data.access_token;
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+    }
+  }
+  
+  return connection.access_token;
 };
 
 // Helper: Make authenticated HubSpot API request
@@ -153,15 +190,118 @@ app.get('/api/health', (req, res) => {
 });
 
 // ============================================================
+// Auth Endpoints (User Registration & Login)
+// ============================================================
+
+app.post('/api/auth/register', async (req, res) => {
+  const { email, password, name } = req.body;
+  
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+  
+  try {
+    const user = db.createUser(email, password, name);
+    const token = db.generateToken(user);
+    res.json({ user, token });
+  } catch (error) {
+    if (error.message === 'Email already registered') {
+      return res.status(409).json({ error: error.message });
+    }
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  
+  const user = db.authenticateUser(email, password);
+  
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+  
+  const token = db.generateToken(user);
+  const hubspotConnection = db.getHubSpotConnection(user.id);
+  
+  res.json({ 
+    user, 
+    token,
+    hasHubSpotConnection: !!hubspotConnection,
+    portalId: hubspotConnection?.portal_id
+  });
+});
+
+app.get('/api/auth/me', db.authMiddleware, (req, res) => {
+  const user = db.getUserById(req.user.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  const hubspotConnection = db.getHubSpotConnection(user.id);
+  
+  res.json({ 
+    user,
+    hasHubSpotConnection: !!hubspotConnection,
+    portalId: hubspotConnection?.portal_id,
+    hubDomain: hubspotConnection?.hub_domain
+  });
+});
+
+// ============================================================
 // OAuth Endpoints (Proxy to avoid CORS)
 // ============================================================
 
-// Exchange authorization code for tokens
-app.post('/api/oauth/token', async (req, res) => {
+// Exchange authorization code for tokens (requires auth)
+app.post('/api/oauth/token', db.authMiddleware, async (req, res) => {
   const { code, redirect_uri, code_verifier } = req.body;
 
   if (!code) {
     return res.status(400).json({ error: 'Missing authorization code' });
+  }
+  
+  // Handle PAT tokens directly
+  if (code.trim().startsWith('pat-')) {
+    try {
+      // Validate PAT by making a test request
+      const testResponse = await fetch(`${HUBSPOT_BASE_URL}/integrations/v1/me`, {
+        headers: { 'Authorization': `Bearer ${code.trim()}` }
+      });
+      
+      if (!testResponse.ok) {
+        return res.status(401).json({ error: 'Invalid Private App Token' });
+      }
+      
+      const portalInfo = await testResponse.json();
+      
+      // Save PAT to database (no expiry, no refresh token)
+      db.saveHubSpotConnection(
+        req.user.userId,
+        code.trim(),
+        null, // no refresh token
+        null, // no expiry
+        portalInfo.portalId?.toString(),
+        portalInfo.hub_domain
+      );
+      
+      return res.json({ 
+        success: true, 
+        portalId: portalInfo.portalId,
+        hubDomain: portalInfo.hub_domain
+      });
+    } catch (error) {
+      console.error('PAT validation error:', error);
+      return res.status(500).json({ error: 'Failed to validate token' });
+    }
   }
   
   try {
@@ -189,14 +329,41 @@ app.post('/api/oauth/token', async (req, res) => {
       return res.status(response.status).json(data);
     }
     
-    res.json(data);
+    // Save tokens to database for this user
+    db.saveHubSpotConnection(
+      req.user.userId,
+      data.access_token,
+      data.refresh_token,
+      data.expires_in
+    );
+    
+    // Get portal info
+    try {
+      const portalResponse = await fetch(`${HUBSPOT_BASE_URL}/integrations/v1/me`, {
+        headers: { 'Authorization': `Bearer ${data.access_token}` }
+      });
+      if (portalResponse.ok) {
+        const portalInfo = await portalResponse.json();
+        db.updatePortalInfo(req.user.userId, portalInfo.portalId?.toString(), portalInfo.hub_domain);
+      }
+    } catch (e) {
+      console.error('Failed to fetch portal info:', e);
+    }
+    
+    res.json({ success: true });
   } catch (error) {
     console.error('OAuth token exchange error:', error);
     res.status(500).json({ error: 'Token exchange failed' });
   }
 });
 
-// Refresh access token
+// Disconnect HubSpot
+app.post('/api/oauth/disconnect', db.authMiddleware, (req, res) => {
+  db.deleteHubSpotConnection(req.user.userId);
+  res.json({ success: true });
+});
+
+// Refresh access token (internal use - handled automatically by getHubSpotToken)
 app.post('/api/oauth/refresh', async (req, res) => {
   const { refresh_token } = req.body;
 
@@ -236,9 +403,9 @@ app.post('/api/oauth/refresh', async (req, res) => {
 // ============================================================
 
 // Validate connection / Get user info
-app.get('/api/tools/get-user-details', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/get-user-details', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   try {
     const data = await hubspotRequest('/integrations/v1/me', token);
@@ -249,9 +416,9 @@ app.get('/api/tools/get-user-details', async (req, res) => {
 });
 
 // List CRM Objects
-app.get('/api/tools/list-objects/:objectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/list-objects/:objectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType } = req.params;
   const { limit = 100, after, properties, associations, archived = 'false' } = req.query;
@@ -270,9 +437,9 @@ app.get('/api/tools/list-objects/:objectType', async (req, res) => {
 });
 
 // Search CRM Objects
-app.post('/api/tools/search-objects/:objectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.post('/api/tools/search-objects/:objectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType } = req.params;
   const searchBody = req.body;
@@ -289,9 +456,9 @@ app.post('/api/tools/search-objects/:objectType', async (req, res) => {
 });
 
 // List Properties
-app.get('/api/tools/list-properties/:objectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/list-properties/:objectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType } = req.params;
   
@@ -304,9 +471,9 @@ app.get('/api/tools/list-properties/:objectType', async (req, res) => {
 });
 
 // List Workflows
-app.get('/api/tools/list-workflows', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/list-workflows', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   try {
     const data = await hubspotRequest('/automation/v4/flows', token);
@@ -323,9 +490,9 @@ app.get('/api/tools/list-workflows', async (req, res) => {
 });
 
 // Get Workflow by ID
-app.get('/api/tools/get-workflow/:workflowId', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/get-workflow/:workflowId', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { workflowId } = req.params;
   
@@ -338,9 +505,9 @@ app.get('/api/tools/get-workflow/:workflowId', async (req, res) => {
 });
 
 // List sequences (v3 API)
-app.get('/api/tools/list-sequences', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/list-sequences', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   try {
     // Try v3 sequences API
@@ -357,9 +524,9 @@ app.get('/api/tools/list-sequences', async (req, res) => {
 });
 
 // List marketing campaigns
-app.get('/api/tools/list-campaigns', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/list-campaigns', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   try {
     const data = await hubspotRequest('/marketing/v3/campaigns', token);
@@ -375,9 +542,9 @@ app.get('/api/tools/list-campaigns', async (req, res) => {
 });
 
 // Batch Create Objects
-app.post('/api/tools/batch-create/:objectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.post('/api/tools/batch-create/:objectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType } = req.params;
   
@@ -393,9 +560,9 @@ app.post('/api/tools/batch-create/:objectType', async (req, res) => {
 });
 
 // Batch Update Objects
-app.post('/api/tools/batch-update/:objectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.post('/api/tools/batch-update/:objectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType } = req.params;
   
@@ -411,9 +578,9 @@ app.post('/api/tools/batch-update/:objectType', async (req, res) => {
 });
 
 // Create Engagement (Notes, Tasks)
-app.post('/api/tools/create-engagement', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.post('/api/tools/create-engagement', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { engagementType, ...engagementData } = req.body;
   
@@ -429,9 +596,9 @@ app.post('/api/tools/create-engagement', async (req, res) => {
 });
 
 // List Associations
-app.get('/api/tools/list-associations/:fromObjectType/:fromObjectId/:toObjectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/list-associations/:fromObjectType/:fromObjectId/:toObjectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { fromObjectType, fromObjectId, toObjectType } = req.params;
   
@@ -447,9 +614,9 @@ app.get('/api/tools/list-associations/:fromObjectType/:fromObjectId/:toObjectTyp
 });
 
 // Get Object Schemas (Custom Objects)
-app.get('/api/tools/get-schemas', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/get-schemas', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   try {
     const data = await hubspotRequest('/crm/v3/schemas', token);
@@ -460,9 +627,9 @@ app.get('/api/tools/get-schemas', async (req, res) => {
 });
 
 // Batch Read Objects (by IDs)
-app.post('/api/tools/batch-read/:objectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.post('/api/tools/batch-read/:objectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType } = req.params;
   
@@ -478,9 +645,9 @@ app.post('/api/tools/batch-read/:objectType', async (req, res) => {
 });
 
 // Create Association
-app.post('/api/tools/create-association', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.post('/api/tools/create-association', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { fromObjectType, fromObjectId, toObjectType, toObjectId, associationType } = req.body;
   
@@ -500,9 +667,9 @@ app.post('/api/tools/create-association', async (req, res) => {
 });
 
 // Batch Create Associations
-app.post('/api/tools/batch-create-associations/:fromObjectType/:toObjectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.post('/api/tools/batch-create-associations/:fromObjectType/:toObjectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { fromObjectType, toObjectType } = req.params;
   
@@ -522,9 +689,9 @@ app.post('/api/tools/batch-create-associations/:fromObjectType/:toObjectType', a
 });
 
 // Get Association Definitions
-app.get('/api/tools/association-definitions/:fromObjectType/:toObjectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/association-definitions/:fromObjectType/:toObjectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { fromObjectType, toObjectType } = req.params;
   
@@ -540,9 +707,9 @@ app.get('/api/tools/association-definitions/:fromObjectType/:toObjectType', asyn
 });
 
 // Get Engagement by ID
-app.get('/api/tools/get-engagement/:engagementType/:engagementId', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/get-engagement/:engagementType/:engagementId', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { engagementType, engagementId } = req.params;
   
@@ -555,9 +722,9 @@ app.get('/api/tools/get-engagement/:engagementType/:engagementId', async (req, r
 });
 
 // Update Engagement
-app.patch('/api/tools/update-engagement/:engagementType/:engagementId', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.patch('/api/tools/update-engagement/:engagementType/:engagementId', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { engagementType, engagementId } = req.params;
   
@@ -573,9 +740,9 @@ app.patch('/api/tools/update-engagement/:engagementType/:engagementId', async (r
 });
 
 // Create Property
-app.post('/api/tools/create-property/:objectType', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.post('/api/tools/create-property/:objectType', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType } = req.params;
   
@@ -591,9 +758,9 @@ app.post('/api/tools/create-property/:objectType', async (req, res) => {
 });
 
 // Update Property
-app.patch('/api/tools/update-property/:objectType/:propertyName', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.patch('/api/tools/update-property/:objectType/:propertyName', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType, propertyName } = req.params;
   
@@ -609,9 +776,9 @@ app.patch('/api/tools/update-property/:objectType/:propertyName', async (req, re
 });
 
 // Get Property by Name
-app.get('/api/tools/get-property/:objectType/:propertyName', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/get-property/:objectType/:propertyName', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType, propertyName } = req.params;
   
@@ -624,9 +791,9 @@ app.get('/api/tools/get-property/:objectType/:propertyName', async (req, res) =>
 });
 
 // Get HubSpot Portal Link (for UI navigation)
-app.get('/api/tools/get-portal-link', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+app.get('/api/tools/get-portal-link', db.authMiddleware, async (req, res) => {
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   const { objectType, objectId, linkType = 'record' } = req.query;
   
@@ -664,8 +831,8 @@ app.get('/api/tools/get-portal-link', async (req, res) => {
 // ============================================================
 
 app.all('/api/hubspot/*', async (req, res) => {
-  const token = getToken(req);
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+  const token = await getHubSpotToken(req);
+  if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
   
   // Extract the HubSpot API path
   const hubspotPath = req.path.replace('/api/hubspot', '');

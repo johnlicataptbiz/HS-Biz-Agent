@@ -1,4 +1,4 @@
-import { Workflow, Sequence, DataProperty, BreezeTool } from '../types';
+import { Workflow, Sequence, DataProperty, BreezeTool, Campaign } from '../types';
 
 // Mock Database - PT Biz Context
 // PT Biz sells coaching programs to PT clinic owners
@@ -316,4 +316,71 @@ export const getDataProperties = async (): Promise<DataProperty[]> => {
 
 export const getBreezeTools = async (): Promise<BreezeTool[]> => {
   return new Promise((resolve) => setTimeout(() => resolve(breezeTools), 500));
+};
+
+// Mock Campaigns
+const campaigns: Campaign[] = [
+  {
+    id: 'camp_001',
+    name: 'Q4 Webinar Series - Scale Your PT Clinic',
+    status: 'active',
+    type: 'Webinar',
+    startDate: '2024-10-01',
+    endDate: '2024-12-31',
+    budget: 5000,
+    spent: 3200,
+    leads: 245,
+    conversions: 18,
+    aiScore: 85
+  },
+  {
+    id: 'camp_002',
+    name: 'LinkedIn Ads - Discovery Call Booking',
+    status: 'active',
+    type: 'Paid Ads',
+    startDate: '2024-11-01',
+    budget: 8000,
+    spent: 4500,
+    leads: 89,
+    conversions: 12,
+    aiScore: 72
+  },
+  {
+    id: 'camp_003',
+    name: 'Podcast Listener Conversion',
+    status: 'paused',
+    type: 'Email Nurture',
+    startDate: '2024-09-15',
+    budget: 1500,
+    spent: 1200,
+    leads: 156,
+    conversions: 8,
+    aiScore: 58
+  },
+  {
+    id: 'camp_004',
+    name: 'Referral Program Launch',
+    status: 'draft',
+    type: 'Referral',
+    leads: 0,
+    conversions: 0,
+    aiScore: 0
+  },
+  {
+    id: 'camp_005',
+    name: 'Summer Coaching Promo 2024',
+    status: 'completed',
+    type: 'Promotional',
+    startDate: '2024-06-01',
+    endDate: '2024-08-31',
+    budget: 12000,
+    spent: 11800,
+    leads: 520,
+    conversions: 42,
+    aiScore: 91
+  }
+];
+
+export const getCampaigns = async (): Promise<Campaign[]> => {
+  return new Promise((resolve) => setTimeout(() => resolve(campaigns), 500));
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, AlertCircle, Loader2, LogIn, LogOut, Sparkles } from 'lucide-react';
+import { X, Check, AlertCircle, Loader2, LogIn, LogOut, Sparkles, Key, ExternalLink } from 'lucide-react';
+import { useAuth } from './AuthContext';
 import { hubSpotService } from '../services/hubspotService';
 
 interface SettingsModalProps {
@@ -8,26 +9,30 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+  const { hasHubSpotConnection, portalId, refreshAuth } = useAuth();
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [portalInfo, setPortalInfo] = useState<{ portalId?: string; hubDomain?: string } | null>(null);
+  const [showPatInput, setShowPatInput] = useState(false);
+  const [patToken, setPatToken] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       checkConnection();
     }
-  }, [isOpen]);
+  }, [isOpen, hasHubSpotConnection]);
 
   const checkConnection = async () => {
-    if (hubSpotService.getToken()) {
+    if (hasHubSpotConnection) {
       setConnectionStatus('checking');
-      const result = await hubSpotService.validateConnection();
-      setConnectionStatus(result.success ? 'success' : 'error');
-      if (result.success && result.portalId) {
-        setPortalInfo({ portalId: result.portalId, hubDomain: result.hubDomain });
-      }
-      if (!result.success) {
-        setErrorMessage(result.error || "Connection invalid");
+      try {
+        const result = await hubSpotService.validateConnection();
+        setConnectionStatus(result.success ? 'success' : 'error');
+        if (!result.success) {
+          setErrorMessage(result.error || "Connection invalid");
+        }
+      } catch {
+        setConnectionStatus('error');
+        setErrorMessage("Failed to validate connection");
       }
     } else {
       setConnectionStatus('idle');
@@ -48,11 +53,51 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleDisconnect = () => {
-    hubSpotService.disconnect();
+  const handleDisconnect = async () => {
+    // TODO: Add server endpoint to disconnect HubSpot
+    // For now, just refresh auth state
+    await refreshAuth();
     setConnectionStatus('idle');
-    setPortalInfo(null);
     setErrorMessage('');
+    setShowPatInput(false);
+    setPatToken('');
+  };
+
+  const handlePatConnect = async () => {
+    if (!patToken.trim()) {
+      setErrorMessage('Please enter a Private App Token');
+      return;
+    }
+    
+    if (!patToken.trim().startsWith('pat-')) {
+      setErrorMessage('Token must start with "pat-"');
+      return;
+    }
+    
+    setConnectionStatus('checking');
+    setErrorMessage('');
+    
+    try {
+      // Exchange PAT token via server (now stores in DB)
+      await hubSpotService.exchangeCodeForToken(patToken.trim());
+      
+      // Refresh auth to get updated hasHubSpotConnection
+      await refreshAuth();
+      
+      // Verify the connection works
+      const result = await hubSpotService.validateConnection();
+      if (result.success) {
+        setConnectionStatus('success');
+        setShowPatInput(false);
+        setPatToken('');
+      } else {
+        setConnectionStatus('error');
+        setErrorMessage(result.error || 'Invalid token');
+      }
+    } catch (e: unknown) {
+      setConnectionStatus('error');
+      setErrorMessage((e as Error).message || 'Failed to connect');
+    }
   };
 
   if (!isOpen) return null;
@@ -85,7 +130,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
         {/* Content */}
         <div className="p-6">
-          {connectionStatus === 'success' ? (
+          {connectionStatus === 'success' || (hasHubSpotConnection && connectionStatus !== 'error') ? (
             /* Connected State */
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
@@ -96,12 +141,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <p className="text-slate-500 text-sm mt-1">
                   Your HubSpot portal is connected and ready.
                 </p>
-                {portalInfo?.portalId && (
+                {portalId && (
                   <p className="text-xs text-slate-400 mt-2">
-                    Portal ID: {portalInfo.portalId}
+                    Portal ID: {portalId}
                   </p>
                 )}
               </div>
+              
+              <a
+                href={`https://app.hubspot.com/home/${portalId || ''}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 text-sm text-indigo-600 hover:text-indigo-700"
+              >
+                Open HubSpot Portal
+                <ExternalLink size={14} />
+              </a>
               
               <div className="pt-4 border-t border-slate-100">
                 <button
@@ -142,16 +197,61 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </div>
               )}
 
-              <button
-                onClick={handleConnect}
-                className="flex items-center justify-center gap-2 w-full py-4 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
-              >
-                <LogIn size={20} />
-                Connect to HubSpot
-              </button>
+              {showPatInput ? (
+                <div className="space-y-3">
+                  <input
+                    type="password"
+                    value={patToken}
+                    onChange={(e) => setPatToken(e.target.value)}
+                    placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 font-mono"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowPatInput(false); setPatToken(''); setErrorMessage(''); }}
+                      className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handlePatConnect}
+                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all"
+                    >
+                      Connect
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={handleConnect}
+                    className="flex items-center justify-center gap-2 w-full py-4 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    <LogIn size={20} />
+                    Connect with OAuth
+                  </button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="px-2 bg-white text-slate-400">or</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowPatInput(true)}
+                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <Key size={18} />
+                    Use Private App Token
+                  </button>
+                </>
+              )}
 
               <p className="text-xs text-slate-400">
-                You'll be redirected to HubSpot to authorize access. We only request the permissions needed to analyze and optimize your portal.
+                OAuth redirects to HubSpot for authorization. Private App Tokens can be created in HubSpot Settings → Integrations → Private Apps.
               </p>
             </div>
           )}

@@ -2,97 +2,181 @@
 
 ## Architecture Overview
 
-React + TypeScript SPA with Express backend that audits HubSpot portals for Physical Therapy clinics using Gemini AI.
+Multi-tenant React + TypeScript SPA (Vite) with Express backend that audits HubSpot portals using Gemini AI. Built for PT Biz, a coaching company serving Physical Therapy clinic owners.
 
 ```
-Frontend (Vite :3000)          Backend (Express :8080)         HubSpot API
+Frontend (Vite :3000)          Backend (Express :8080)         Database (SQLite)
      │                               │                              │
-     ├─ services/hubspotService.ts ─►├─ /api/tools/* ──────────────►│
-     ├─ services/aiService.ts ──────►│  (proxies all HubSpot calls) │
+     ├─ AuthContext.tsx ────────────►├─ /api/auth/* ───────────────►│ users table
+     ├─ services/authService.ts ────►│                              │ hubspot_connections
+     ├─ services/hubspotService.ts ─►├─ /api/tools/* ──────────────►│      ↓
+     ├─ services/aiService.ts ──────►├─ /api/ai/* (Gemini)          │  HubSpot API
      └─ services/mockService.ts      │                              │
-        (fallback when disconnected) │                              │
+        (fallback for demo)          └─ server/db.js (SQLite layer) │
 ```
 
-**Key insight:** Two server files exist - `server/server.js` (production, serves static + API) and `server/index.js` (dev, API only). Both use port 8080.
+**Critical Files:**
+- `server/db.js` - SQLite database layer for users and HubSpot connections
+- `server/index.js` - Dev server (API only, uses `--watch`)
+- `server/server.js` - Production (serves static files + API)
+- **index.js and server.js MUST stay in sync!**
 
-## Development
+## Authentication Flow
+
+1. User registers/logs in via `AuthPage.tsx` → `/api/auth/register` or `/api/auth/login`
+2. Server creates JWT token stored in localStorage
+3. All API calls include JWT in Authorization header via `authService.apiRequest()`
+4. HubSpot OAuth tokens stored server-side in SQLite per user
+5. `db.authMiddleware` validates JWT on protected routes
+
+## Quick Start
 
 ```bash
 npm run dev:all          # Frontend (3000) + Backend (8080) together
-npm run dev              # Frontend only
-npm run dev:server       # Backend only (uses server/index.js)
-npm run build && npm start  # Production mode
+npm run dev:server       # Backend only (uses server/index.js with --watch)
+npm run build && npm start  # Production mode (server/server.js)
 ```
 
-**Environment:** Copy `.env.example` to `.env.local`. Required: `GEMINI_API_KEY`. The Vite config maps it to `process.env.API_KEY`.
+**Environment Setup:**
+1. Copy `.env.example` → `.env.local` (root) - needs `GEMINI_API_KEY`
+2. Copy `server/.env.example` → `server/.env` - needs:
+   - `HUBSPOT_CLIENT_ID`
+   - `HUBSPOT_CLIENT_SECRET`
+   - `JWT_SECRET` (optional, defaults to random on start)
 
-## Current Functionality Status
+## Database Schema (SQLite)
 
-| Page | Status | Notes |
-|------|--------|-------|
-| **Dashboard** | ✅ Works | Stat cards are clickable → navigate to relevant pages |
-| **Data Model** | ✅ Works | Fetches real properties, shows usage/redundancy |
-| **Workflows** | ✅ Works | Uses v4 flows API; "Optimize" pre-fills AI with workflow data |
-| **Sequences** | ⚠️ Partial | Depends on sequence permissions; "Optimize" pre-fills context |
-| **Breeze Tools** | 🔶 Mock + CLI | Shows `hs project add --features=workflow-action-tool` setup |
-| **Co-Pilot** | ✅ Works | Quick actions open AiModal with pre-filled prompts |
+```sql
+-- Users table
+CREATE TABLE users (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  name TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 
-## Critical Patterns
+-- HubSpot connections (one per user)
+CREATE TABLE hubspot_connections (
+  user_id TEXT PRIMARY KEY REFERENCES users(id),
+  access_token TEXT NOT NULL,
+  refresh_token TEXT,
+  expires_at INTEGER,
+  portal_id TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-### Adding MCP Tools (4-file checklist)
-1. `services/aiService.ts` → Add to `MCP_TOOLS_DEF` array with name, description, parameters
-2. `components/AiChat.tsx` → Add case in `executeToolCall()` switch
-3. `server/index.js` AND `server/server.js` → Add `/api/tools/...` endpoint (keep both in sync!)
-4. `services/hubspotService.ts` → Add method that calls `${SERVER_URL}/api/tools/...`
+## Key Files
 
-### AI Schema Pattern
-All AI responses use `@google/genai` with schema constraints. See `CHAT_SCHEMA` and `OPTIMIZATION_SCHEMA` in `aiService.ts`. New schemas must use `Type.OBJECT/STRING/ARRAY` from the library.
+| File | Purpose |
+|------|---------|
+| `server/db.js` | SQLite database operations: createUser, authenticateUser, saveHubSpotConnection, authMiddleware |
+| `services/authService.ts` | Frontend auth: login, register, logout, apiRequest (adds JWT to headers) |
+| `components/AuthContext.tsx` | React context: user, isLoggedIn, hasHubSpotConnection, login, logout, refreshAuth |
+| `pages/AuthPage.tsx` | Login/register form |
+| `services/hubspotService.ts` | HubSpot API calls via `authService.apiRequest()` |
 
-### Demo/Live Data Toggle
-All pages check `hubSpotService.getToken()` to switch between live API and `mockService.ts`:
+## HubSpot MCP Tools
+
+All MCP tool endpoints require authentication via `db.authMiddleware`:
+
+| Tool | Endpoint | Description |
+|------|----------|-------------|
+| `hubspot_list_objects` | `/api/tools/list-objects/:type` | Paginated CRM records |
+| `hubspot_search_objects` | `/api/tools/search-objects/:type` | Filter-based search |
+| `hubspot_batch_create` | `/api/tools/batch-create/:type` | Create multiple records |
+| `hubspot_batch_update` | `/api/tools/batch-update/:type` | Update multiple records |
+| `hubspot_list_properties` | `/api/tools/list-properties/:type` | Object schema properties |
+| `hubspot_list_associations` | `/api/tools/list-associations/:from/:id/:to` | Record relationships |
+| `hubspot_create_engagement` | `/api/tools/create-engagement` | Notes, tasks, etc. |
+| `hubspot_list_workflows` | `/api/tools/list-workflows` | Automation workflows (v4 API) |
+| `hubspot_list_sequences` | `/api/tools/list-sequences` | Sales sequences |
+| `hubspot_list_campaigns` | `/api/tools/list-campaigns` | Marketing campaigns |
+| `hubspot_get_portal_link` | `/api/tools/get-portal-link` | Generate HubSpot URLs |
+
+## Adding New HubSpot Tool Endpoints
+
+When adding a new MCP-style tool:
+
+1. **`server/index.js` AND `server/server.js`** - Add endpoint with auth:
+   ```javascript
+   app.get('/api/tools/my-endpoint', db.authMiddleware, async (req, res) => {
+     const token = await getHubSpotToken(req);
+     if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+     const data = await hubspotRequest('/crm/v3/...', token);
+     res.json(data);
+   });
+   ```
+
+2. **`services/hubspotService.ts`** - Add client method:
+   ```typescript
+   async myEndpoint(): Promise<...> {
+     const response = await authService.apiRequest('/api/tools/my-endpoint');
+     return response.json();
+   }
+   ```
+
+3. **`components/AiChat.tsx`** - Add to `executeToolCall()` switch if AI should invoke it
+
+4. **`services/mockService.ts`** - Add mock data for demo mode
+
+## Demo/Live Data Pattern
+
+Pages check `authService.isAuthenticated()` to decide data source:
 ```typescript
-const token = hubSpotService.getToken();
-const data = token ? await hubSpotService.fetch...() : getMock...();
+const data = authService.isAuthenticated()
+  ? await hubSpotService.fetchWorkflows()
+  : await mockService.getWorkflows();
 ```
 
-### Server URL Detection (`hubspotService.ts`)
-- Production (Railway/Render): uses relative URLs (same origin)
-- GitHub Codespaces: replaces port 3000→8080 in origin
-- Local: uses `VITE_SERVER_URL` env var or falls back to `localhost:8080`
+## AI Integration
 
-## HubSpot OAuth
+- AI endpoints: `/api/ai/optimize` and `/api/ai/chat`
+- System prompt `PT_BIZ_SYSTEM_INSTRUCTION` contains domain knowledge
+- AI uses tool calls (`toolCalls` array) to request real data
+- Tool calls available: `list_workflows`, `audit_data_schema`, `list_sequences`, `get_breeze_tools`
 
-Tokens stored in localStorage. OAuth flow handled in `App.tsx` via `postMessage` between popup and parent window. Token refresh is automatic via `ensureValidToken()` (5-min buffer before 30-min expiry). PAT tokens (`pat-...` prefix) skip refresh logic.
+## Domain Context (PT Biz)
 
-## Domain Context
+- **Business:** Coaching company for Physical Therapy clinic owners
+- **Contacts = PT clinic owners** (prospects or clients)
+- **Lifecycle:** Lead → Discovery Call → Coaching Client → Renewal/Referral
+- **Metrics:** Discovery Call booking rate, enrollment rate, retention, NPS
 
-**PT Biz Business Model:**
-- PT Biz is a coaching company that sells coaching programs to Physical Therapy clinic owners
-- Contacts in HubSpot = PT clinic owners who are prospects or coaching clients
-- The app helps PT Biz employees optimize their sales/marketing HubSpot portal
+## HubSpot API Notes
 
-The AI system prompt (`PT_BIZ_SYSTEM_INSTRUCTION` in server files) encodes this domain knowledge. When modifying AI behavior, preserve:
-- Key metrics: Discovery Call booking rate, Coaching enrollment rate, Client retention, NPS, Referrals
-- Sales lifecycle: Lead → Discovery Call → Coaching Client → Renewal/Referral
-- Lead sources: Webinars, podcasts, referrals, paid ads targeting PT owners
+- **Workflows:** v4 API (`/automation/v4/flows`), returns `{ flows: [...] }`
+- **Sequences:** v3 API (`/automation/v3/sequences`)
+- **Campaigns:** v3 API (`/marketing/v3/campaigns`)
+- **OAuth tokens:** Stored in SQLite, auto-refresh via `getHubSpotToken()`
+- **PAT tokens:** Start with `pat-`, no refresh needed
+- **Scopes:** Full list in `/api/config` endpoint
 
-## HubSpot Platform Knowledge
+## Page Components
 
-The AI has expert-level HubSpot knowledge including:
-
-**Hubs:** Smart CRM, Marketing Hub, Sales Hub, Service Hub, Content Hub, Operations Hub, Commerce Hub
-**Key Features:** Workflows (branching, delays, goals), Sequences (1:1 sales outreach), Lead Scoring, Custom Properties/Objects, Lists (active vs static), Deals/Pipelines, Reporting
-**Breeze AI:** Copilot, Agents (Social, Customer, Content, Prospecting), Content Remix, Custom Workflow Actions
-**Backend:** AWS cloud-native, 3,000+ microservices, REST/GraphQL APIs, webhooks, 1,900+ Marketplace integrations
-**Best Practices:** Data cleanliness (Operations Hub), automation, personalization at scale, multi-touch attribution
-
-## Deployment
-
-Uses Docker (`Dockerfile`) or Railway (`railway.json`). Production runs single server on port 8080 serving both static files and API. The `start.sh` script handles Railway-specific startup.
+Pages in `pages/` directory:
+- `AuthPage.tsx` - Login/Register form
+- `Dashboard.tsx` - Portal health overview
+- `DataModel.tsx` - Property audit and cleanup
+- `BreezeTools.tsx` - Custom workflow actions
+- `CoPilot.tsx` - Quick action buttons → AI modal
+- `Workflows.tsx` - Workflow list with AI optimization
+- `Sequences.tsx` - Sequence analysis with reply rates
+- `Campaigns.tsx` - Campaign management
 
 ## Common Issues
 
-- **Workflows showing empty:** Check HubSpot app has `automation` scope. API moved from v3 to v4.
-- **Server sync:** When adding endpoints, update BOTH `server/index.js` and `server/server.js`.
-- **CORS errors:** Backend proxy exists to avoid these - never call HubSpot API directly from frontend.
-- **Breeze Tools:** Not exposed via standard HubSpot API. Use CLI: `hs project add --features=workflow-action-tool`
+| Issue | Solution |
+|-------|----------|
+| 401 Unauthorized | JWT expired or invalid - re-login |
+| No HubSpot connection | User hasn't connected HubSpot via Settings |
+| Workflows empty | Check HubSpot app has `automation` scope |
+| CORS errors | Never call HubSpot API from frontend - use backend proxy |
+
+## Deployment
+
+Production uses `server/server.js` which serves `dist/` static files + API on port 8080.
+SQLite database file (`hs_biz.db`) created in `server/` directory.
+Supports Railway (`railway.json`), Render, Docker.
