@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Main gear -->
+  <g transform="translate(256, 256)">
+    <!-- Outer gear teeth -->
+    <path d="M0,-220 L30,-200 L30,-160 L60,-150 L80,-180 L110,-160 L100,-130 L130,-110 L150,-140 L175,-110 L155,-80 L180,-55 L200,-80 L220,-45 L195,-20 L210,10 L240,0 L245,40 L215,50 L220,85 L250,95 L245,135 L210,130 L200,165 L230,180 L210,210 L175,185 L155,215 L175,245 L140,255 L125,220 L90,235 L95,270 L55,270 L55,235 L20,235 L10,270 L-30,260 L-20,225 L-55,210 L-75,240 L-105,215 L-85,185 L-115,160 L-145,180 L-165,145 L-135,120 L-150,85 L-185,90 L-195,50 L-160,40 L-160,5 L-195,-15 L-175,-55 L-140,-45 L-125,-80 L-150,-110 L-115,-135 L-90,-110 L-60,-135 L-70,-175 L-30,-185 L-15,-150 L20,-155 L15,-195 L0,-220 Z" fill="#1E6FD9" stroke="#0D4A94" stroke-width="4"/>
+    
+    <!-- Inner circle -->
+    <circle cx="0" cy="0" r="120" fill="#2B7DE9" stroke="#1E6FD9" stroke-width="6"/>
+    
+    <!-- PTB Text -->
+    <text x="0" y="15" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="72" font-weight="900" fill="white">PTB</text>
+  </g>
+  
+  <!-- Circular arrows (orange) -->
+  <g stroke="#E85D2D" stroke-width="12" fill="none" stroke-linecap="round">
+    <!-- Top right arrow arc -->
+    <path d="M380,100 A180,180 0 0,1 450,250" />
+    <polygon points="455,240 470,270 440,265" fill="#E85D2D" stroke="none"/>
+    
+    <!-- Bottom left arrow arc -->
+    <path d="M130,410 A180,180 0 0,1 60,260" />
+    <polygon points="55,270 40,240 70,245" fill="#E85D2D" stroke="none"/>
+  </g>
+  
+  <!-- AI Badge (bottom left) -->
+  <g transform="translate(80, 380)">
+    <rect x="0" y="0" width="80" height="50" rx="10" fill="#2B7DE9" stroke="#1E6FD9" stroke-width="3"/>
+    <text x="40" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">AI</text>
+  </g>
+  
+  <!-- Brain icon (top left) -->
+  <g transform="translate(50, 50)">
+    <ellipse cx="40" cy="35" rx="35" ry="30" fill="#E85D2D"/>
+    <path d="M25,35 Q30,20 40,25 Q50,20 55,35 M25,40 Q35,50 55,40" stroke="#FFF" stroke-width="4" fill="none"/>
+    <circle cx="30" cy="30" r="4" fill="#FFF"/>
+    <circle cx="50" cy="30" r="4" fill="#FFF"/>
+  </g>
+</svg>

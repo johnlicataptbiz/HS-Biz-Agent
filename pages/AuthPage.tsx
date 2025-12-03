@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../components/AuthContext';
-import { LogIn, UserPlus, Mail, Lock, User, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, User, Loader2, AlertCircle } from 'lucide-react';
 
 const AuthPage: React.FC = () => {
   const { login, register } = useAuth();
@@ -34,11 +34,11 @@ const AuthPage: React.FC = () => {
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/30 mb-4">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-2">HubSpot AI Optimizer</h1>
-          <p className="text-slate-400">Optimize your PT clinic's HubSpot portal</p>
+          <img src="/assets/ptb-logo.svg" alt="PT Biz" className="w-20 h-20 mx-auto mb-4 drop-shadow-lg" />
+          <h1 className="text-3xl font-bold text-white mb-2">
+            <span className="text-orange-400">PT Biz</span> HubSpot AI Optimizer
+          </h1>
+          <p className="text-slate-400">AI-powered HubSpot optimization for coaching businesses</p>
         </div>
 
         {/* Auth Card */}

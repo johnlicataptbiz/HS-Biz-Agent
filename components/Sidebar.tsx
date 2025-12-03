@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, GitFork, Mail, Database, Settings, BrainCircuit, Bot, Hammer, Zap, ChevronRight, Megaphone } from 'lucide-react';
+import { LayoutDashboard, GitFork, Mail, Database, Settings, Bot, Hammer, ChevronRight, Megaphone } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 interface SidebarProps {
@@ -33,19 +33,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
       
       {/* Logo Section */}
       <div className="relative p-6 flex items-center gap-4">
-        <div className="relative">
-          <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
-            <BrainCircuit className="w-6 h-6 text-white" />
-          </div>
-          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-900 flex items-center justify-center">
-            <Zap className="w-2.5 h-2.5 text-white" />
-          </div>
-        </div>
+        <img src="/assets/favicon.svg" alt="PT Biz" className="w-12 h-12 drop-shadow-lg" />
         <div>
-          <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            AI Optimizer
+          <span className="font-bold text-lg tracking-tight">
+            <span className="text-orange-400">PT Biz</span>{' '}
+            <span className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">AI</span>
           </span>
-          <p className="text-xs text-slate-500">HubSpot RevOps</p>
+          <p className="text-xs text-slate-500">HubSpot Optimizer</p>
         </div>
       </div>
 
