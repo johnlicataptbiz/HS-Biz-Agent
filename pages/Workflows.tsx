@@ -15,7 +15,7 @@ const Workflows: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEnabled, setFilterEnabled] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 4; // smaller size to surface pagination in demo mode
 
   useEffect(() => {
     loadData();

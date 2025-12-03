@@ -250,6 +250,34 @@ class HubSpotService {
     }
   }
 
+  /**
+   * Server-side paginated workflows (v3)
+   * Returns raw response for flexibility; caller can map as needed
+   */
+  public async fetchWorkflowsPaged(limit = 20, after?: string): Promise<{ data: unknown; nextAfter?: string }> {
+    const usp = new URLSearchParams();
+    usp.set('limit', String(limit));
+    if (after) usp.set('after', after);
+    const resp = await authService.apiRequest(`/api/hubspot/workflows?${usp}`);
+    const data = await resp.json();
+    // Try to discover next token in a few common shapes
+    const nextAfter = (data?.paging?.next?.after as string) || (data?.offset as string) || undefined;
+    return { data, nextAfter };
+  }
+
+  /**
+   * Server-side paginated sequences (v4 beta)
+   */
+  public async fetchSequencesPaged(limit = 20, after?: string): Promise<{ data: unknown; nextAfter?: string }> {
+    const usp = new URLSearchParams();
+    usp.set('limit', String(limit));
+    if (after) usp.set('after', after);
+    const resp = await authService.apiRequest(`/api/hubspot/sequences?${usp}`);
+    const data = await resp.json();
+    const nextAfter = (data?.paging?.next?.after as string) || (data?.offset as string) || undefined;
+    return { data, nextAfter };
+  }
+
   public async fetchSequences(): Promise<Sequence[]> {
     try {
       if (!authService.isAuthenticated()) return [];

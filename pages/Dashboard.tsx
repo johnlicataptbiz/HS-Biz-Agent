@@ -31,6 +31,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState('');
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -185,13 +186,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <button
               onClick={async () => {
                 try {
+                  setConnecting(true);
                   await usageService.track('click_connect');
                 } catch {}
                 await hubSpotService.initiateOAuth();
               }}
-              className="ml-3 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-amber-700 border border-amber-200 hover:bg-amber-50"
+              className="ml-3 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-amber-700 border border-amber-200 hover:bg-amber-50 disabled:opacity-50"
+              disabled={connecting}
             >
-              Connect to see live data
+              {connecting ? 'Connecting…' : 'Connect to see live data'}
             </button>
           )}
         </div>

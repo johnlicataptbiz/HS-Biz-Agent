@@ -415,6 +415,33 @@ function requireAdmin(req, res, next) {
 }
 
 // ============================================================
+// HubSpot paginated list proxies (workflows v3, sequences v4)
+// ============================================================
+app.get('/api/hubspot/workflows', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { limit = 20, after } = req.query;
+    const data = await hsListWorkflows(token, { limit, after });
+    res.json(data);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+app.get('/api/hubspot/sequences', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { limit = 20, after } = req.query;
+    const data = await hsListSequences(token, { limit, after });
+    res.json(data);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+// ============================================================
 // Actions: Workflows (v3)
 // ============================================================
 app.post('/api/actions/workflows/preview', db.authMiddleware, async (req, res) => {

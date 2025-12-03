@@ -7,7 +7,8 @@ import 'dotenv/config';
 import * as db from './db.js';
 import { 
   getWorkflow, patchWorkflow, getSequence, patchSequence,
-  getProperty as hsGetProperty, patchProperty as hsPatchProperty, buildPreview
+  getProperty as hsGetProperty, patchProperty as hsPatchProperty, buildPreview,
+  listWorkflows as hsListWorkflows, listSequences as hsListSequences
 } from './hubspotActions.js';
 
 console.log('=== PRODUCTION SERVER STARTUP ===');
@@ -1048,6 +1049,33 @@ app.post('/api/actions/workflows/preview', db.authMiddleware, async (req, res) =
     const preview = buildPreview(before, updates);
     db.logUsage(req.user.userId, 'workflow_preview', { workflowId });
     res.json({ dryRun: true, ...preview });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+// ============================================================
+// HubSpot paginated list proxies (workflows v3, sequences v4)
+// ============================================================
+app.get('/api/hubspot/workflows', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { limit = 20, after } = req.query;
+    const data = await hsListWorkflows(token, { limit, after });
+    res.json(data);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message, details: e.data });
+  }
+});
+
+app.get('/api/hubspot/sequences', db.authMiddleware, async (req, res) => {
+  try {
+    const token = await getHubSpotToken(req);
+    if (!token) return res.status(401).json({ error: 'No HubSpot connection' });
+    const { limit = 20, after } = req.query;
+    const data = await hsListSequences(token, { limit, after });
+    res.json(data);
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message, details: e.data });
   }

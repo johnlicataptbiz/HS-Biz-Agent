@@ -14,7 +14,7 @@ const Sequences: React.FC = () => {
   const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 4; // smaller size to surface pagination in demo mode
 
   useEffect(() => {
     loadData();
