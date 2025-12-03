@@ -10,6 +10,8 @@ const Workflows: React.FC = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const [remoteAfter, setRemoteAfter] = useState<string | undefined>(undefined);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showAi, setShowAi] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,12 +31,15 @@ const Workflows: React.FC = () => {
     if (token && !demo) {
       setIsConnected(true);
       try {
-        const data = await hubSpotService.fetchWorkflows();
-        setWorkflows(data);
+        // initial page from server-side pagination
+        const { items, nextAfter } = await hubSpotService.fetchWorkflowsPageMapped(20);
+        setWorkflows(items);
+        setRemoteAfter(nextAfter);
       } catch (error) {
         console.error('Error fetching workflows:', error);
         const mockData = await mockService.getWorkflows();
         setWorkflows(mockData);
+        setIsConnected(false);
       }
     } else {
       setIsConnected(false);
@@ -59,6 +64,20 @@ const Workflows: React.FC = () => {
   });
 
   const paged = filteredWorkflows.slice((page - 1) * pageSize, page * pageSize);
+
+  const loadMore = async () => {
+    if (!remoteAfter) return;
+    setLoadingMore(true);
+    try {
+      const { items, nextAfter } = await hubSpotService.fetchWorkflowsPageMapped(20, remoteAfter);
+      setWorkflows(prev => [...prev, ...items]);
+      setRemoteAfter(nextAfter);
+    } catch (e) {
+      console.error('Load more failed', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -225,6 +244,11 @@ const Workflows: React.FC = () => {
               <div className="flex gap-2">
                 <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">Previous</button>
                 <button onClick={() => setPage(Math.min(Math.ceil(filteredWorkflows.length / pageSize), page + 1))} disabled={page >= Math.ceil(filteredWorkflows.length / pageSize)} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">Next</button>
+                {isConnected && remoteAfter && (
+                  <button onClick={loadMore} disabled={loadingMore} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">
+                    {loadingMore ? 'Loading…' : 'Load More'}
+                  </button>
+                )}
               </div>
             </div>
           )}

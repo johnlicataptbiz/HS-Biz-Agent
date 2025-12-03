@@ -1317,6 +1317,27 @@ Only include action if the user asks to create/draft something new.`
   }
 });
 
+// ============================================================
+// Recommendations (normalize AI output)
+// ============================================================
+app.post('/api/recommendations', db.authMiddleware, async (req, res) => {
+  try {
+    const { prompt } = req.body || {};
+    const aiResp = await fetch(req.protocol + '://' + req.headers.host + '/api/ai/optimize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': req.headers.authorization || '' },
+      body: JSON.stringify({ prompt: prompt || 'Generate top 20 actionable HubSpot portal optimizations for PT Biz.' })
+    });
+    const data = await aiResp.json();
+    if (!aiResp.ok) return res.status(aiResp.status).json(data);
+    const diffs = Array.isArray(data?.diff) ? data.diff : [];
+    const items = diffs.map((d, i) => ({ id: 'rec_' + i, title: String(d).slice(0, 80), impact: i < 5 ? 'High' : i < 12 ? 'Med' : 'Low', category: i % 2 === 0 ? 'Automation' : 'Data', details: String(d) }));
+    res.json({ items });
+  } catch (e) {
+    res.status(500).json({ items: [] });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 HubSpot MCP Proxy Server running on port ${PORT}`);

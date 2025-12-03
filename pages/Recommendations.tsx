@@ -35,21 +35,11 @@ export default function Recommendations() {
             { id: 'rec6', title: 'Property cleanup: `annual_revenue_2022`', impact: 'Low', category: 'Data', details: 'Hide outdated field and migrate values to `annual_revenue`.' }
           ]);
         } else {
-          // Best‑effort: ask AI to propose 20 recs and map to list
-          const resp = await authService.apiRequest('/api/ai/optimize', {
-            method: 'POST',
-            body: JSON.stringify({ prompt: 'Generate top 20 actionable HubSpot portal optimizations for PT Biz.', contextType: 'general' })
-          });
+          // Normalized recommendations from server
+          const resp = await authService.apiRequest('/api/recommendations', { method: 'POST', body: JSON.stringify({}) });
           const data = await resp.json();
-          const diffs: string[] = Array.isArray(data?.diff) ? data.diff : [];
-          const mapped: RecommendationItem[] = diffs.map((d, idx) => ({
-            id: 'ai_' + idx,
-            title: d.slice(0, 80),
-            impact: (idx < 5 ? 'High' : idx < 12 ? 'Med' : 'Low') as RecommendationItem['impact'],
-            category: idx % 2 === 0 ? 'Automation' : 'Data',
-            details: d
-          }));
-          setItems(mapped.length ? mapped : []);
+          const mapped: RecommendationItem[] = Array.isArray(data?.items) ? data.items : [];
+          setItems(mapped);
         }
       } catch (e) {
         setError('Failed to load recommendations');
@@ -95,4 +85,3 @@ export default function Recommendations() {
     </div>
   );
 }
-

@@ -10,6 +10,8 @@ const Sequences: React.FC = () => {
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const [remoteAfter, setRemoteAfter] = useState<string | undefined>(undefined);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showAi, setShowAi] = useState(false);
   const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,12 +30,14 @@ const Sequences: React.FC = () => {
     if (token && !demo) {
       setIsConnected(true);
       try {
-        const data = await hubSpotService.fetchSequences();
-        setSequences(data);
+        const { items, nextAfter } = await hubSpotService.fetchSequencesPageMapped(20);
+        setSequences(items);
+        setRemoteAfter(nextAfter);
       } catch (error) {
         console.error('Error fetching sequences:', error);
         const mockData = await mockService.getSequences();
         setSequences(mockData);
+        setIsConnected(false);
       }
     } else {
       setIsConnected(false);
@@ -60,6 +64,20 @@ const Sequences: React.FC = () => {
     seq.targetPersona.toLowerCase().includes(searchTerm.toLowerCase())
   );
   const paged = filteredSequences.slice((page - 1) * pageSize, page * pageSize);
+
+  const loadMore = async () => {
+    if (!remoteAfter) return;
+    setLoadingMore(true);
+    try {
+      const { items, nextAfter } = await hubSpotService.fetchSequencesPageMapped(20, remoteAfter);
+      setSequences(prev => [...prev, ...items]);
+      setRemoteAfter(nextAfter);
+    } catch (e) {
+      console.error('Load more failed', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -197,6 +215,9 @@ const Sequences: React.FC = () => {
               <div className="flex gap-2">
                 <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">Previous</button>
                 <button onClick={() => setPage(Math.min(Math.ceil(filteredSequences.length / pageSize), page + 1))} disabled={page >= Math.ceil(filteredSequences.length / pageSize)} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">Next</button>
+                {isConnected && remoteAfter && (
+                  <button onClick={loadMore} disabled={loadingMore} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50">{loadingMore ? 'Loading…' : 'Load More'}</button>
+                )}
               </div>
             </div>
           )}
