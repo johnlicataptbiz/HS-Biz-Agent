@@ -119,7 +119,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
               <div>
                 <h3 className="font-semibold text-white text-lg">HubSpot Connection</h3>
-                <p className="text-white/70 text-sm">Connect your PT clinic portal</p>
+                <p className="text-white/70 text-sm">Connect your HubSpot portal</p>
               </div>
             </div>
             <button onClick={onClose} className="text-white/70 hover:text-white p-1">
@@ -186,7 +186,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <div>
                 <h4 className="text-xl font-semibold text-slate-900">Connect Your HubSpot</h4>
                 <p className="text-slate-500 mt-2 max-w-sm mx-auto">
-                  Securely connect your HubSpot portal to analyze and optimize your PT clinic's marketing automation.
+                  Securely connect your HubSpot portal to analyze and optimize your marketing automation.
                 </p>
               </div>
 
