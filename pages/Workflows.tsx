@@ -170,6 +170,7 @@ const Workflows: React.FC = () => {
           {paged.map((workflow) => (
             <div 
               key={workflow.id}
+              data-testid="wf-card"
               className="group bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all"
             >
               <div className="flex items-center justify-between">

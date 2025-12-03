@@ -60,6 +60,15 @@ async function run() {
     const disabled = await page.$eval('button:has-text("Next")', el => el.disabled);
     if (!disabled) await page.click('button:has-text("Next")');
   }
+  // If Load More present (live), it should append
+  const beforeCountWf = await page.$$eval('[data-testid="wf-card"]', els => els.length).catch(()=>0);
+  const hasLoadMoreWf = await page.$('button:has-text("Load More")');
+  if (hasLoadMoreWf) {
+    await page.click('button:has-text("Load More")');
+    await page.waitForTimeout(800);
+    const afterCountWf = await page.$$eval('[data-testid="wf-card"]', els => els.length).catch(()=>0);
+    console.log('Workflows grew after Load More:', afterCountWf > beforeCountWf);
+  }
 
   // Sequences pagination
   await page.click('button:has-text("Sequences")');
@@ -68,6 +77,14 @@ async function run() {
   if (hasNextBtnSeq) {
     const disabled = await page.$eval('button:has-text("Next")', el => el.disabled);
     if (!disabled) await page.click('button:has-text("Next")');
+  }
+  const beforeCountSeq = await page.$$eval('[data-testid="seq-card"]', els => els.length).catch(()=>0);
+  const hasLoadMoreSeq = await page.$('button:has-text("Load More")');
+  if (hasLoadMoreSeq) {
+    await page.click('button:has-text("Load More")');
+    await page.waitForTimeout(800);
+    const afterCountSeq = await page.$$eval('[data-testid="seq-card"]', els => els.length).catch(()=>0);
+    console.log('Sequences grew after Load More:', afterCountSeq > beforeCountSeq);
   }
 
   // Co-Pilot preview panel visibility

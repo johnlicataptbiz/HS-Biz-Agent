@@ -1322,7 +1322,7 @@ Only include action if the user asks to create/draft something new.`
 // ============================================================
 app.post('/api/recommendations', db.authMiddleware, async (req, res) => {
   try {
-    const { prompt } = req.body || {};
+    const { prompt, limit = 20, offset = 0 } = req.body || {};
     const aiResp = await fetch(req.protocol + '://' + req.headers.host + '/api/ai/optimize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': req.headers.authorization || '' },
@@ -1331,8 +1331,15 @@ app.post('/api/recommendations', db.authMiddleware, async (req, res) => {
     const data = await aiResp.json();
     if (!aiResp.ok) return res.status(aiResp.status).json(data);
     const diffs = Array.isArray(data?.diff) ? data.diff : [];
-    const items = diffs.map((d, i) => ({ id: 'rec_' + i, title: String(d).slice(0, 80), impact: i < 5 ? 'High' : i < 12 ? 'Med' : 'Low', category: i % 2 === 0 ? 'Automation' : 'Data', details: String(d) }));
-    res.json({ items });
+    const sl = Number(limit) || 20;
+    const so = Number(offset) || 0;
+    const window = diffs.slice(so, so + sl);
+    const items = window.map((d, i) => {
+      const rank = so + i;
+      return { id: 'rec_' + rank, title: String(d).slice(0, 80), impact: rank < 5 ? 'High' : rank < 12 ? 'Med' : 'Low', category: rank % 2 === 0 ? 'Automation' : 'Data', details: String(d) };
+    });
+    const hasMore = so + sl < diffs.length;
+    res.json({ items, nextOffset: hasMore ? so + sl : undefined });
   } catch (e) {
     res.status(500).json({ items: [] });
   }

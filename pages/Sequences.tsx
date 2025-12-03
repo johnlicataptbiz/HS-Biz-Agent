@@ -155,6 +155,7 @@ const Sequences: React.FC = () => {
           {paged.map((sequence) => (
             <div 
               key={sequence.id}
+              data-testid="seq-card"
               className="group bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all"
             >
               <div className="flex items-start justify-between mb-4">

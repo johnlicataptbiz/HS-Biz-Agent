@@ -1016,6 +1016,33 @@ Only include action if the user asks to create/draft something new.`
   }
 });
 
+// Recommendations (normalize AI output for production server)
+app.post('/api/recommendations', db.authMiddleware, async (req, res) => {
+  try {
+    const { prompt, limit = 20, offset = 0 } = req.body || {};
+    const base = process.env.APP_URL || req.headers['x-forwarded-proto'] ? `${req.headers['x-forwarded-proto']}://${req.headers.host}` : `http://localhost:${PORT}`;
+    const aiResp = await fetch(`${base}/api/ai/optimize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': req.headers.authorization || '' },
+      body: JSON.stringify({ prompt: prompt || 'Generate top 20 actionable HubSpot portal optimizations for PT Biz.' })
+    });
+    const data = await aiResp.json();
+    if (!aiResp.ok) return res.status(aiResp.status).json(data);
+    const diffs = Array.isArray(data?.diff) ? data.diff : [];
+    const sl = Number(limit) || 20;
+    const so = Number(offset) || 0;
+    const window = diffs.slice(so, so + sl);
+    const items = window.map((d, i) => {
+      const rank = so + i;
+      return { id: 'rec_' + rank, title: String(d).slice(0, 80), impact: rank < 5 ? 'High' : rank < 12 ? 'Med' : 'Low', category: rank % 2 === 0 ? 'Automation' : 'Data', details: String(d) };
+    });
+    const hasMore = so + sl < diffs.length;
+    res.json({ items, nextOffset: hasMore ? so + sl : undefined });
+  } catch (e) {
+    res.status(500).json({ items: [] });
+  }
+});
+
 // ============================================================
 // SPA Fallback (production only)
 // ============================================================
