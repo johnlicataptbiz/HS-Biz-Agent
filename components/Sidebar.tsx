@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, GitFork, Mail, Database, Settings, Bot, Hammer, ChevronRight, Megaphone } from 'lucide-react';
-import { useAuth } from './AuthContext';
+import { LayoutDashboard, GitFork, Mail, Database, Settings, BrainCircuit, Bot, Hammer } from 'lucide-react';
+import { hubSpotService } from '../services/hubspotService';
 
 interface SidebarProps {
   activeTab: string;
@@ -9,123 +9,71 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsClick }) => {
-  const { hasHubSpotConnection } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    setIsConnected(hasHubSpotConnection);
-  }, [hasHubSpotConnection]);
+    // Check connection on mount and when local storage might change (basic check)
+    const token = hubSpotService.getToken();
+    setIsConnected(!!token);
+
+    // Listener for storage events (if multiple tabs or dynamic updates needed in future)
+    // For now, this just runs on render.
+  }, []);
 
   const navItems = [
-    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, description: 'Portal health' },
-    { id: 'copilot', label: 'Co-Pilot', icon: Bot, description: 'AI assistant', badge: 'AI' },
-    { id: 'workflows', label: 'Workflows', icon: GitFork, description: 'Automations' },
-    { id: 'sequences', label: 'Sequences', icon: Mail, description: 'Sales outreach' },
-    { id: 'campaigns', label: 'Campaigns', icon: Megaphone, description: 'Marketing' },
-    { id: 'datamodel', label: 'Data Model', icon: Database, description: 'CRM schema' },
-    { id: 'breezetools', label: 'Breeze Tools', icon: Hammer, description: 'Custom actions', badge: 'Beta' },
+    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
+    { id: 'copilot', label: 'Co-Pilot', icon: Bot },
+    { id: 'workflows', label: 'Workflows', icon: GitFork },
+    { id: 'sequences', label: 'Sequences', icon: Mail },
+    { id: 'datamodel', label: 'Data Model', icon: Database },
+    { id: 'breezetools', label: 'Breeze Tools', icon: Hammer },
   ];
 
   return (
-    <div className="w-72 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white flex flex-col h-screen fixed left-0 top-0 z-20">
-      {/* Gradient overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-      
-      {/* Logo Section */}
-      <div className="relative p-6 flex items-center gap-4">
-        <img src="/assets/favicon.svg" alt="PT Biz" className="w-12 h-12 drop-shadow-lg" />
-        <div>
-          <span className="font-bold text-lg tracking-tight">
-            <span className="text-orange-400">PT Biz</span>{' '}
-            <span className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">AI</span>
-          </span>
-          <p className="text-xs text-slate-500">HubSpot Optimizer</p>
+    <div className="w-64 bg-slate-900 text-white flex flex-col h-screen fixed left-0 top-0 border-r border-slate-800 z-20">
+      <div className="p-6 flex items-center gap-3">
+        <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+          <BrainCircuit className="w-5 h-5 text-white" />
         </div>
+        <span className="font-bold text-lg tracking-tight">AI Optimizer</span>
       </div>
 
-      {/* Navigation */}
-      <nav className="relative flex-1 px-4 space-y-1.5 mt-2 overflow-y-auto scrollbar-hide">
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-3">
-          Navigation
-        </p>
+      <nav className="flex-1 px-4 space-y-2 mt-4">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
-            className={`group relative w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 text-sm font-medium ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-sm font-medium ${
               activeTab === item.id
-                ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/25'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/20'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
             }`}
           >
-            {/* Active indicator */}
-            {activeTab === item.id && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-full shadow-lg shadow-white/50" />
-            )}
-            
-            <div className={`p-2 rounded-lg transition-colors ${
-              activeTab === item.id 
-                ? 'bg-white/20' 
-                : 'bg-slate-800/50 group-hover:bg-slate-700/50'
-            }`}>
-              <item.icon size={16} />
-            </div>
-            
-            <div className="flex-1 text-left">
-              <span className="block">{item.label}</span>
-              <span className={`text-[10px] ${activeTab === item.id ? 'text-indigo-200' : 'text-slate-500'}`}>
-                {item.description}
-              </span>
-            </div>
-            
-            {item.badge && (
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
-                item.badge === 'AI' 
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
-                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-              }`}>
-                {item.badge}
-              </span>
-            )}
-            
-            {activeTab === item.id && (
-              <ChevronRight size={14} className="text-white/50" />
-            )}
+            <item.icon size={18} />
+            {item.label}
           </button>
         ))}
       </nav>
 
-      {/* Bottom Section */}
-      <div className="relative p-4 space-y-3">
-        {/* Connection Status Card */}
-        <div className={`rounded-xl p-4 border backdrop-blur-sm ${
-          isConnected 
-            ? 'bg-emerald-500/10 border-emerald-500/20' 
-            : 'bg-amber-500/10 border-amber-500/20'
-        }`}>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Portal Status</p>
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-          </div>
-          <p className={`text-sm font-semibold ${isConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
-            {isConnected ? '● Connected' : '○ Demo Mode'}
-          </p>
-          {!isConnected && (
-            <p className="text-[10px] text-slate-500 mt-1">Connect to see live data</p>
-          )}
-        </div>
-        
-        {/* Settings Button */}
+      <div className="p-4 border-t border-slate-800">
         <button 
           onClick={onSettingsClick}
-          className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white cursor-pointer transition-all duration-200 rounded-xl hover:bg-white/5 group"
+          className="w-full flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-white cursor-pointer transition-colors rounded-md hover:bg-slate-800"
         >
-          <div className="p-2 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/50 transition-colors">
-            <Settings size={16} />
-          </div>
+          <Settings size={18} />
           <span className="text-sm font-medium">Settings</span>
-          <ChevronRight size={14} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
+        <div className="mt-4 px-4">
+            <div className="bg-slate-800 rounded p-3">
+                <p className="text-xs text-slate-500 uppercase font-bold mb-1">Portal Status</p>
+                <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                    <p className="text-sm font-medium text-slate-200">
+                      {isConnected ? 'Connected' : 'Demo Mode'}
+                    </p>
+                </div>
+            </div>
+        </div>
       </div>
     </div>
   );

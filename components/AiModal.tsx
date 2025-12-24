@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Sparkles, ArrowRight, CheckCircle2, BrainCircuit, Zap, Code } from 'lucide-react';
+import { X, Sparkles, ArrowRight, CheckCircle2, BrainCircuit } from 'lucide-react';
 import { generateOptimization } from '../services/aiService';
 import { AiResponse } from '../types';
 
@@ -88,94 +88,75 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
     }
   };
 
-  const getContextGradient = () => {
-    switch (contextType) {
-      case 'workflow': return 'from-indigo-500 to-purple-600';
-      case 'sequence': return 'from-emerald-500 to-teal-500';
-      case 'data': return 'from-amber-500 to-orange-500';
-      case 'breeze_tool': return 'from-purple-500 to-pink-500';
-      default: return 'from-indigo-500 to-purple-600';
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
         onClick={onClose}
-      />
+      ></div>
 
       {/* Modal Content */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className={`relative px-6 py-5 bg-gradient-to-r ${getContextGradient()}`}>
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-          <div className="relative flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white text-lg">AI Co-Pilot Optimizer</h3>
-                <p className="text-white/70 text-sm flex items-center gap-1.5">
-                  <Zap size={12} />
-                  Context: <span className="font-medium text-white/90">{contextName || contextType}</span>
-                </p>
-              </div>
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
             </div>
-            <button 
-              onClick={onClose} 
-              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
-            >
-              <X size={20} />
-            </button>
+            <div>
+                <h3 className="font-semibold text-slate-900">AI Co-Pilot Optimizer</h3>
+                <p className="text-xs text-slate-500">
+                    Context: <span className="font-medium text-slate-700">{contextName || contextType}</span>
+                </p>
+            </div>
           </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <X size={20} />
+          </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto bg-gradient-to-b from-slate-50 to-white">
+        <div className="p-6 overflow-y-auto">
           {!result ? (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  What would you like to improve?
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                    What would you like to improve?
                 </label>
                 <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={`Describe your goal or issue...`}
-                  className="w-full h-32 p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-slate-700 placeholder:text-slate-400 text-sm bg-white shadow-sm transition-all"
-                  autoFocus
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder={`Describe your goal or issue...`}
+                    className="w-full h-32 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-slate-700 placeholder:text-slate-400 text-sm"
+                    autoFocus
                 />
               </div>
 
               {/* Context-aware suggestions */}
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
-                  Suggested Optimizations
-                </p>
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Suggested Optimizations</p>
                 <div className="flex flex-wrap gap-2">
-                  {currentSuggestions.map((suggestion, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setPrompt(suggestion)}
-                      className="px-3 py-2 bg-white hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 text-xs font-medium rounded-xl border border-slate-200 hover:border-indigo-200 transition-all shadow-sm"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+                    {currentSuggestions.map((suggestion, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setPrompt(suggestion)}
+                            className="px-3 py-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 text-xs font-medium rounded-full border border-slate-200 hover:border-indigo-200 transition-colors text-left"
+                        >
+                            {suggestion}
+                        </button>
+                    ))}
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-slate-100">
+              <div className="flex justify-end pt-4 border-t border-slate-100 mt-2">
                 <button
                   onClick={handleOptimize}
                   disabled={!prompt.trim() || isProcessing}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold transition-all ${
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-medium transition-all ${
                     !prompt.trim() || isProcessing
-                      ? 'bg-slate-300 cursor-not-allowed'
-                      : `bg-gradient-to-r ${getContextGradient()} hover:shadow-lg hover:shadow-indigo-500/25`
+                      ? 'bg-indigo-300 cursor-not-allowed'
+                      : 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200'
                   }`}
                 >
                   {isProcessing ? (
@@ -194,31 +175,22 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
             </div>
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {/* Analysis Card */}
-              <div className={`bg-gradient-to-br ${getContextGradient()} rounded-xl p-5 text-white`}>
-                <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-                  <div className="p-1.5 bg-white/20 rounded-lg">
-                    <BrainCircuit size={14} />
-                  </div>
-                  Analysis
+              <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-indigo-900 mb-2 flex items-center gap-2">
+                    <BrainCircuit size={16} />
+                    Analysis
                 </h4>
-                <p className="text-sm text-white/90 leading-relaxed">
+                <p className="text-sm text-indigo-800 leading-relaxed">
                   {result.analysis}
                 </p>
               </div>
 
-              {/* Changes List */}
               <div>
-                <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                  <Zap size={14} className="text-amber-500" />
-                  Proposed Changes
-                </h4>
+                <h4 className="text-sm font-semibold text-slate-900 mb-3">Proposed Changes</h4>
                 <div className="space-y-2">
                   {result.diff.map((change, idx) => (
-                    <div key={idx} className="flex items-start gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                      <div className="p-1 bg-emerald-100 rounded-lg flex-shrink-0">
-                        <CheckCircle2 size={14} className="text-emerald-600" />
-                      </div>
+                    <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-100 rounded-md">
+                      <CheckCircle2 size={18} className="text-emerald-500 mt-0.5" />
                       <span className="text-sm text-slate-700">{change}</span>
                     </div>
                   ))}
@@ -228,13 +200,10 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
               {/* Preview for Breeze Tool Spec */}
               {result.specType === 'breeze_tool_spec' && (
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <Code size={14} className="text-purple-500" />
-                    Tool Definition (JSON)
-                  </h4>
-                  <pre className="bg-gradient-to-br from-slate-900 to-slate-800 text-purple-300 p-4 rounded-xl text-xs overflow-x-auto border border-slate-700 shadow-lg">
-                    {JSON.stringify(result.spec, null, 2)}
-                  </pre>
+                   <h4 className="text-sm font-semibold text-slate-900 mb-3">Tool Definition (JSON)</h4>
+                   <pre className="bg-slate-900 text-indigo-200 p-4 rounded-lg text-xs overflow-x-auto">
+                     {JSON.stringify(result.spec, null, 2)}
+                   </pre>
                 </div>
               )}
             </div>
@@ -245,29 +214,29 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
         {result && (
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
             <button 
-              onClick={() => setResult(null)}
-              className="text-sm text-slate-500 hover:text-slate-800 font-medium px-4 py-2 rounded-xl hover:bg-slate-100 transition-all"
+                onClick={() => setResult(null)}
+                className="text-sm text-slate-500 hover:text-slate-800 font-medium"
             >
-              ← Start Over
+                Start Over
             </button>
             <div className="flex gap-3">
-              <button 
-                onClick={onClose}
-                className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all shadow-sm"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => {
-                  // Mock apply
-                  onClose();
-                  alert("Optimization applied successfully! (Mock)");
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/25"
-              >
-                Apply Changes
-                <ArrowRight size={16} />
-              </button>
+                <button 
+                    onClick={onClose}
+                    className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+                >
+                    Cancel
+                </button>
+                <button 
+                    onClick={() => {
+                        // Mock apply
+                        onClose();
+                        alert("Optimization applied successfully! (Mock)");
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+                >
+                    Apply Changes
+                    <ArrowRight size={16} />
+                </button>
             </div>
           </div>
         )}

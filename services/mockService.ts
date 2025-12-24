@@ -1,9 +1,6 @@
-import { Workflow, Sequence, DataProperty, BreezeTool, Campaign } from '../types';
+import { Workflow, Sequence, DataProperty, BreezeTool } from '../types';
 
 // Mock Database - PT Biz Context
-// PT Biz sells coaching programs to PT clinic owners
-// Contacts = PT clinic owners who are prospects/clients of PT Biz coaching
-
 const workflows: Workflow[] = [
   {
     id: 'wf_123',
@@ -13,105 +10,67 @@ const workflows: Workflow[] = [
     enrolledCount: 154,
     aiScore: 88,
     issues: [],
-    lastUpdated: '2024-11-01',
+    lastUpdated: '2023-11-01',
   },
   {
     id: 'wf_124',
-    name: 'Discovery Call No-Show Follow-up',
+    name: 'Abandoned Cart Recovery',
     enabled: true,
     objectType: 'Deal',
     enrolledCount: 42,
     aiScore: 65,
-    issues: ['Redundant steps detected', 'Low re-booking rate'],
-    lastUpdated: '2024-10-28',
+    issues: ['Redundant steps detected', 'Low conversion rate'],
+    lastUpdated: '2023-10-28',
   },
   {
     id: 'wf_125',
-    name: 'Webinar Registrant → Discovery Call',
-    enabled: true,
-    objectType: 'Contact',
-    enrolledCount: 312,
-    aiScore: 92,
-    issues: [],
-    lastUpdated: '2024-11-15',
-  },
-  {
-    id: 'wf_126',
-    name: 'Coaching Client Onboarding',
-    enabled: true,
-    objectType: 'Contact',
-    enrolledCount: 89,
-    aiScore: 85,
-    issues: [],
-    lastUpdated: '2024-10-20',
-  },
-  {
-    id: 'wf_127',
-    name: 'Renewal Reminder (60 Days Out)',
-    enabled: true,
-    objectType: 'Contact',
-    enrolledCount: 34,
-    aiScore: 45,
-    issues: ['Missing branching logic', 'No engagement tracking'],
-    lastUpdated: '2024-09-05',
-  },
-  {
-    id: 'wf_128',
-    name: 'Referral Request - Happy Clients',
+    name: 'Webinar Follow-up Sequence',
     enabled: false,
     objectType: 'Contact',
     enrolledCount: 0,
-    aiScore: 70,
-    issues: ['Currently disabled'],
-    lastUpdated: '2024-08-15',
+    aiScore: 92,
+    issues: [],
+    lastUpdated: '2023-09-15',
+  },
+  {
+    id: 'wf_126',
+    name: 'Reactivation Campaign',
+    enabled: true,
+    objectType: 'Contact',
+    enrolledCount: 890,
+    aiScore: 45,
+    issues: ['Missing branching logic', 'Unused property triggers'],
+    lastUpdated: '2023-10-05',
   }
 ];
 
 const sequences: Sequence[] = [
   {
     id: 'seq_01',
-    name: 'Cold Outreach - PT Clinic Owners',
+    name: 'Cold Outreach - Clinic Owners',
     active: true,
     stepsCount: 5,
     replyRate: 12.4,
     aiScore: 78,
-    targetPersona: 'Cold Lead - PT Owner',
+    targetPersona: 'Clinic Owner',
   },
   {
     id: 'seq_02',
-    name: 'Post-Webinar Discovery Call Booking',
+    name: 'Post-Discovery Call Nurture',
     active: true,
     stepsCount: 4,
     replyRate: 28.5,
     aiScore: 95,
-    targetPersona: 'Webinar Attendee',
+    targetPersona: 'Warm Lead',
   },
   {
     id: 'seq_03',
-    name: 'Podcast Guest Follow-up',
-    active: true,
-    stepsCount: 3,
-    replyRate: 45.2,
-    aiScore: 88,
-    targetPersona: 'Podcast Listener',
-  },
-  {
-    id: 'seq_04',
-    name: 'Coaching Enrollment Nurture',
-    active: true,
-    stepsCount: 6,
-    replyRate: 22.1,
-    aiScore: 82,
-    targetPersona: 'Post-Discovery Call',
-  },
-  {
-    id: 'seq_05',
-    name: 'Referral Partner Outreach',
+    name: 'Event Invitation - 2024 Summit',
     active: false,
-    stepsCount: 4,
+    stepsCount: 3,
     replyRate: 0,
     aiScore: 60,
-    targetPersona: 'Industry Partners',
+    targetPersona: 'General List',
   }
 ];
 
@@ -133,27 +92,11 @@ const dataProperties: DataProperty[] = [
     redundant: false,
   },
   {
-    name: 'clinic_name',
-    label: 'Clinic Name',
-    type: 'string',
-    group: 'Business Info',
-    usage: 92,
-    redundant: false,
-  },
-  {
-    name: 'clinic_revenue',
-    label: 'Annual Clinic Revenue',
-    type: 'number',
-    group: 'Business Info',
-    usage: 78,
-    redundant: false,
-  },
-  {
-    name: 'coaching_program',
-    label: 'Coaching Program',
+    name: 'niche_specialty',
+    label: 'Niche Specialty',
     type: 'enumeration',
-    group: 'PT Biz Engagement',
-    usage: 65,
+    group: 'Business Info',
+    usage: 45,
     redundant: false,
   },
   {
@@ -180,125 +123,30 @@ const dataProperties: DataProperty[] = [
     usage: 68,
     redundant: false,
   },
-  {
-    name: 'discovery_call_date',
-    label: 'Discovery Call Date',
-    type: 'datetime',
-    group: 'PT Biz Engagement',
-    usage: 85,
-    redundant: false,
-  },
-  {
-    name: 'lead_source',
-    label: 'Lead Source',
-    type: 'enumeration',
-    group: 'Marketing',
-    usage: 91,
-    redundant: false,
-  },
-  {
-    name: 'nps_score',
-    label: 'Client NPS Score',
-    type: 'number',
-    group: 'PT Biz Engagement',
-    usage: 42,
-    redundant: false,
-  },
 ];
 
-// Breeze Tools for PT Biz - automating sales/marketing to PT clinic owners
 const breezeTools: BreezeTool[] = [
   {
     id: 'tool_01',
-    name: 'Lead Scoring Calculator',
-    actionUrl: 'https://api.ptbiz.com/lead-score',
-    labels: { en: 'Calculate Lead Score for PT Owner' },
+    name: 'Patient Reactivation Score',
+    actionUrl: 'https://api.ptbiz.com/score',
+    labels: { en: 'Calculate Reactivation Score' },
     inputFields: [
-      { key: 'clinic_revenue', label: 'Clinic Annual Revenue', type: 'number', required: true },
-      { key: 'employee_count', label: 'Number of Employees', type: 'number', required: false },
-      { key: 'lead_source', label: 'Lead Source', type: 'string', required: true }
-    ],
-    aiScore: 92
-  },
-  {
-    id: 'tool_02',
-    name: 'Discovery Call Scheduler',
-    actionUrl: 'https://api.ptbiz.com/schedule-call',
-    labels: { en: 'Book Discovery Call with PT Owner' },
-    inputFields: [
-      { key: 'contact_email', label: 'Contact Email', type: 'string', required: true },
-      { key: 'preferred_time', label: 'Preferred Time Slot', type: 'datetime', required: true },
-      { key: 'timezone', label: 'Timezone', type: 'string', required: true }
-    ],
-    aiScore: 95
-  },
-  {
-    id: 'tool_03',
-    name: 'Coaching ROI Estimator',
-    actionUrl: 'https://api.ptbiz.com/roi-estimate',
-    labels: { en: 'Estimate Coaching Program ROI' },
-    inputFields: [
-      { key: 'current_revenue', label: 'Current Monthly Revenue', type: 'number', required: true },
-      { key: 'target_growth', label: 'Target Growth %', type: 'number', required: false },
-      { key: 'coaching_tier', label: 'Coaching Program Tier', type: 'string', required: true }
-    ],
-    aiScore: 88
-  },
-  {
-    id: 'tool_04',
-    name: 'Client Success Pulse',
-    actionUrl: 'https://api.ptbiz.com/success-pulse',
-    labels: { en: 'Check Coaching Client Engagement' },
-    inputFields: [
-      { key: 'client_id', label: 'Client HubSpot ID', type: 'string', required: true },
-      { key: 'check_period', label: 'Days to Check', type: 'number', required: false }
+      { key: 'last_visit_date', label: 'Last Visit Date', type: 'datetime', required: true },
+      { key: 'nps_score', label: 'NPS Score', type: 'number', required: false }
     ],
     aiScore: 85
   },
   {
-    id: 'tool_05',
-    name: 'Referral Request Trigger',
-    actionUrl: 'https://api.ptbiz.com/referral-ask',
-    labels: { en: 'Send Referral Request to Happy Client' },
+    id: 'tool_02',
+    name: 'SMS Appointment Reminder',
+    actionUrl: 'https://api.ptbiz.com/sms/remind',
+    labels: { en: 'Send SMS Reminder' },
     inputFields: [
-      { key: 'client_email', label: 'Client Email', type: 'string', required: true },
-      { key: 'nps_score', label: 'NPS Score (min 9)', type: 'number', required: true }
+      { key: 'phone_number', label: 'Phone Number', type: 'string', required: true },
+      { key: 'appointment_time', label: 'Time', type: 'datetime', required: true }
     ],
-    aiScore: 78
-  },
-  {
-    id: 'tool_06',
-    name: 'Webinar Registration Sync',
-    actionUrl: 'https://api.ptbiz.com/webinar-sync',
-    labels: { en: 'Sync Webinar Registration to HubSpot' },
-    inputFields: [
-      { key: 'webinar_id', label: 'Webinar ID', type: 'string', required: true },
-      { key: 'registrant_email', label: 'Registrant Email', type: 'string', required: true }
-    ],
-    aiScore: 90
-  },
-  {
-    id: 'tool_07',
-    name: 'Renewal Forecast',
-    actionUrl: 'https://api.ptbiz.com/renewal-forecast',
-    labels: { en: 'Predict Client Renewal Likelihood' },
-    inputFields: [
-      { key: 'client_id', label: 'Client ID', type: 'string', required: true },
-      { key: 'engagement_score', label: 'Engagement Score', type: 'number', required: false }
-    ],
-    aiScore: 82
-  },
-  {
-    id: 'tool_08',
-    name: 'Personalized Outreach Generator',
-    actionUrl: 'https://api.ptbiz.com/personalize',
-    labels: { en: 'Generate Personalized Email for PT Owner' },
-    inputFields: [
-      { key: 'contact_id', label: 'Contact ID', type: 'string', required: true },
-      { key: 'template_type', label: 'Template Type', type: 'string', required: true },
-      { key: 'personalization_level', label: 'Personalization Level (1-5)', type: 'number', required: false }
-    ],
-    aiScore: 91
+    aiScore: 92
   }
 ];
 
@@ -316,71 +164,4 @@ export const getDataProperties = async (): Promise<DataProperty[]> => {
 
 export const getBreezeTools = async (): Promise<BreezeTool[]> => {
   return new Promise((resolve) => setTimeout(() => resolve(breezeTools), 500));
-};
-
-// Mock Campaigns
-const campaigns: Campaign[] = [
-  {
-    id: 'camp_001',
-    name: 'Q4 Webinar Series - Scale Your PT Clinic',
-    status: 'active',
-    type: 'Webinar',
-    startDate: '2024-10-01',
-    endDate: '2024-12-31',
-    budget: 5000,
-    spent: 3200,
-    leads: 245,
-    conversions: 18,
-    aiScore: 85
-  },
-  {
-    id: 'camp_002',
-    name: 'LinkedIn Ads - Discovery Call Booking',
-    status: 'active',
-    type: 'Paid Ads',
-    startDate: '2024-11-01',
-    budget: 8000,
-    spent: 4500,
-    leads: 89,
-    conversions: 12,
-    aiScore: 72
-  },
-  {
-    id: 'camp_003',
-    name: 'Podcast Listener Conversion',
-    status: 'paused',
-    type: 'Email Nurture',
-    startDate: '2024-09-15',
-    budget: 1500,
-    spent: 1200,
-    leads: 156,
-    conversions: 8,
-    aiScore: 58
-  },
-  {
-    id: 'camp_004',
-    name: 'Referral Program Launch',
-    status: 'draft',
-    type: 'Referral',
-    leads: 0,
-    conversions: 0,
-    aiScore: 0
-  },
-  {
-    id: 'camp_005',
-    name: 'Summer Coaching Promo 2024',
-    status: 'completed',
-    type: 'Promotional',
-    startDate: '2024-06-01',
-    endDate: '2024-08-31',
-    budget: 12000,
-    spent: 11800,
-    leads: 520,
-    conversions: 42,
-    aiScore: 91
-  }
-];
-
-export const getCampaigns = async (): Promise<Campaign[]> => {
-  return new Promise((resolve) => setTimeout(() => resolve(campaigns), 500));
 };

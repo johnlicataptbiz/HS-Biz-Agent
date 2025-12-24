@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, Bot, Terminal, CheckCircle2, Loader2, ChevronDown, ChevronRight, Zap, MessageSquare } from 'lucide-react';
+import { X, Send, Sparkles, Bot, Terminal, CheckCircle2, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { generateChatResponse } from '../services/aiService';
 import { ChatResponse } from '../types';
 import { hubSpotService } from '../services/hubspotService';
@@ -177,47 +177,36 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="group fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-2xl shadow-2xl shadow-indigo-500/30 flex items-center justify-center transition-all duration-300 hover:scale-105 z-50"
+        className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg shadow-indigo-900/30 flex items-center justify-center transition-all hover:scale-105 z-50 group"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-        <Sparkles size={26} className="group-hover:rotate-12 transition-transform relative z-10" />
-        {/* Notification dot */}
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
-          <Zap size={8} className="text-white" />
-        </div>
+        <Sparkles size={24} className="group-hover:rotate-12 transition-transform" />
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-8 right-8 w-[420px] h-[650px] max-h-[85vh] bg-white rounded-2xl shadow-2xl shadow-slate-900/20 border border-slate-200/60 flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">
+    <div className="fixed bottom-8 right-8 w-96 h-[600px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">
       {/* Header */}
-      <div className="relative px-5 py-4 bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-        <div className="relative flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
-              <Bot size={22} />
-            </div>
-            <div>
-              <h3 className="font-bold text-base">Co-Pilot Chat</h3>
-              <div className="flex items-center gap-1.5 text-xs text-indigo-200">
-                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                MCP Agent Active
-              </div>
-            </div>
+      <div className="p-4 bg-indigo-600 text-white flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-indigo-500 rounded-lg">
+            <Bot size={20} />
           </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-2 hover:bg-white/10 rounded-xl transition-colors"
-          >
-            <X size={18} />
-          </button>
+          <div>
+            <h3 className="font-semibold text-sm">Co-Pilot Chat</h3>
+            <p className="text-xs text-indigo-200">MCP Agent Active</p>
+          </div>
         </div>
+        <button
+          onClick={() => setIsOpen(false)}
+          className="p-1 hover:bg-indigo-500 rounded transition-colors"
+        >
+          <X size={18} />
+        </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-slate-50 to-white">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -225,74 +214,60 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
           >
             {/* Standard Message Bubble */}
             <div
-              className={`max-w-[85%] p-4 text-sm leading-relaxed ${
+              className={`max-w-[85%] p-3 rounded-2xl text-sm ${
                 msg.role === 'user'
-                  ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl rounded-tr-md shadow-lg shadow-indigo-500/20'
-                  : 'bg-white border border-slate-200 text-slate-700 rounded-2xl rounded-tl-md shadow-sm'
+                  ? 'bg-indigo-600 text-white rounded-tr-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm'
               }`}
             >
                {msg.role === 'assistant' && !msg.toolCallResult && (
-                 <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100">
-                   <div className="p-1 bg-indigo-50 rounded-lg">
-                     <Bot size={12} className="text-indigo-500" />
-                   </div>
-                   <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider">Assistant</span>
-                 </div>
+                 <Bot size={14} className="inline-block mr-2 text-indigo-500 mb-0.5" />
                )}
                {msg.content}
             </div>
 
             {/* Tool Execution Result Card */}
             {msg.toolCallResult && (
-              <div className="mt-2 w-[90%] max-w-full">
-                <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden text-xs shadow-lg">
-                  <div 
-                    className="flex items-center justify-between p-3 bg-slate-800 cursor-pointer hover:bg-slate-700 transition-colors"
-                    onClick={() => toggleToolDetails(msg.id)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 bg-indigo-500/20 rounded">
-                        <Terminal size={12} className="text-indigo-400" />
-                      </div>
-                      <span className="font-mono font-semibold text-slate-200">{msg.toolCallResult.toolName}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {msg.toolCallResult.status === 'success' ? (
-                        <div className="flex items-center gap-1 text-emerald-400">
-                          <CheckCircle2 size={12} />
-                          <span className="text-[10px] font-semibold">Success</span>
+                <div className="mt-2 w-[90%] max-w-full">
+                    <div className="bg-slate-100 border border-slate-200 rounded-lg overflow-hidden text-xs">
+                        <div 
+                            className="flex items-center justify-between p-2 bg-slate-200 cursor-pointer hover:bg-slate-300 transition-colors"
+                            onClick={() => toggleToolDetails(msg.id)}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Terminal size={12} className="text-slate-600" />
+                                <span className="font-mono font-semibold text-slate-700">{msg.toolCallResult.toolName}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {msg.toolCallResult.status === 'success' ? (
+                                    <CheckCircle2 size={12} className="text-emerald-600" />
+                                ) : (
+                                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                                )}
+                                {expandedTools[msg.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </div>
                         </div>
-                      ) : (
-                        <span className="px-2 py-0.5 bg-rose-500/20 text-rose-400 rounded text-[10px] font-semibold">Error</span>
-                      )}
-                      {expandedTools[msg.id] ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />}
+                        
+                        <div className="p-2 border-t border-slate-200 bg-white">
+                            <p className="text-slate-600 mb-1">{msg.toolCallResult.dataSummary}</p>
+                            
+                            {expandedTools[msg.id] && (
+                                <pre className="mt-2 bg-slate-900 text-emerald-300 p-2 rounded overflow-x-auto font-mono text-[10px]">
+                                    {JSON.stringify(msg.toolCallResult.rawData, null, 2)}
+                                </pre>
+                            )}
+                        </div>
                     </div>
-                  </div>
-                  
-                  <div className="p-3 border-t border-slate-700 bg-slate-900">
-                    <p className="text-slate-300">{msg.toolCallResult.dataSummary}</p>
-                    
-                    {expandedTools[msg.id] && (
-                      <pre className="mt-3 bg-slate-950 text-emerald-300 p-3 rounded-lg overflow-x-auto font-mono text-[10px] border border-slate-800">
-                        {JSON.stringify(msg.toolCallResult.rawData, null, 2)}
-                      </pre>
-                    )}
-                  </div>
                 </div>
-              </div>
             )}
           </div>
         ))}
         
         {isTyping && (
           <div className="flex justify-start">
-            <div className="bg-white border border-slate-200 px-4 py-3 rounded-2xl rounded-tl-md shadow-sm flex items-center gap-3">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-              <span className="text-xs text-slate-400 font-medium">Agent is thinking...</span>
+            <div className="bg-white border border-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-2">
+               <Loader2 size={14} className="animate-spin text-indigo-500" />
+               <span className="text-xs text-slate-400 font-medium">Agent is thinking...</span>
             </div>
           </div>
         )}
@@ -301,12 +276,12 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
 
       {/* Suggestions */}
       {suggestions.length > 0 && !isTyping && (
-        <div className="px-4 pb-3 bg-white border-t border-slate-100 pt-3 flex gap-2 flex-wrap">
+        <div className="px-4 pb-2 bg-slate-50 flex gap-2 flex-wrap">
           {suggestions.map((suggestion, idx) => (
             <button
               key={idx}
               onClick={() => handleSend(suggestion)}
-              className="text-xs bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 text-slate-600 px-3 py-2 rounded-xl hover:from-indigo-50 hover:to-purple-50 hover:border-indigo-200 hover:text-indigo-700 transition-all shadow-sm"
+              className="text-xs bg-white border border-indigo-100 text-indigo-600 px-3 py-1.5 rounded-full hover:bg-indigo-50 hover:border-indigo-200 transition-colors shadow-sm"
             >
               {suggestion}
             </button>
@@ -316,23 +291,23 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
 
       {/* Input */}
       <div className="p-4 bg-white border-t border-slate-100">
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask to audit workflows, data, etc..."
-            className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-slate-400 transition-all"
+            className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-slate-400"
           />
           <button
             onClick={() => handleSend(inputValue)}
             disabled={!inputValue.trim() || isTyping}
-            className={`p-3 rounded-xl transition-all flex-shrink-0 ${
+            className={`p-2 rounded-full ${
               !inputValue.trim() || isTyping
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25'
-            }`}
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            } transition-colors flex-shrink-0`}
           >
             <Send size={18} />
           </button>
