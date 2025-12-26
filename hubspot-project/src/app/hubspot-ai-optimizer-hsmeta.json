@@ -19,6 +19,7 @@
         "automation",
         "automation.sequences.read",
         "content",
+        "marketing.campaigns.read",
         "oauth"
       ],
       "conditionallyRequiredScopes": []

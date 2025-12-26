@@ -74,6 +74,7 @@ export class HubSpotService {
           'automation',
           'automation.sequences.read',
           'content',
+          'marketing.campaigns.read',
           'oauth'
         ];
 
