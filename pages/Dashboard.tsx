@@ -13,7 +13,6 @@ const Dashboard: React.FC = () => {
     segments: [] as any[],
     campaigns: [] as any[],
   });
-  });
 
   useEffect(() => {
     let isMounted = true;
@@ -207,6 +206,7 @@ const Dashboard: React.FC = () => {
           colorClass="bg-pink-400" 
           gradient="bg-pink-500"
         />
+        <StatCard 
           title="Campaign Focus" 
           value={isConnected && !loading ? metrics.campaigns.length : "0"} 
           sub={isConnected && !loading ? `${metrics.segments.length} Lists Active` : "No Data"}
