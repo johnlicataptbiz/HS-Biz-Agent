@@ -1,4 +1,4 @@
-import { Workflow, Sequence, DataProperty, BreezeTool } from '../types';
+import { Workflow, Sequence, DataProperty, BreezeTool, Segment, Campaign } from '../types';
 
 export class HubSpotService {
   private static instance: HubSpotService;
@@ -425,6 +425,57 @@ export class HubSpotService {
       if (!response.ok) return [];
       const data = await response.json();
       return data.results || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // --- ORGANIZATION SCANNING ---
+
+  public async fetchSegments(): Promise<Segment[]> {
+    try {
+      // Fetch Lists (V3)
+      const response = await this.request('/crm/v3/lists');
+      if (!response.ok) throw new Error(`List fetch failed: ${response.status}`);
+      
+      const data = await response.json();
+      return (data.lists || []).map((list: any) => {
+         let score = 50;
+         if (list.size > 0) score += 20;
+         if (list.name.toLowerCase().includes('untitled')) score -= 30;
+         
+         return {
+           id: list.listId,
+           name: list.name,
+           count: list.size || 0,
+           type: list.dynamic ? 'DYNAMIC' : 'STATIC',
+           filters: [],
+           lastUpdated: list.updatedAt,
+           aiScore: Math.max(0, Math.min(100, score))
+         };
+      });
+    } catch (e) {
+      console.error("Segment Fetch Error:", e);
+      return [];
+    }
+  }
+
+  public async fetchCampaigns(): Promise<Campaign[]> {
+    try {
+      // Try Marketing Campaigns (V3)
+      const response = await this.request('/marketing/v3/campaigns');
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      return (data.results || []).map((camp: any) => ({
+        id: camp.id,
+        name: camp.appName || camp.name || 'Unnamed Campaign',
+        status: camp.status || 'ACTIVE',
+        budget: camp.budget || null,
+        revenue: null,
+        contacts: 0,
+        aiScore: 75
+      }));
     } catch (e) {
       return [];
     }
