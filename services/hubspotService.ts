@@ -499,21 +499,32 @@ export class HubSpotService {
     try {
       // Fetch Lists (V3)
       const response = await this.request('/crm/v3/lists');
-      if (!response.ok) throw new Error(`List fetch failed: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`Lists API failed with status: ${response.status}`);
+        return [];
+      }
       
       const data = await response.json();
-      return (data.lists || []).map((list: any) => {
+      console.log('🧩 Lists Raw:', data);
+      
+      // The V3 API returns lists in a 'lists' array
+      const lists = data.lists || data.results || [];
+      console.log('🧩 Lists Count:', lists.length);
+      
+      return lists.map((list: any) => {
          let score = 50;
-         if (list.size > 0) score += 20;
-         if (list.name.toLowerCase().includes('untitled')) score -= 30;
+         const size = list.size || list.memberCount || 0;
+         if (size > 0) score += 20;
+         if (list.name?.toLowerCase().includes('untitled')) score -= 30;
          
          return {
-           id: list.listId,
-           name: list.name,
-           count: list.size || 0,
-           type: list.dynamic ? 'DYNAMIC' : 'STATIC',
+           id: String(list.listId || list.id),
+           name: list.name || 'Unnamed List',
+           contactCount: size,
+           isDynamic: list.dynamic === true || list.processingType === 'DYNAMIC',
            filters: [],
-           lastUpdated: list.updatedAt,
+           lastUpdated: list.updatedAt || list.createdAt,
            aiScore: Math.max(0, Math.min(100, score))
          };
       });
@@ -527,12 +538,19 @@ export class HubSpotService {
     try {
       // Try Marketing Campaigns (V3)
       const response = await this.request('/marketing/v3/campaigns');
-      if (!response.ok) return [];
+      if (!response.ok) {
+        console.error(`Campaigns API failed: ${response.status}`);
+        return [];
+      }
 
       const data = await response.json();
-      return (data.results || []).map((camp: any) => ({
+      console.log('🧩 Campaigns Raw:', data);
+      
+      const campaigns = data.results || data.campaigns || [];
+      
+      return campaigns.map((camp: any) => ({
         id: camp.id,
-        name: camp.appName || camp.name || 'Unnamed Campaign',
+        name: camp.name || camp.appName || camp.displayName || camp.internalName || `Campaign ${camp.id?.slice(0, 8)}`,
         status: camp.status || 'ACTIVE',
         budget: camp.budget || null,
         revenue: null,
@@ -540,6 +558,7 @@ export class HubSpotService {
         aiScore: 75
       }));
     } catch (e) {
+      console.error("Campaign fetch error:", e);
       return [];
     }
   }
