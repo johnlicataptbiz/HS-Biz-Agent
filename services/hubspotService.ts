@@ -211,7 +211,10 @@ export class HubSpotService {
   public async fetchWorkflows(): Promise<Workflow[]> {
     try {
       const response = await this.request('/automation/v3/workflows');
-      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      if (!response.ok) {
+         if (response.status === 404) return [];
+         throw new Error(`Fetch failed: ${response.status}`);
+      }
       
       const data = await response.json();
       const workflows = data.results || data.objects || [];
@@ -246,6 +249,10 @@ export class HubSpotService {
       const response = await this.request('/automation/v1/sequences/page?limit=50');
       
       if (!response.ok) {
+        if (response.status === 404 || response.status === 403) {
+             console.warn(`Sequences API not available (Status ${response.status}) - likely missing Sales Hub Pro`);
+             return [];
+        }
         throw new Error(`Sequence sequence-link failed: ${response.status}`);
       }
 
