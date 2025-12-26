@@ -172,7 +172,36 @@ export class HubSpotService {
     localStorage.removeItem(this.STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(this.STORAGE_KEYS.EXPIRES_AT);
     localStorage.removeItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID);
+    localStorage.removeItem('hubspot_user_id');
     window.dispatchEvent(new Event('hubspot_connection_changed'));
+  }
+
+  // Get current user ID from HubSpot token info
+  private async getCurrentUserId(): Promise<string | null> {
+    // Check cache first
+    const cachedId = localStorage.getItem('hubspot_user_id');
+    if (cachedId) return cachedId;
+    
+    try {
+      const token = this.getToken();
+      if (!token) return null;
+      
+      // Get token info which includes user ID
+      const response = await fetch(`https://api.hubapi.com/oauth/v1/access-tokens/${token}`);
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      const userId = data.user_id ? String(data.user_id) : null;
+      
+      if (userId) {
+        localStorage.setItem('hubspot_user_id', userId);
+      }
+      
+      return userId;
+    } catch (e) {
+      console.error('Failed to get user ID:', e);
+      return null;
+    }
   }
 
   // --- DATA FETCHING ---
@@ -248,8 +277,14 @@ export class HubSpotService {
 
   public async fetchSequences(): Promise<Sequence[]> {
     try {
-      // Using V4 API as requested (https://developers.hubspot.com/docs/api-reference/automation-sequences-v4/guide)
-      const response = await this.request('/automation/v4/sequences');
+      // V4 Sequences API requires userId
+      const userId = await this.getCurrentUserId();
+      if (!userId) {
+        console.warn('Cannot fetch sequences without user ID');
+        return [];
+      }
+      
+      const response = await this.request(`/automation/v4/sequences?userId=${userId}`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
