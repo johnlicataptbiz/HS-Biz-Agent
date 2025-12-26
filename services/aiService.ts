@@ -182,7 +182,10 @@ export const generateOptimization = async (
     const text = response.text;
     if (!text) throw new Error("No response from AI");
     
-    return JSON.parse(text) as AiResponse;
+    // Sanitize markdown code blocks if present
+    const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    return JSON.parse(cleanJson) as AiResponse;
 
   } catch (error) {
     console.error("AI Generation Error:", error);
@@ -219,7 +222,11 @@ export const generateChatResponse = async (message: string): Promise<ChatRespons
 
     const text = response.text;
     if (!text) throw new Error("No response text");
-    return JSON.parse(text) as ChatResponse;
+    
+    // Sanitize markdown code blocks if present
+    const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    return JSON.parse(cleanJson) as ChatResponse;
 
   } catch (error) {
     console.error("Chat Error:", error);
