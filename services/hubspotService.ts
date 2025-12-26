@@ -210,8 +210,8 @@ export class HubSpotService {
 
   public async fetchWorkflows(): Promise<Workflow[]> {
     try {
-      // Upgrading to V4 Automation API as requested
-      const response = await this.request('/automation/v4/flows');
+      // Reverted to V3 for list stability (V4 is for actions/extensions)
+      const response = await this.request('/automation/v3/workflows');
       if (!response.ok) {
          if (response.status === 404) return [];
          throw new Error(`Fetch failed: ${response.status}`);
