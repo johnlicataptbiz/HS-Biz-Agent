@@ -323,22 +323,38 @@ export class HubSpotService {
   public async fetchBreezeTools(): Promise<BreezeTool[]> {
     try {
       const appId = localStorage.getItem('hubspot_client_id') || this.CLIENT_ID;
-      // If we are in "Mock" mode or no specific bridge app is targeted, return empty
-      if (!appId || appId === this.CLIENT_ID) return [];
+      if (!appId) return [];
 
-      const response = await this.request(`/crm/v3/extensions/cards/${appId}`); 
-      if (!response.ok) return [];
+      // 1. Fetch CRM Cards (UI Extensions) - V3
+      const cardPromise = this.request(`/crm/v3/extensions/cards/${appId}`).then(r => r.ok ? r.json() : { results: [] });
       
-      const data = await response.json();
-      return (data.results || []).map((tool: any) => ({
+      // 2. Fetch Custom Code Actions - V4 (Breeze Actions)
+      // Note: This endpoint often requires the explicit App ID. We use the connected Client ID as a proxy.
+      const actionPromise = this.request(`/automation/v4/actions/${appId}`).then(r => r.ok ? r.json() : { results: [] });
+
+      const [cardData, actionData] = await Promise.all([cardPromise, actionPromise]);
+
+      const cards = (cardData.results || []).map((tool: any) => ({
           id: tool.id,
-          name: tool.title,
+          name: tool.title || 'Untitled Card',
           actionUrl: tool.fetch?.targetUrl || '',
           labels: { en: tool.title },
-          inputFields: [],
-          aiScore: 0
+          type: 'CRM_CARD',
+          aiScore: 50
       }));
+
+      const actions = (actionData.results || []).map((tool: any) => ({
+          id: tool.id,
+          name: tool.labels?.en?.message || tool.functionName || 'Untitled Action',
+          actionUrl: tool.actionUrl || '',
+          labels: tool.labels || {},
+          type: 'WORKFLOW_ACTION',
+          aiScore: 80
+      }));
+
+      return [...cards, ...actions];
     } catch (e) {
+      console.error("Breeze Tools Fetch Error:", e);
       return [];
     }
   }
