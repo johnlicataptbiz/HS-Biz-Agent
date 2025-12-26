@@ -277,12 +277,17 @@ export class HubSpotService {
 
   public async fetchSequences(): Promise<Sequence[]> {
     try {
-      // Try legacy v2 Sales Sequences API (more widely supported)
+      // V4 Sequences API requires userId
       const userId = await this.getCurrentUserId();
       console.log('🧩 Fetching sequences for userId:', userId);
       
-      // V2 Sales API - simpler and more compatible
-      const response = await this.request('/sales/v2/sequences');
+      if (!userId) {
+        console.warn('Cannot fetch sequences without user ID');
+        return [];
+      }
+      
+      // V4 API with userId parameter
+      const response = await this.request(`/automation/v4/sequences?userId=${userId}`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

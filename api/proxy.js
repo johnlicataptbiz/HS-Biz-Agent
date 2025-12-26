@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   // Get the path from query parameter
-  const { path } = req.query;
+  const { path, ...otherParams } = req.query;
   
   if (!path) {
     return res.status(400).json({ error: 'Missing path parameter' });
@@ -13,8 +13,13 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Missing Authorization header' });
   }
 
-  // Construct the full HubSpot URL
-  const hubspotUrl = `https://api.hubapi.com/${path}`;
+  // Build query string from remaining parameters (excluding 'path')
+  const queryString = Object.keys(otherParams).length > 0
+    ? '?' + new URLSearchParams(otherParams).toString()
+    : '';
+
+  // Construct the full HubSpot URL with query params
+  const hubspotUrl = `https://api.hubapi.com/${path}${queryString}`;
   
   console.log('Proxying to:', hubspotUrl);
   
