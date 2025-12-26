@@ -107,6 +107,32 @@ const Sequences: React.FC = () => {
         </div>
       )}
 
+      {/* Performance Summary */}
+      {isConnected && sequences.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="glass-card p-6 text-center">
+            <p className="text-3xl font-extrabold text-white">{sequences.length}</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Total Sequences</p>
+          </div>
+          <div className="glass-card p-6 text-center">
+            <p className="text-3xl font-extrabold text-emerald-400">{sequences.filter(s => s.active).length}</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Active</p>
+          </div>
+          <div className="glass-card p-6 text-center">
+            <p className="text-3xl font-extrabold text-amber-400">
+              {sequences.length > 0 ? Math.round(sequences.reduce((acc, s) => acc + s.aiScore, 0) / sequences.length) : 0}%
+            </p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Avg Health</p>
+          </div>
+          <div className="glass-card p-6 text-center">
+            <p className="text-3xl font-extrabold text-pink-400">
+              {sequences.filter(s => s.targetPersona === 'High Value Target').length}
+            </p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">High Performers</p>
+          </div>
+        </div>
+      )}
+
       {sequences.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {sequences.map((seq) => (
@@ -138,10 +164,13 @@ const Sequences: React.FC = () => {
                   <div className="space-y-2">
                       <div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-[0.2em]">
                         <span className="text-slate-400">Conversion Heuristic</span>
-                        <span className="text-emerald-400">{seq.replyRate === 0 ? 'N/A' : `${seq.replyRate}%`}</span>
+                        <span className="text-emerald-400">{seq.replyRate === 0 ? 'N/A' : `${(seq.replyRate * 100).toFixed(1)}%`}</span>
                       </div>
                       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full w-0"></div>
+                        <div 
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
+                          style={{ width: `${Math.min(seq.replyRate * 100 * 5, 100)}%` }}
+                        ></div>
                       </div>
                   </div>
                </div>

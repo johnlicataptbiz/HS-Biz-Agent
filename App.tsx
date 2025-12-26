@@ -107,7 +107,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard />;
+      case 'dashboard': return <Dashboard onNavigate={setActiveTab} />;
       case 'copilot': return <CoPilot />;
       case 'workflows': return <Workflows />;
       case 'sequences': return <Sequences />;

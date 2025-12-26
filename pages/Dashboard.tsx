@@ -3,7 +3,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot, Users } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onNavigate?: (tab: string) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
@@ -100,9 +104,12 @@ const Dashboard: React.FC = () => {
     healthData.length > 0 ? Math.round(healthData.reduce((acc: number, d: any) => acc + d.score, 0) / healthData.length) : 0
   , [healthData]);
 
-  const StatCard = ({ title, value, sub, icon: Icon, colorClass, gradient }: any) => {
+  const StatCard = ({ title, value, sub, icon: Icon, colorClass, gradient, onClick }: any) => {
     return (
-      <div className="glass-card p-8 group relative overflow-hidden transition-all duration-300 hover:-translate-y-1">
+      <div 
+        className={`glass-card p-8 group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 ${onClick ? 'cursor-pointer' : ''}`}
+        onClick={onClick}
+      >
         <div className={`absolute -right-6 -top-6 w-32 h-32 ${gradient} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity`}></div>
         
         <div className="relative z-10">
@@ -123,7 +130,9 @@ const Dashboard: React.FC = () => {
                 <div className={`w-1.5 h-1.5 rounded-full ${colorClass}`}></div>
                 <p className="text-xs text-slate-400 font-bold">{sub}</p>
             </div>
-            <ArrowUpRight size={14} className="text-slate-400 group-hover:text-white transition-colors" />
+            {onClick && (
+              <ArrowUpRight size={14} className="text-slate-400 group-hover:text-white group-hover:scale-125 transition-all" />
+            )}
           </div>
         </div>
       </div>
@@ -199,6 +208,7 @@ const Dashboard: React.FC = () => {
           icon={Zap} 
           colorClass="bg-emerald-400" 
           gradient="bg-emerald-500"
+          onClick={() => onNavigate?.('workflows')}
         />
         <StatCard 
           title="Market Sequences" 
@@ -207,6 +217,7 @@ const Dashboard: React.FC = () => {
           icon={Target} 
           colorClass="bg-pink-400" 
           gradient="bg-pink-500"
+          onClick={() => onNavigate?.('sequences')}
         />
         <StatCard 
           title="Contact Health" 
