@@ -259,6 +259,26 @@ export class HubSpotService {
         let aiScore = wf.enabled ? 60 : 30;
         if (wf.enrolledCount > 100) aiScore += 20;
         if (wf.updatedAt && (Date.now() - new Date(wf.updatedAt).getTime() < 30 * 24 * 60 * 60 * 1000)) aiScore += 15;
+        // Build issues array based on workflow health patterns
+        const issues: string[] = [];
+        
+        // Ghost Workflow: Active but no enrollments
+        if (wf.enabled && (wf.enrolledCount === 0 || !wf.enrolledCount)) {
+          issues.push('Ghost Workflow: Active but no enrollments');
+        }
+        
+        // Stale Workflow: Not updated in 6+ months
+        if (wf.updatedAt) {
+          const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
+          if (new Date(wf.updatedAt).getTime() < sixMonthsAgo) {
+            issues.push('Stale: Not updated in 6+ months');
+          }
+        }
+        
+        // Disabled but has enrollments (potentially forgotten)
+        if (!wf.enabled && wf.enrolledCount > 0) {
+          issues.push('Paused with active contacts');
+        }
         
         return {
           id: String(wf.id),
@@ -267,7 +287,7 @@ export class HubSpotService {
           objectType: wf.objectType || wf.type || 'CONTACT',
           enrolledCount: wf.enrolledCount || wf.activeCount || 0,
           aiScore: Math.min(100, aiScore),
-          issues: wf.enabled && wf.enrolledCount === 0 ? ['Ghost Workflow: Active but no enrollments'] : [],
+          issues,
           lastUpdated: wf.updatedAt || wf.updated || new Date().toISOString()
         };
       });
@@ -521,6 +541,85 @@ export class HubSpotService {
       }));
     } catch (e) {
       return [];
+    }
+  }
+
+  // --- CONTACT ORGANIZATION SCANNER ---
+  
+  public async scanContactOrganization(): Promise<{
+    totalScanned: number;
+    unclassified: number;
+    unassigned: number;
+    inactive: number;
+    healthScore: number;
+  }> {
+    try {
+      // Sample contacts with key properties
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      const response = await this.request(
+        '/crm/v3/objects/contacts?limit=100&properties=lifecyclestage,hubspot_owner_id,lastmodifieddate'
+      );
+      
+      if (!response.ok) {
+        console.error('Contact scan failed:', response.status);
+        return { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 };
+      }
+      
+      const data = await response.json();
+      const contacts = data.results || [];
+      const total = contacts.length;
+      
+      if (total === 0) {
+        return { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 100 };
+      }
+      
+      let unclassified = 0;
+      let unassigned = 0;
+      let inactive = 0;
+      
+      contacts.forEach((contact: any) => {
+        const props = contact.properties || {};
+        
+        // No lifecycle stage
+        if (!props.lifecyclestage || props.lifecyclestage === '') {
+          unclassified++;
+        }
+        
+        // No owner assigned
+        if (!props.hubspot_owner_id || props.hubspot_owner_id === '') {
+          unassigned++;
+        }
+        
+        // Inactive (no modification in 6 months)
+        if (props.lastmodifieddate) {
+          const lastMod = new Date(props.lastmodifieddate);
+          if (lastMod < sixMonthsAgo) {
+            inactive++;
+          }
+        }
+      });
+      
+      // Calculate health score (100 = perfect, 0 = chaos)
+      const unclassifiedPct = (unclassified / total) * 100;
+      const unassignedPct = (unassigned / total) * 100;
+      const inactivePct = (inactive / total) * 100;
+      
+      const healthScore = Math.max(0, Math.round(100 - (unclassifiedPct * 0.4 + unassignedPct * 0.3 + inactivePct * 0.3)));
+      
+      console.log(`🧩 Contact Scan: ${total} scanned, ${unclassified} unclassified, ${unassigned} unassigned, ${inactive} inactive`);
+      
+      return {
+        totalScanned: total,
+        unclassified,
+        unassigned,
+        inactive,
+        healthScore
+      };
+    } catch (e) {
+      console.error('Contact scan error:', e);
+      return { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 };
     }
   }
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
-import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot, Users } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
 
 const Dashboard: React.FC = () => {
@@ -12,6 +12,7 @@ const Dashboard: React.FC = () => {
     properties: [] as any[],
     segments: [] as any[],
     campaigns: [] as any[],
+    contactHealth: { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 },
   });
 
   useEffect(() => {
@@ -28,19 +29,20 @@ const Dashboard: React.FC = () => {
         const isMcp = localStorage.getItem('hubspot_client_id') === '9d7c3c51-862a-4604-9668-cad9bf5aed93';
 
         if (validation.success) {
-          const [wf, seq, prop, seg, camp] = await Promise.all([
+          const [wf, seq, prop, seg, camp, contactHealth] = await Promise.all([
             hubSpotService.fetchWorkflows(),
             hubSpotService.fetchSequences(),
             hubSpotService.fetchProperties(),
             hubSpotService.fetchSegments(),
-            hubSpotService.fetchCampaigns()
+            hubSpotService.fetchCampaigns(),
+            hubSpotService.scanContactOrganization()
           ]);
           if (isMounted) {
-            setMetrics({ workflows: wf, sequences: seq, properties: prop, segments: seg, campaigns: camp });
+            setMetrics({ workflows: wf, sequences: seq, properties: prop, segments: seg, campaigns: camp, contactHealth });
           }
         } else {
           if (isMounted) {
-            setMetrics({ workflows: [], sequences: [], properties: [], segments: [], campaigns: [] });
+            setMetrics({ workflows: [], sequences: [], properties: [], segments: [], campaigns: [], contactHealth: { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 } });
           }
         }
       } catch (e) {
@@ -207,12 +209,12 @@ const Dashboard: React.FC = () => {
           gradient="bg-pink-500"
         />
         <StatCard 
-          title="Campaign Focus" 
-          value={isConnected && !loading ? metrics.campaigns.length : "0"} 
-          sub={isConnected && !loading ? `${metrics.segments.length} Lists Active` : "No Data"}
-          icon={Target} 
-          colorClass="bg-rose-400" 
-          gradient="bg-rose-500"
+          title="Contact Health" 
+          value={isConnected && !loading ? `${metrics.contactHealth.healthScore}%` : "0%"} 
+          sub={isConnected && !loading ? `${metrics.contactHealth.unclassified + metrics.contactHealth.unassigned} Need Attention` : "Scan Pending"}
+          icon={Users} 
+          colorClass="bg-amber-400" 
+          gradient="bg-amber-500"
         />
       </div>
 
