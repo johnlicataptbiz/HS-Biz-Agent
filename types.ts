@@ -45,6 +45,26 @@ export interface BreezeTool {
   aiScore: number;
 }
 
+export interface Segment {
+  id: string;
+  name: string;
+  count: number;
+  type: 'DYNAMIC' | 'STATIC';
+  filters: string[];
+  lastUpdated: string;
+  aiScore: number;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  status: string;
+  budget: number | null;
+  revenue: number | null;
+  contacts: number;
+  aiScore: number;
+}
+
 export interface Metric {
   label: string;
   value: string | number;
