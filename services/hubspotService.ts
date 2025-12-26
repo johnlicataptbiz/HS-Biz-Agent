@@ -497,32 +497,55 @@ export class HubSpotService {
 
   public async fetchSegments(): Promise<Segment[]> {
     try {
-      // Fetch Lists (V3)
-      const response = await this.request('/crm/v3/lists');
+      // Use Lists Search API - more reliable than GET /lists
+      const response = await this.request('/crm/v3/lists/search', {
+        method: 'POST',
+        body: JSON.stringify({
+          query: '',
+          processingTypes: ['MANUAL', 'DYNAMIC', 'SNAPSHOT'],
+          count: 50
+        })
+      });
       
       if (!response.ok) {
-        console.error(`Lists API failed with status: ${response.status}`);
+        console.error(`Lists Search API failed: ${response.status}`);
+        // Fall back to legacy if search fails
+        const legacyResponse = await this.request('/contacts/v1/lists?count=100');
+        if (legacyResponse.ok) {
+          const legacyData = await legacyResponse.json();
+          console.log('🧩 Lists Legacy Raw:', legacyData);
+          const lists = legacyData.lists || [];
+          return lists.map((list: any) => ({
+            id: String(list.listId),
+            name: list.name || 'Unnamed List',
+            contactCount: list.metaData?.size || 0,
+            isDynamic: list.dynamic === true,
+            filters: [],
+            lastUpdated: list.updatedAt,
+            aiScore: 50
+          }));
+        }
         return [];
       }
       
       const data = await response.json();
-      console.log('🧩 Lists Raw:', data);
+      console.log('🧩 Lists Search Raw:', data);
       
-      // The V3 API returns lists in a 'lists' array
-      const lists = data.lists || data.results || [];
+      const lists = data.lists || [];
       console.log('🧩 Lists Count:', lists.length);
       
       return lists.map((list: any) => {
          let score = 50;
-         const size = list.size || list.memberCount || 0;
+         const size = list.size || list.metaData?.size || list.memberCount || 0;
+         const name = list.name || 'Unnamed List';
          if (size > 0) score += 20;
-         if (list.name?.toLowerCase().includes('untitled')) score -= 30;
+         if (name.toLowerCase().includes('untitled')) score -= 30;
          
          return {
            id: String(list.listId || list.id),
-           name: list.name || 'Unnamed List',
+           name: name,
            contactCount: size,
-           isDynamic: list.dynamic === true || list.processingType === 'DYNAMIC',
+           isDynamic: list.processingType === 'DYNAMIC',
            filters: [],
            lastUpdated: list.updatedAt || list.createdAt,
            aiScore: Math.max(0, Math.min(100, score))
@@ -547,6 +570,11 @@ export class HubSpotService {
       console.log('🧩 Campaigns Raw:', data);
       
       const campaigns = data.results || data.campaigns || [];
+      
+      // Log first campaign to see field structure
+      if (campaigns.length > 0) {
+        console.log('🧩 First Campaign Object:', JSON.stringify(campaigns[0], null, 2));
+      }
       
       return campaigns.map((camp: any) => ({
         id: camp.id,
