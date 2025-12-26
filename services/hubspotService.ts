@@ -252,6 +252,8 @@ export class HubSpotService {
       const response = await this.request('/automation/v4/sequences');
       
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`🧩 Sequences API Error (${response.status}):`, errorData);
         if (response.status === 404 || response.status === 403 || response.status === 400) {
              console.warn(`Sequences API not available (Status ${response.status}) - likely missing Sales Hub Pro or scope`);
              return [];
