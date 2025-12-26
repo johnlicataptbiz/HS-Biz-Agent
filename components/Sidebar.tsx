@@ -87,19 +87,17 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
                     <p className="text-[10px] text-slate-400 font-medium truncate">{isConnected ? 'Pro Enterprise Plan' : 'Simulation Mode'}</p>
                 </div>
             </div>
-
-            <button 
-                id="portal-settings-btn"
-                onClick={onSettingsClick}
-                aria-label="Open portal settings"
-                className="w-full py-2.5 glass-button flex items-center justify-center gap-2 text-xs font-bold hover:scale-[1.02] active:scale-95 transition-all"
-            >
-                <SettingsIcon size={14} />
-                Portal Settings
-            </button>
         </div>
         
-        <p className="mt-6 text-center text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em]">Powered by Gemini 2.0</p>
+        <div className="p-4 border-t border-white/5">
+        <button className="w-full py-3 px-4 glass-button rounded-xl flex items-center justify-center gap-2 group transition-all hover:bg-white/5 text-slate-400 hover:text-white mb-2" onClick={onSettingsClick}>
+           <SettingsIcon size={16} className="group-hover:rotate-90 transition-transform duration-500" />
+           <span className="text-xs font-bold uppercase tracking-widest">Portal Settings</span>
+        </button>
+        <div className="text-center">
+            <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">v2.5 (Org Engine)</p>
+        </div>
+      </div>
       </div>
     </div>
   );
