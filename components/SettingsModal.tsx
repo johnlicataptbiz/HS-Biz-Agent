@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, AlertCircle, Copy, ExternalLink, Key, Shield, Code } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Check, AlertCircle, ExternalLink, Shield, Zap, RefreshCw, LogOut, Lock, Globe, ShieldCheck, Copy, Database, Code } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
 
 interface SettingsModalProps {
@@ -7,422 +8,346 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
-  const [redirectUri, setRedirectUri] = useState('');
-  const [manualCode, setManualCode] = useState('');
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: SettingsModalProps) => {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [manualCode, setManualCode] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [copiedField, setCopiedField] = useState<'token' | 'clientId' | null>(null);
+
+  const isMcpIdent = React.useMemo(() => 
+    localStorage.getItem('hubspot_client_id') === '9d7c3c51-862a-4604-9668-cad9bf5aed93'
+  , [connectionStatus]);
 
   useEffect(() => {
     if (isOpen) {
-      const config = hubSpotService.getAuthConfig();
-      setClientId(config.clientId);
-      setClientSecret(config.clientSecret);
-      setRedirectUri(config.redirectUri);
-      
-      // Auto-check if we have a valid token already
-      if (hubSpotService.getToken()) {
-        setConnectionStatus('checking');
-        hubSpotService.validateConnection().then(result => {
-          setConnectionStatus(result.success ? 'success' : 'error');
-          if (!result.success) setErrorMessage(result.error || "Connection invalid");
-        });
-      }
+      checkStatus();
     }
   }, [isOpen]);
 
-  // Listener for popup completion
+  const checkStatus = async () => {
+    if (hubSpotService.getToken()) {
+      setConnectionStatus('checking');
+      const result = await hubSpotService.validateConnection();
+      setConnectionStatus(result.success ? 'success' : 'error');
+      if (!result.success) setErrorMessage(result.error || "Connection expired. Please reconnect.");
+    } else {
+      setConnectionStatus('idle');
+    }
+  };
+
   useEffect(() => {
-    const handleAuthMessage = (event: MessageEvent) => {
-        if (event.data?.type === 'HUBSPOT_OAUTH_CODE') {
-            setConnectionStatus('checking');
-            // Give it a moment for the token exchange to finish in the background
-            setTimeout(async () => {
-                const result = await hubSpotService.validateConnection();
-                setConnectionStatus(result.success ? 'success' : 'error');
-                if (!result.success) setErrorMessage(result.error || "OAuth failed verification");
-            }, 1000);
-        }
+    const handleConnectionChange = () => {
+      checkStatus();
     };
-    window.addEventListener('message', handleAuthMessage);
-    return () => window.removeEventListener('message', handleAuthMessage);
+    window.addEventListener('hubspot_connection_changed', handleConnectionChange);
+    return () => window.removeEventListener('hubspot_connection_changed', handleConnectionChange);
   }, []);
 
-  const handleConnect = async () => {
+  const handleConnect = async (useMcp: boolean = false) => {
     setErrorMessage('');
-    
-    if (!clientId || !clientSecret) {
-        setErrorMessage("Please provide both Client ID and Client Secret.");
-        return;
-    }
-
-    // Save config first
-    hubSpotService.saveAuthConfig(clientId, clientSecret);
-    
+    setConnectionStatus('checking');
     try {
-        // initiateOAuth is async due to PKCE generation
-        const popup = await hubSpotService.initiateOAuth();
+        const popup = await hubSpotService.initiateOAuth(useMcp);
         if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            setErrorMessage("Popup blocked! Please allow popups for this site.");
+            setConnectionStatus('error');
+            setErrorMessage("Popup blocked! Access denied by browser environment.");
         }
     } catch (e: any) {
-        setErrorMessage(e.message || "Failed to open connection window");
+        setConnectionStatus('error');
+        setErrorMessage(e.message || "Failed to start cryptographic handshake.");
     }
   };
 
   const handleManualCodeSubmit = async () => {
     if (!manualCode.trim()) return;
     setConnectionStatus('checking');
-    setErrorMessage('');
-    
-    // Save config first just in case
-    hubSpotService.saveAuthConfig(clientId, clientSecret);
-
     try {
         await hubSpotService.exchangeCodeForToken(manualCode.trim());
         const result = await hubSpotService.validateConnection();
         setConnectionStatus(result.success ? 'success' : 'error');
-        
-        if (!result.success) {
-            setErrorMessage(result.error || "Token accepted but connection check failed.");
-        } else {
-            setManualCode('');
-        }
+        if (!result.success) setErrorMessage(result.error || "Invalid token schema.");
+        else setManualCode('');
     } catch (e: any) {
-        console.error(e);
         setConnectionStatus('error');
-        setErrorMessage(e.message || "Failed to exchange code.");
+        setErrorMessage(e.message || "Cryptographic link failed.");
     }
   };
+
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
   const handleDisconnect = () => {
     hubSpotService.disconnect();
     setConnectionStatus('idle');
     setErrorMessage('');
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+    setShowDisconnectConfirm(false);
   };
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
-        onClick={onClose}
-      ></div>
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      aria-describedby="modal-description"
+    >
+      <div className="absolute inset-0 bg-[#020617]/60 backdrop-blur-md transition-opacity duration-500" onClick={onClose}></div>
 
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 h-[85vh] flex flex-col">
-        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-50 rounded-lg">
-                <Key className="w-5 h-5 text-indigo-600" />
-            </div>
-            <h3 className="font-semibold text-slate-900">Connect HubSpot App</h3>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
-          <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-lg space-y-3">
-            <div className="flex gap-3">
-                <div className="flex-shrink-0 mt-1">
-                    <ExternalLink className="text-indigo-600" size={18} />
+      <div className="relative glass-card border-white/10 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 shadow-[0_0_100px_rgba(79,70,229,0.2)]">
+        <div className="premium-gradient h-1 w-full" />
+        
+        <div className="p-10 space-y-10">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-5">
+              <div className={`p-5 rounded-[2.5rem] transition-all duration-500 shadow-2xl ${
+                connectionStatus === 'success' ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-white/5 text-white border border-white/10'
+              }`}>
+                  {connectionStatus === 'success' ? <ShieldCheck size={32} /> : <Lock size={32} />}
+              </div>
+              <div>
+                <h2 id="modal-title" className="text-3xl font-extrabold text-white tracking-tighter uppercase italic">Secure Tunnel</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    connectionStatus === 'success' ? 'bg-emerald-500 animate-pulse' :
+                    connectionStatus === 'checking' ? 'bg-amber-500 animate-ping' : 'bg-slate-700'
+                  }`} />
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
+                    {connectionStatus === 'success' ? 'Channel Encrypted' :
+                     connectionStatus === 'checking' ? 'Synchronizing Nodes...' : 'Connection Inactive'}
+                  </span>
                 </div>
-                <div className="text-xs text-indigo-900 leading-relaxed">
-                  <p className="font-semibold mb-1">Setup Instructions (PKCE Enabled)</p>
-                  <ul className="list-disc list-inside space-y-1 text-indigo-800 opacity-90">
-                    <li>Go to your <strong>HubSpot Developer Account</strong></li>
-                    <li>Create an App (or use an existing one)</li>
-                    <li>Copy Client ID & Secret from Auth tab</li>
-                    <li>Add the Redirect URI below to your app settings</li>
-                  </ul>
-                </div>
+              </div>
             </div>
-            
-            <div className="pl-8">
-               <div className="flex items-center gap-2 mb-1">
-                 <Shield size={12} className="text-indigo-600" />
-                 <p className="font-semibold text-xs text-indigo-900">Required Scopes</p>
-               </div>
-               <div className="bg-white/60 p-2 rounded border border-indigo-100 text-[10px] font-mono text-indigo-800 h-24 overflow-y-auto">
-                 <p className="font-bold mb-1 border-b border-indigo-100 pb-1">Full Scope List (Scroll)</p>
-                 <div className="grid grid-cols-1 gap-0.5 opacity-80">
-                    <span>account-info.security.read</span>
-                    <span>accounting</span>
-                    <span>actions</span>
-                    <span>analytics.behavioral_events.send</span>
-                    <span>automation</span>
-                    <span>automation.sequences.enrollments.write</span>
-                    <span>automation.sequences.read</span>
-                    <span>behavioral_events.event_definitions.read_write</span>
-                    <span>business-intelligence</span>
-                    {/* Removed: Enterprise Only Scopes (business_units, collector) */}
-                    <span>communication_preferences.read</span>
-                    <span>communication_preferences.read_write</span>
-                    <span>communication_preferences.statuses.batch.read</span>
-                    <span>communication_preferences.statuses.batch.write</span>
-                    <span>communication_preferences.write</span>
-                    <span>content</span>
-                    <span>conversations.custom_channels.read</span>
-                    <span>conversations.custom_channels.write</span>
-                    <span>conversations.read</span>
-                    <span>conversations.visitor_identification.tokens.create</span>
-                    <span>conversations.write</span>
-                    {/* Removed: Enterprise Only (dealsplits) */}
-                    <span>crm.export</span>
-                    <span>crm.extensions_calling_transcripts.read</span>
-                    <span>crm.extensions_calling_transcripts.write</span>
-                    <span>crm.import</span>
-                    <span>crm.lists.read</span>
-                    <span>crm.lists.write</span>
-                    <span>crm.objects.appointments.read</span>
-                    <span>crm.objects.appointments.write</span>
-                    <span>crm.objects.carts.read</span>
-                    <span>crm.objects.carts.write</span>
-                    <span>crm.objects.commercepayments.read</span>
-                    <span>crm.objects.commercepayments.write</span>
-                    <span>crm.objects.companies.read</span>
-                    <span>crm.objects.companies.write</span>
-                    <span>crm.objects.contacts.read</span>
-                    <span>crm.objects.contacts.write</span>
-                    <span>crm.objects.courses.read</span>
-                    <span>crm.objects.courses.write</span>
-                    <span>crm.objects.custom.read</span>
-                    <span>crm.objects.custom.write</span>
-                    <span>crm.objects.deals.read</span>
-                    <span>crm.objects.deals.write</span>
-                    <span>crm.objects.feedback_submissions.read</span>
-                    <span>crm.objects.goals.read</span>
-                    <span>crm.objects.goals.write</span>
-                    <span>crm.objects.invoices.read</span>
-                    <span>crm.objects.invoices.write</span>
-                    <span>crm.objects.leads.read</span>
-                    <span>crm.objects.leads.write</span>
-                    <span>crm.objects.line_items.read</span>
-                    <span>crm.objects.line_items.write</span>
-                    <span>crm.objects.listings.read</span>
-                    <span>crm.objects.listings.write</span>
-                    <span>crm.objects.marketing_events.read</span>
-                    <span>crm.objects.marketing_events.write</span>
-                    <span>crm.objects.orders.read</span>
-                    <span>crm.objects.orders.write</span>
-                    <span>crm.objects.owners.read</span>
-                    <span>crm.objects.partner-clients.read</span>
-                    <span>crm.objects.partner-clients.write</span>
-                    <span>crm.objects.partner-services.read</span>
-                    <span>crm.objects.partner-services.write</span>
-                    <span>crm.objects.products.read</span>
-                    <span>crm.objects.products.write</span>
-                    <span>crm.objects.projects.read</span>
-                    <span>crm.objects.projects.write</span>
-                    <span>crm.objects.quotes.read</span>
-                    <span>crm.objects.quotes.write</span>
-                    <span>crm.objects.services.read</span>
-                    <span>crm.objects.services.write</span>
-                    <span>crm.objects.subscriptions.read</span>
-                    <span>crm.objects.subscriptions.write</span>
-                    <span>crm.objects.users.read</span>
-                    <span>crm.objects.users.write</span>
-                    <span>crm.pipelines.orders.read</span>
-                    <span>crm.pipelines.orders.write</span>
-                    <span>crm.schemas.appointments.read</span>
-                    <span>crm.schemas.appointments.write</span>
-                    <span>crm.schemas.carts.read</span>
-                    <span>crm.schemas.carts.write</span>
-                    <span>crm.schemas.commercepayments.read</span>
-                    <span>crm.schemas.commercepayments.write</span>
-                    <span>crm.schemas.companies.read</span>
-                    <span>crm.schemas.companies.write</span>
-                    <span>crm.schemas.contacts.read</span>
-                    <span>crm.schemas.contacts.write</span>
-                    <span>crm.schemas.courses.read</span>
-                    <span>crm.schemas.courses.write</span>
-                    <span>crm.schemas.custom.read</span>
-                    <span>crm.schemas.deals.read</span>
-                    <span>crm.schemas.deals.write</span>
-                    <span>crm.schemas.invoices.read</span>
-                    <span>crm.schemas.invoices.write</span>
-                    <span>crm.schemas.line_items.read</span>
-                    <span>crm.schemas.listings.read</span>
-                    <span>crm.schemas.listings.write</span>
-                    <span>crm.schemas.orders.read</span>
-                    <span>crm.schemas.orders.write</span>
-                    <span>crm.schemas.projects.read</span>
-                    <span>crm.schemas.projects.write</span>
-                    <span>crm.schemas.quotes.read</span>
-                    <span>crm.schemas.services.read</span>
-                    <span>crm.schemas.services.write</span>
-                    <span>crm.schemas.subscriptions.read</span>
-                    <span>crm.schemas.subscriptions.write</span>
-                    <span>ctas.read</span>
-                    <span>e-commerce</span>
-                    <span>external_integrations.forms.access</span>
-                    <span>files</span>
-                    <span>files.ui_hidden.read</span>
-                    <span>forms</span>
-                    <span>forms-uploaded-files</span>
-                    <span>hubdb</span>
-                    <span>integration-sync</span>
-                    <span>integrations.zoom-app.playbooks.read</span>
-                    <span>marketing-email</span>
-                    <span>marketing.campaigns.read</span>
-                    <span>marketing.campaigns.revenue.read</span>
-                    <span>marketing.campaigns.write</span>
-                    <span>media_bridge.read</span>
-                    <span>media_bridge.write</span>
-                    <span>oauth</span>
-                    <span>record_images.signed_urls.read</span>
-                    <span>sales-email-read</span>
-                    <span>scheduler.meetings.meeting-link.read</span>
-                    <span>settings.billing.write</span>
-                    <span>settings.currencies.read</span>
-                    <span>settings.currencies.write</span>
-                    <span>settings.security.security_health.read</span>
-                    <span>settings.users.read</span>
-                    <span>settings.users.teams.read</span>
-                    <span>settings.users.teams.write</span>
-                    <span>settings.users.write</span>
-                    <span>social</span>
-                    <span>tax_rates.read</span>
-                    <span>tickets</span>
-                    <span>timeline</span>
-                    <span>transactional-email</span>
-                 </div>
-               </div>
-               <p className="text-[10px] text-indigo-600 mt-1 italic">
-                 *Requesting exact match to configured app scopes.
-               </p>
-            </div>
+            <button 
+              id="close-settings-btn"
+              onClick={onClose} 
+              className="p-3 text-slate-400 hover:text-white glass-button border-transparent hover:border-white/10 transition-all" 
+              title="Close Settings"
+              aria-label="Close settings"
+            >
+              <X size={20} />
+            </button>
           </div>
 
-          {/* Config Form */}
-          <div className="space-y-4">
-             <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Redirect URI</label>
-                <div className="flex gap-2">
-                    <code className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 font-mono break-all flex items-center">
-                        {redirectUri}
-                    </code>
-                    <button 
-                        onClick={() => copyToClipboard(redirectUri)}
-                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
-                        title="Copy to clipboard"
-                    >
-                        <Copy size={16} />
-                    </button>
+          {connectionStatus !== 'success' ? (
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <p id="modal-description" className="text-slate-400 font-medium leading-relaxed italic">
+                  Launch the secure OAuth 2.0 PKCE handshake to bridge your production data with the AI Heuristic Engine.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/5 border border-white/5 p-4 rounded-3xl">
+                        <Globe size={18} className="text-indigo-400 mb-2" />
+                        <p className="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">Global Sync</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/5 p-4 rounded-3xl">
+                        <Shield size={18} className="text-emerald-400 mb-2" />
+                        <p className="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">Audited Auth</p>
+                    </div>
                 </div>
-                <div className="mt-2 p-2 bg-amber-50 border border-amber-100 rounded-md flex gap-2 items-start">
-                    <AlertCircle size={14} className="text-amber-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-[10px] text-amber-800 leading-tight">
-                        <strong>Important:</strong> If you see a "Redirect URL mismatch" error, copy this exact URL and update your HubSpot App settings.
-                    </p>
-                </div>
-             </div>
+              </div>
 
-             <div className="grid grid-cols-1 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Client ID</label>
-                    <input
-                        type="text"
-                        value={clientId}
-                        onChange={(e) => setClientId(e.target.value)}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
-                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Client Secret</label>
-                    <input
-                        type="password"
-                        value={clientSecret}
-                        onChange={(e) => setClientSecret(e.target.value)}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
-                        placeholder="••••••••••••••••••••••"
-                    />
-                </div>
-             </div>
-          </div>
-          
-          <div className="border-t border-slate-100 pt-4">
-            <div className="flex items-center gap-2 mb-3">
-                <Code size={16} className="text-slate-400" />
-                <label className="text-sm font-medium text-slate-700">Manual Entry / Private App Token</label>
-            </div>
-            <div className="flex gap-2">
-                <input
-                    type="text"
-                    value={manualCode}
-                    onChange={(e) => setManualCode(e.target.value)}
-                    placeholder="Paste OAuth code OR Private App Token (pat-)..."
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm font-mono placeholder:font-sans"
-                />
+              <div className="space-y-4">
                 <button 
-                    onClick={handleManualCodeSubmit}
-                    disabled={!manualCode.trim() || connectionStatus === 'checking'}
-                    className="px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  id="standard-auth-btn"
+                  onClick={() => handleConnect(false)}
+                  disabled={connectionStatus === 'checking'}
+                  aria-label="Connect using Standard Optimizer OAuth"
+                  className="w-full py-6 px-8 premium-gradient text-white rounded-3xl font-extrabold uppercase tracking-[0.2em] text-sm shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all flex flex-col items-center justify-center gap-2 group"
                 >
-                    Verify
+                  <div className="flex items-center gap-4">
+                     {connectionStatus === 'checking' ? <RefreshCw className="animate-spin" size={20} /> : "Standard Optimizer"}
+                     <ExternalLink size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  </div>
+                  <span className="text-[9px] text-white/70 font-bold normal-case tracking-normal">Recommended for full Dashboard, Workflows & Sequence Audits</span>
                 </button>
+
+                <button 
+                  id="mcp-auth-btn"
+                  onClick={() => handleConnect(true)}
+                  disabled={connectionStatus === 'checking'}
+                  aria-label="Force User-Level Auth using MCP"
+                  className="w-full py-5 px-8 glass-button border-indigo-500/30 text-indigo-300 rounded-3xl font-extrabold uppercase tracking-[0.2em] text-[10px] hover:bg-indigo-500/10 transition-all flex flex-col items-center justify-center gap-2 group"
+                >
+                  <div className="flex items-center gap-4">
+                     Force User-Level Auth (MCP)
+                     <Zap size={14} className="group-hover:animate-pulse" />
+                  </div>
+                  <span className="text-[9px] text-indigo-400/60 font-bold normal-case tracking-normal">For connecting external desktop agents (Limited Dashboard Access)</span>
+                </button>
+              </div>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">
-                If OAuth fails (CORS error), create a Private App in HubSpot and paste the Access Token (starts with <code>pat-</code>) here.
-            </p>
-          </div>
+          ) : (
+            <div className="space-y-8">
+              <div className="p-10 bg-emerald-500/5 border border-emerald-500/10 rounded-[3rem] space-y-6 text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-10 opacity-5">
+                    <ShieldCheck size={100} className="text-emerald-500" />
+                </div>
+                <div className="mx-auto w-20 h-20 bg-emerald-500 rounded-[2rem] flex items-center justify-center shadow-xl shadow-emerald-500/20 relative z-10">
+                  <Check className="text-white" size={36} />
+                </div>
+                <div className="relative z-10 space-y-2">
+                  <h3 className="text-2xl font-extrabold text-white uppercase tracking-tighter italic">Handshake Verified</h3>
+                  <div className="flex flex-col items-center gap-1">
+                    <p className="text-xs font-bold text-emerald-500 uppercase tracking-[0.3em]">AI Stream Active</p>
+                    <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                      Ident: {isMcpIdent ? 'MCP Bridge' : 'Standard Optimizer'}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-          {connectionStatus === 'success' && (
-             <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-xs text-emerald-600 flex items-center justify-between animate-in fade-in">
-               <div className="flex items-center gap-2">
-                 <Check size={14} />
-                 <span className="font-medium">Successfully Connected</span>
-               </div>
-               <button onClick={handleDisconnect} className="underline hover:text-emerald-800">Disconnect</button>
-             </div>
+              {!showDisconnectConfirm ? (
+                <button 
+                  id="terminate-link-btn"
+                  onClick={() => setShowDisconnectConfirm(true)}
+                  aria-label="Terminate portal link"
+                  className="w-full py-5 text-[10px] font-extrabold text-rose-400 hover:text-white glass-button border-rose-500/20 hover:bg-rose-500/20 transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
+                >
+                  <LogOut size={16} />
+                  Terminate Link
+                </button>
+              ) : (
+                <div className="flex gap-3 animate-in fade-in zoom-in-95 duration-200">
+                  <button 
+                    onClick={handleDisconnect}
+                    className="flex-1 py-5 bg-rose-600 text-white rounded-2xl font-extrabold uppercase tracking-widest text-[10px] hover:bg-rose-700 transition-all shadow-lg shadow-rose-900/20"
+                  >
+                    Confirm Termination
+                  </button>
+                  <button 
+                    onClick={() => setShowDisconnectConfirm(false)}
+                    className="px-6 py-5 glass-button text-slate-400 font-extrabold uppercase tracking-widest text-[10px] hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
-          {connectionStatus === 'error' && (
-             <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg text-xs text-rose-600 flex items-center gap-2 animate-in fade-in">
-               <AlertCircle size={14} className="flex-shrink-0" />
-               <span className="font-medium break-all">{errorMessage || "Connection failed. Check Token & Scopes."}</span>
-             </div>
+          {errorMessage && (
+            <div className="p-5 bg-rose-500/10 border border-rose-500/20 rounded-3xl flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
+              <AlertCircle size={20} className="text-rose-400 shrink-0" />
+              <div className="text-[10px] text-rose-400 font-extrabold uppercase tracking-widest leading-relaxed">
+                Exception: {errorMessage}
+              </div>
+            </div>
           )}
-        </div>
 
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
-          >
-            Close
-          </button>
-          
-          <button 
-            onClick={handleConnect}
-            disabled={connectionStatus === 'success'}
-            className={`flex items-center gap-2 px-6 py-2 text-white text-sm font-medium rounded-lg transition-all shadow-sm ${
-              connectionStatus === 'success' 
-                ? 'bg-emerald-500 cursor-default' 
-                : 'bg-indigo-600 hover:bg-indigo-700'
-            }`}
-          >
-            {connectionStatus === 'success' ? (
-               <>Authorized</>
-            ) : (
-               <>
-                 Authenticate with OAuth
-                 <ExternalLink size={14} />
-               </>
+          <div className="pt-6 border-t border-white/5 space-y-4">
+            <button 
+              id="toggle-diagnostics-btn"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              aria-expanded={showAdvanced}
+              aria-controls="diagnostics-panel"
+              className="text-[10px] font-extrabold text-slate-400 hover:text-slate-200 uppercase tracking-[0.2em] transition-colors mx-auto block"
+            >
+              {showAdvanced ? 'Collapse Diagnostics' : 'Bypass OAuth or View Metadata?'}
+            </button>
+            
+            {showAdvanced && (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                {/* Metadata Section for MCP Inspector */}
+                <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Database size={14} className="text-indigo-400" />
+                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">MCP Bridge Metadata</span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Bearer Token (For Inspector)</p>
+                      <div className="flex gap-2">
+                        <div className="flex-1 px-3 py-2 bg-black/40 border border-white/5 rounded-xl font-mono text-[10px] text-indigo-300 truncate">
+                          {hubSpotService.getToken() || 'None Detected'}
+                        </div>
+                        <button 
+                          id="copy-token-btn"
+                          onClick={() => {
+                            navigator.clipboard.writeText(hubSpotService.getToken());
+                            setCopiedField('token');
+                            setTimeout(() => setCopiedField(null), 2000);
+                          }}
+                          className={`p-2 glass-button border-white/5 transition-colors ${copiedField === 'token' ? 'text-emerald-400' : 'text-slate-400 hover:text-white'}`}
+                          title="Copy Token"
+                          aria-label="Copy bearer token"
+                        >
+                          {copiedField === 'token' ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">MCP Client ID</p>
+                      <div className="flex gap-2">
+                        <div className="flex-1 px-3 py-2 bg-black/40 border border-white/5 rounded-xl font-mono text-[10px] text-slate-400">
+                          9d7c3c51-862a-4604-9668-cad9bf5aed93
+                        </div>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText('9d7c3c51-862a-4604-9668-cad9bf5aed93');
+                            setCopiedField('clientId');
+                            setTimeout(() => setCopiedField(null), 2000);
+                          }}
+                          className={`p-2 glass-button border-white/5 transition-colors ${copiedField === 'clientId' ? 'text-emerald-400' : 'text-slate-400 hover:text-white'}`}
+                          title="Copy Client ID"
+                        >
+                          {copiedField === 'clientId' ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <a 
+                        href="https://modelcontextprotocol.io/inspector" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-2xl text-[10px] font-bold text-indigo-300 uppercase tracking-widest transition-all"
+                      >
+                        <Code size={14} />
+                        Open MCP Inspector
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="manual-token-input" className="sr-only">Private Access Token</label>
+                  <div className="flex gap-3">
+                    <input
+                      id="manual-token-input"
+                      type="password"
+                      value={manualCode}
+                      onChange={(e) => setManualCode(e.target.value)}
+                      placeholder="Private Access Token..."
+                      aria-label="Enter Private Access Token for manual bridge"
+                      className="flex-1 px-5 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none text-xs text-indigo-300 font-mono font-bold focus:border-indigo-500/50 transition-all"
+                    />
+                    <button 
+                      id="manual-bridge-btn"
+                      onClick={handleManualCodeSubmit}
+                      disabled={!manualCode.trim() || connectionStatus === 'checking'}
+                      aria-label="Submit manual token"
+                      className="px-6 py-4 glass-button border-white/10 text-white text-[10px] font-extrabold uppercase tracking-widest disabled:opacity-50"
+                    >
+                      Bridge
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[9px] text-slate-400 text-center leading-relaxed font-bold uppercase tracking-widest">
+                  Manual token entry bypasses the OAuth sequence if needed.
+                </p>
+              </div>
             )}
-          </button>
+          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.getElementById('modal-root')!
   );
 };
 

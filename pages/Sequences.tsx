@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { getSequences } from '../services/mockService';
 import { hubSpotService } from '../services/hubspotService';
 import { Sequence } from '../types';
-import { Sparkles, Mail, TrendingUp, Users, RefreshCw } from 'lucide-react';
+import { Sparkles, AlertCircle, CheckCircle2, MoreHorizontal, RefreshCw, Send, Target, BarChart3, ShieldCheck } from 'lucide-react';
 import AiModal from '../components/AiModal';
 
 const Sequences: React.FC = () => {
@@ -10,105 +9,159 @@ const Sequences: React.FC = () => {
   const [selectedSeq, setSelectedSeq] = useState<Sequence | null>(null);
   const [showGeneralAi, setShowGeneralAi] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [source, setSource] = useState<'demo' | 'hubspot'>('demo');
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     loadData();
+    window.addEventListener('hubspot_connection_changed', loadData);
+    return () => window.removeEventListener('hubspot_connection_changed', loadData);
   }, []);
 
   const loadData = async () => {
     setIsLoading(true);
-    const token = hubSpotService.getToken();
-    if (token) {
-      const realData = await hubSpotService.fetchSequences();
-      if (realData.length > 0) {
+    const validation = await hubSpotService.validateConnection();
+    setIsConnected(validation.success);
+    
+    if (validation.success) {
+      try {
+        const realData = await hubSpotService.fetchSequences();
         setSequences(realData);
-        setSource('hubspot');
-      } else {
-        const mockData = await getSequences();
-        setSequences(mockData);
-        setSource('demo');
+      } catch (e) {
+        console.error("Sequence fetch error:", e);
+        setSequences([]);
       }
     } else {
-      const mockData = await getSequences();
-      setSequences(mockData);
-      setSource('demo');
+      setSequences([]);
     }
     setIsLoading(false);
   };
 
+  const getScoreColor = (score: number) => {
+    if (score === 0) return 'text-slate-400 bg-white/5 border-white/10';
+    if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+    if (score >= 60) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+    return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">Sequences</h1>
-              {source === 'hubspot' && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">Live Data</span>
-              )}
-            </div>
-            <p className="text-slate-500 mt-1">Sales outreach and automated follow-ups.</p>
-        </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={loadData}
-            className="p-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50"
-            title="Refresh Data"
-          >
-            <RefreshCw size={16} className={`${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-          <button 
-            onClick={() => setShowGeneralAi(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm flex items-center gap-2"
-          >
-              <Sparkles size={16} />
-              Generate New
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sequences.map((seq) => (
-          <div key={seq.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col">
-            <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-emerald-50 rounded-lg">
-                    <Mail className="w-6 h-6 text-emerald-600" />
-                </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${seq.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                    {seq.active ? 'Active' : 'Draft'}
-                </span>
-            </div>
-            
-            <h3 className="font-bold text-slate-900 mb-1">{seq.name}</h3>
-            <p className="text-xs text-slate-500 mb-6 flex items-center gap-1">
-                <Users size={12} />
-                Target: {seq.targetPersona}
-            </p>
-
-            <div className="grid grid-cols-2 gap-4 mb-6 pt-4 border-t border-slate-50">
-                <div>
-                    <p className="text-xs text-slate-400">Steps</p>
-                    <p className="font-semibold text-slate-700">{seq.stepsCount}</p>
-                </div>
-                <div>
-                    <p className="text-xs text-slate-400">Reply Rate</p>
-                    <p className="font-semibold text-slate-700 flex items-center gap-1">
-                        {seq.replyRate}%
-                        <TrendingUp size={12} className="text-emerald-500" />
-                    </p>
-                </div>
-            </div>
-
-            <button 
-                onClick={() => setSelectedSeq(seq)}
-                className="mt-auto w-full py-2.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700 font-medium text-sm hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2"
-            >
-                <Sparkles size={16} />
-                Optimize with AI
-            </button>
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-500'}`}></div>
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Outbound Performance</span>
           </div>
-        ))}
+          <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+            Market <span className="gradient-text">Sequences.</span>
+          </h1>
+          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+            Heuristic audit of your multi-step outbound logic. Identifying high-friction steps and persona mismatches.
+          </p>
+        </div>
+        
+        <div className="flex gap-4">
+          <button 
+            id="refresh-sequence-btn"
+            onClick={loadData}
+            className="p-3 glass-button border-white/5 text-slate-400 hover:text-white transition-all active:scale-90"
+            title="Refresh Sequence Logic"
+            aria-label="Refresh sequences from HubSpot"
+          >
+            <RefreshCw size={20} className={`${isLoading ? 'animate-spin text-emerald-400' : ''}`} />
+          </button>
+          <button 
+            id="draft-persona-btn"
+            onClick={() => setShowGeneralAi(true)}
+            aria-label="Draft new persona with AI"
+            className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
+          >
+              <Sparkles size={18} />
+              Draft New Persona
+          </button>
+        </div>
       </div>
+
+      {!isConnected && (
+         <div className="glass-card p-12 text-center space-y-6">
+            <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+                <ShieldCheck className="text-emerald-400" size={32} />
+            </div>
+            <div className="max-w-md mx-auto">
+                <h3 className="text-xl font-bold text-white uppercase tracking-wider">Sync Required</h3>
+                <p className="text-slate-400 mt-2 font-medium">Connect your HubSpot instance to visualize and optimize your active outbound sequences.</p>
+            </div>
+         </div>
+      )}
+
+      {isConnected && sequences.length === 0 && !isLoading && (
+        <div className="glass-card p-20 text-center space-y-6">
+            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10">
+                <Send className="text-slate-400" size={40} />
+            </div>
+            <div className="max-w-md mx-auto">
+                <h3 className="text-2xl font-bold text-white tracking-tight">Zero Cycles Found</h3>
+                <p className="text-slate-400 mt-3 font-medium text-sm leading-relaxed">
+                  We scanned your portal but no active sequences were detected in the registry. Ensure you have <span className="text-emerald-400 font-bold uppercase tracking-widest text-[10px]">Sales Hub Professional</span> active.
+                </p>
+            </div>
+        </div>
+      )}
+
+      {sequences.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {sequences.map((seq) => (
+            <div key={seq.id} className="glass-card p-8 group hover:-translate-y-1 transition-all duration-500 border-white/5 hover:border-emerald-500/20 active:scale-[0.98]">
+               <div className="flex justify-between items-start mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-lg group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                        <Target size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors tracking-tight">{seq.name}</h3>
+                        <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mt-1">ID: {seq.id}</p>
+                    </div>
+                  </div>
+                  <div className={`px-3 py-1.5 rounded-xl border text-[10px] font-extrabold uppercase tracking-widest ${getScoreColor(seq.aiScore)}`}>
+                    {seq.aiScore === 0 ? 'PENDING' : `Score: ${seq.aiScore}%`}
+                  </div>
+               </div>
+
+               <div className="space-y-6 mb-8">
+                  <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
+                     <span className="text-slate-400">Target Persona</span>
+                     <span className="text-white">{seq.targetPersona}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
+                     <span className="text-slate-400">Flow Integrity</span>
+                     <span className="text-white">{seq.stepsCount} Nodes</span>
+                  </div>
+                  <div className="space-y-2">
+                      <div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-[0.2em]">
+                        <span className="text-slate-400">Conversion Heuristic</span>
+                        <span className="text-emerald-400">{seq.replyRate === 0 ? 'N/A' : `${seq.replyRate}%`}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full w-0"></div>
+                      </div>
+                  </div>
+               </div>
+
+               <div className="flex gap-4 pt-8 border-t border-white/5">
+                  <button 
+                    onClick={() => setSelectedSeq(seq)}
+                    className="flex-1 py-4 premium-gradient text-white text-[10px] font-extrabold uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-emerald-500/20 flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={14} />
+                    Optimize Flow
+                  </button>
+                  <button className="p-4 glass-button border-white/5 text-slate-400 hover:text-white rounded-2xl transition-all" title="More Actions">
+                    <MoreHorizontal size={20} />
+                  </button>
+               </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <AiModal 
         isOpen={!!selectedSeq} 
@@ -117,12 +170,12 @@ const Sequences: React.FC = () => {
         contextId={selectedSeq?.id}
         contextName={selectedSeq?.name}
       />
-
+      
       <AiModal 
         isOpen={showGeneralAi} 
         onClose={() => setShowGeneralAi(false)} 
         contextType="sequence"
-        contextName="All Sequences"
+        contextName="Market Sequences"
       />
     </div>
   );

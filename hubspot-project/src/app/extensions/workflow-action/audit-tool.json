@@ -1,0 +1,46 @@
+{
+  "type": "workflow-action",
+  "name": "Audit Portal",
+  "label": "Run HubSpot AI Optimizer Audit",
+  "description": "Trigger an AI Audit of the current object (Contact, Deal, or Company) to identify gaps and optimization opportunities.",
+  "archive": false,
+  "function": {
+    "file": "audit-tool.js",
+    "function": "main"
+  },
+  "objectTypes": [
+    "CONTACT",
+    "DEAL",
+    "COMPANY"
+  ],
+  "inputFields": [
+    {
+      "typeDefinition": {
+        "name": "auditContext",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "label": "Audit Context/Notes"
+    }
+  ],
+  "outputFields": [
+    {
+      "typeDefinition": {
+        "name": "auditResult",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "label": "Audit Result Summary"
+    },
+    {
+      "typeDefinition": {
+        "name": "optimizationScore",
+        "type": "number",
+        "fieldType": "number"
+      },
+      "label": "Optimization Score"
+    }
+  ]
+}

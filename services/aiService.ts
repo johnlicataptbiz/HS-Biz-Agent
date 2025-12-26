@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AiResponse, ChatResponse } from '../types';
 
-const MODEL_NAME = 'gemini-2.5-flash';
+const MODEL_NAME = 'gemini-2.0-flash';
 
 // Helper to get authenticated client
 const getAiClient = () => {
@@ -15,50 +15,52 @@ const getAiClient = () => {
 const MCP_TOOLS_DEF = [
   {
     name: "list_workflows",
-    description: "Fetch a summary of all automation workflows in the portal, including enrollment counts and health scores.",
+    description: "Fetch a summary of all automation workflows in the portal.",
     parameters: { type: Type.OBJECT, properties: {} }
   },
   {
     name: "audit_data_schema",
-    description: "Scan the CRM Contact properties to identify unused, redundant, or inconsistent fields.",
+    description: "Scan CRM properties for redundancy.",
     parameters: { type: Type.OBJECT, properties: {} }
   },
   {
     name: "list_sequences",
-    description: "Retrieve sales email sequences to analyze reply rates and target personas.",
+    description: "Retrieve sales email sequences.",
     parameters: { type: Type.OBJECT, properties: {} }
   },
   {
     name: "get_breeze_tools",
-    description: "List custom Breeze Agent Tools (app functions) currently defined in the portal.",
+    description: "List custom Breeze Agent Tools.",
     parameters: { type: Type.OBJECT, properties: {} }
+  },
+  {
+    name: "list_newest_contacts",
+    description: "Retrieve the 5 most recently created contacts from HubSpot.",
+    parameters: { type: Type.OBJECT, properties: {} }
+  },
+  {
+    name: "search_contacts",
+    description: "Search for contacts by email query.",
+    parameters: { type: Type.OBJECT, properties: { query: { type: Type.STRING } } }
+  },
+  {
+    name: "get_contact",
+    description: "Retrieve details for a specific contact by ID.",
+    parameters: { type: Type.OBJECT, properties: { id: { type: Type.STRING } } }
   }
 ];
 
-// The "Brain" - PT Biz Domain Knowledge
 const PT_BIZ_SYSTEM_INSTRUCTION = `
 You are the "HubSpot AI Optimizer" for PT Biz.
-Your goal is to optimize HubSpot portals for Physical Therapy clinics using a "Cash-Based" or "Hybrid" business model.
+Your goal is to optimize HubSpot portals for Physical Therapy clinics.
 
 **ARCHITECTURE: MODEL CONTEXT PROTOCOL (MCP)**
-You are operating within an MCP architecture. You have access to "Tools" that can fetch real data from the HubSpot portal.
-- **DO NOT** hallucinate workflow names or data properties if you haven't fetched them yet.
-- **DO** use the \`toolCalls\` field to request data when the user asks for an audit, check, or list.
+You have access to "Tools" to fetch real HubSpot data.
 - **Tools Available:**
-  1. \`list_workflows\`: Use this to check automation health.
-  2. \`audit_data_schema\`: Use this to check data model cleanliness.
-  3. \`list_sequences\`: Use this for sales outreach analysis.
-  4. \`get_breeze_tools\`: Use this to see existing custom tools.
-
-**Domain Knowledge:**
-- **Metrics:** Focus on "Revenue per Visit", "NPS", and "Discovery Call" conversion.
-- **Strategy:** Move clients from "Owner-Operator" to "CEO". Automate "New Lead Nurture" and "Reactivation".
-
-**Behavior:**
-- If the user says "Audit my workflows", call \`list_workflows\`.
-- If the user says "Check my data", call \`audit_data_schema\`.
-- If the user asks for advice *after* you have received tool data (in a theoretical multi-turn context), analyze that data.
-- Tone: Tactical, direct, authoritative.
+  1. \`list_workflows\`, \`audit_data_schema\`, \`list_sequences\`, \`get_breeze_tools\`
+  2. \`list_newest_contacts\`: Use this when the user asks for "newest contacts".
+  3. \`search_contacts\`: Use this to find specific people by email.
+  4. \`get_contact\`: Use this for deep dives into a specific ID.
 `;
 
 const OPTIMIZATION_SCHEMA: Schema = {

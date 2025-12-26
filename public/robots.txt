@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hubspot-ai-optimizer.vercel.app/sitemap.xml

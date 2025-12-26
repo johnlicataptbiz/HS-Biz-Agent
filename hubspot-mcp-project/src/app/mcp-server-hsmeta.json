@@ -1,0 +1,35 @@
+{
+  "config": {
+    "auth": {
+      "type": "oauth",
+      "redirectUrls": [
+        "https://hubspot-ai-optimizer.vercel.app/",
+        "http://localhost:3000/"
+      ],
+      "optionalScopes": [],
+      "requiredScopes": [
+        "crm.objects.contacts.read",
+        "crm.objects.companies.read",
+        "crm.objects.deals.read",
+        "oauth"
+      ],
+      "conditionallyRequiredScopes": []
+    },
+    "logo": "/app/app-logo.png",
+    "name": "HubSpot AI Optimizer (MCP)",
+    "support": {
+      "supportEmail": "jack@physicaltherapybiz.com",
+      "supportPhone": "+18174703476"
+    },
+    "description": "User-level authentication context for HubSpot MCP Server integration.",
+    "isUserLevel": true,
+    "distribution": "MARKETPLACE",
+    "permittedUrls": {
+      "img": [],
+      "fetch": [],
+      "iframe": []
+    }
+  },
+  "uid": "hubspot-ai-optimizer-mcp",
+  "type": "app"
+}

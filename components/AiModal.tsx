@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Sparkles, ArrowRight, CheckCircle2, BrainCircuit } from 'lucide-react';
 import { generateOptimization } from '../services/aiService';
 import { AiResponse } from '../types';
@@ -88,8 +89,14 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ai-modal-title"
+      aria-describedby="ai-modal-description"
+    >
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
@@ -105,13 +112,13 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
                 <Sparkles className="w-5 h-5 text-indigo-600" />
             </div>
             <div>
-                <h3 className="font-semibold text-slate-900">AI Co-Pilot Optimizer</h3>
-                <p className="text-xs text-slate-500">
+                <h3 id="ai-modal-title" className="font-semibold text-slate-900">AI Co-Pilot Optimizer</h3>
+                <p id="ai-modal-description" className="text-xs text-slate-400">
                     Context: <span className="font-medium text-slate-700">{contextName || contextType}</span>
                 </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-400" aria-label="Close modal">
             <X size={20} />
           </button>
         </div>
@@ -135,13 +142,13 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
 
               {/* Context-aware suggestions */}
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Suggested Optimizations</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Suggested Optimizations</p>
                 <div className="flex flex-wrap gap-2">
                     {currentSuggestions.map((suggestion, idx) => (
                         <button
                             key={idx}
                             onClick={() => setPrompt(suggestion)}
-                            className="px-3 py-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 text-xs font-medium rounded-full border border-slate-200 hover:border-indigo-200 transition-colors text-left"
+                            className="px-3 py-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-700 text-xs font-medium rounded-full border border-slate-200 hover:border-indigo-200 transition-colors text-left"
                         >
                             {suggestion}
                         </button>
@@ -215,14 +222,14 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
             <button 
                 onClick={() => setResult(null)}
-                className="text-sm text-slate-500 hover:text-slate-800 font-medium"
+                className="text-sm text-slate-400 hover:text-slate-800 font-medium"
             >
                 Start Over
             </button>
             <div className="flex gap-3">
                 <button 
                     onClick={onClose}
-                    className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
                 >
                     Cancel
                 </button>
@@ -241,7 +248,8 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.getElementById('modal-root')!
   );
 };
 

@@ -3,7 +3,6 @@ import { X, Send, Sparkles, Bot, Terminal, CheckCircle2, Loader2, ChevronDown, C
 import { generateChatResponse } from '../services/aiService';
 import { ChatResponse } from '../types';
 import { hubSpotService } from '../services/hubspotService';
-import { getBreezeTools } from '../services/mockService'; // Using mock for now as Breeze tools aren't on public API yet
 
 interface Message {
   id: string;
@@ -57,7 +56,7 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
     setExpandedTools(prev => ({...prev, [msgId]: !prev[msgId]}));
   };
 
-  const executeToolCall = async (toolName: string): Promise<any> => {
+  const executeToolCall = async (toolName: string, toolArgs: any = {}): Promise<any> => {
     // Mapping tool names (from AI) to service functions
     switch (toolName) {
       case 'list_workflows':
@@ -80,10 +79,31 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
           avgReply: Math.round(seqs.reduce((acc, s) => acc + s.replyRate, 0) / (seqs.length || 1)) + '%'
         };
       case 'get_breeze_tools':
-        const tools = await getBreezeTools();
+        const tools = await hubSpotService.fetchBreezeTools();
         return {
           count: tools.length,
           names: tools.map(t => t.name)
+        };
+      case 'search_contacts':
+        const contacts = await hubSpotService.searchContacts(toolArgs.query || ''); 
+        return {
+          count: contacts.length,
+          results: contacts.map(c => ({ id: c.id, email: c.properties.email }))
+        };
+      case 'get_contact':
+        const contact = await hubSpotService.getContact(toolArgs.id || '1');
+        return contact;
+      case 'list_newest_contacts':
+        const newest = await hubSpotService.listNewestContacts();
+        return {
+          count: newest.length,
+          items: newest.map(n => ({ id: n.id, created: n.createdAt, email: n.properties.email }))
+        };
+      case 'search_companies':
+        const companies = await hubSpotService.searchCompanies(toolArgs.query || '');
+        return {
+          count: companies.length,
+          items: companies.map(c => ({ id: c.id, name: c.properties.name }))
         };
       default:
         return { error: "Unknown Tool" };
@@ -115,12 +135,9 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
       // 2. Handle Tool Calls (The Agent Loop Simulation)
       if (aiData.toolCalls && aiData.toolCalls.length > 0) {
         for (const tool of aiData.toolCalls) {
-            // Add a "Thinking/Executing" indicator (could be a separate message or state)
-            // For simplicity, we append a message that updates.
-            
             const toolMsgId = (Date.now() + 2).toString();
             try {
-                const result = await executeToolCall(tool.name);
+                const result = await executeToolCall(tool.name, tool.arguments);
                 
                 // Construct a Tool Result Message
                 const toolMessage: Message = {
@@ -176,7 +193,10 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
   if (!isOpen) {
     return (
       <button
+        id="ai-chat-trigger"
         onClick={() => setIsOpen(true)}
+        title="Open Co-Pilot Chat"
+        aria-label="Open AI Co-Pilot Chat"
         className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg shadow-indigo-900/30 flex items-center justify-center transition-all hover:scale-105 z-50 group"
       >
         <Sparkles size={24} className="group-hover:rotate-12 transition-transform" />
@@ -198,7 +218,10 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
           </div>
         </div>
         <button
+          id="close-chat-btn"
           onClick={() => setIsOpen(false)}
+          title="Close Chat"
+          aria-label="Close chat"
           className="p-1 hover:bg-indigo-500 rounded transition-colors"
         >
           <X size={18} />
@@ -235,7 +258,7 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
                             onClick={() => toggleToolDetails(msg.id)}
                         >
                             <div className="flex items-center gap-2">
-                                <Terminal size={12} className="text-slate-600" />
+                                <Terminal size={12} className="text-slate-400" />
                                 <span className="font-mono font-semibold text-slate-700">{msg.toolCallResult.toolName}</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -249,7 +272,7 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
                         </div>
                         
                         <div className="p-2 border-t border-slate-200 bg-white">
-                            <p className="text-slate-600 mb-1">{msg.toolCallResult.dataSummary}</p>
+                            <p className="text-slate-400 mb-1">{msg.toolCallResult.dataSummary}</p>
                             
                             {expandedTools[msg.id] && (
                                 <pre className="mt-2 bg-slate-900 text-emerald-300 p-2 rounded overflow-x-auto font-mono text-[10px]">
@@ -280,7 +303,9 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
           {suggestions.map((suggestion, idx) => (
             <button
               key={idx}
+              id={`chat-suggestion-${idx}`}
               onClick={() => handleSend(suggestion)}
+              aria-label={`Ask AI: ${suggestion}`}
               className="text-xs bg-white border border-indigo-100 text-indigo-600 px-3 py-1.5 rounded-full hover:bg-indigo-50 hover:border-indigo-200 transition-colors shadow-sm"
             >
               {suggestion}
@@ -293,16 +318,21 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
       <div className="p-4 bg-white border-t border-slate-100">
         <div className="flex gap-2">
           <input
+            id="chat-input-field"
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask to audit workflows, data, etc..."
+            aria-label="Ask the AI co-pilot"
             className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-slate-400"
           />
           <button
+            id="send-message-btn"
             onClick={() => handleSend(inputValue)}
             disabled={!inputValue.trim() || isTyping}
+            title="Send Message"
+            aria-label="Send message"
             className={`p-2 rounded-full ${
               !inputValue.trim() || isTyping
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'

@@ -1,0 +1,56 @@
+{
+  "type": "workflow-action",
+  "name": "Breeze Agent",
+  "label": "Breeze AI Strategist",
+  "description": "Powerful AI-driven audit that identifies gaps in CRM records and recommends optimizations.",
+  "archive": false,
+  "function": {
+    "file": "breeze-agent.js",
+    "function": "main"
+  },
+  "objectTypes": [
+    "CONTACT",
+    "DEAL",
+    "COMPANY"
+  ],
+  "inputFields": [
+    {
+      "typeDefinition": {
+        "name": "agentPrompt",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "label": "Agent Prompt"
+    },
+    {
+      "typeDefinition": {
+        "name": "urgency",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "label": "Urgency (low/medium/high)"
+    }
+  ],
+  "outputFields": [
+    {
+      "typeDefinition": {
+        "name": "recommendation",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "label": "Recommendation"
+    },
+    {
+      "typeDefinition": {
+        "name": "confidenceScore",
+        "type": "number",
+        "fieldType": "number"
+      },
+      "label": "Confidence Score"
+    }
+  ]
+}

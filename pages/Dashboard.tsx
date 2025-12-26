@@ -1,45 +1,117 @@
-
-import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
+import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot } from 'lucide-react';
+import { hubSpotService } from '../services/hubspotService';
 
 const Dashboard: React.FC = () => {
-  const healthData = [
-    { name: 'Workflows', score: 65, color: '#6366f1' }, // Indigo
-    { name: 'Sequences', score: 78, color: '#10b981' }, // Emerald
-    { name: 'Data Model', score: 45, color: '#f59e0b' }, // Amber
-    { name: 'Segments', score: 88, color: '#8b5cf6' }, // Violet
-  ];
+  const [isConnected, setIsConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState({
+    workflows: [] as any[],
+    sequences: [] as any[],
+    properties: [] as any[],
+  });
 
-  const StatCard = ({ title, value, sub, icon: Icon, colorClass, trend }: any) => {
-    // Extract base color name (e.g. "indigo") from colorClass "bg-indigo-600"
-    const baseColor = colorClass.split('-')[1]; 
+  useEffect(() => {
+    let isMounted = true;
     
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const validation = await hubSpotService.validateConnection();
+        if (!isMounted) return;
+
+        setIsConnected(validation.success);
+        
+        const isMcp = localStorage.getItem('hubspot_client_id') === '9d7c3c51-862a-4604-9668-cad9bf5aed93';
+
+        if (validation.success) {
+          const [wf, seq, prop] = await Promise.all([
+            hubSpotService.fetchWorkflows(),
+            hubSpotService.fetchSequences(),
+            hubSpotService.fetchProperties()
+          ]);
+          if (isMounted) {
+            setMetrics({ workflows: wf, sequences: seq, properties: prop });
+          }
+        } else {
+          if (isMounted) {
+            setMetrics({ workflows: [], sequences: [], properties: [] });
+          }
+        }
+      } catch (e) {
+        console.error("Dashboard fetch error:", e);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+    window.addEventListener('hubspot_connection_changed', loadData);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('hubspot_connection_changed', loadData);
+    };
+  }, []);
+
+  const activeWorkflows = metrics.workflows.filter((w: any) => w.enabled).length;
+  const criticalWorkflows = metrics.workflows.filter((w: any) => !w.enabled && w.enrolledCount > 0).length;
+  const redundantProps = metrics.properties.filter((p: any) => p.redundant).length;
+  
+  const healthData = React.useMemo(() => [
+    { 
+      name: 'Workflows', 
+      score: metrics.workflows.length > 0 
+        ? Math.round(metrics.workflows.reduce((acc: number, w: any) => acc + (w.aiScore || 0), 0) / metrics.workflows.length) 
+        : 0, 
+      color: '#818cf8' 
+    },
+    { 
+      name: 'Sequences', 
+      score: metrics.sequences.length > 0 
+        ? Math.round(metrics.sequences.reduce((acc: number, s: any) => acc + (s.aiScore || 0), 0) / metrics.sequences.length) 
+        : 0, 
+      color: '#34d399' 
+    },
+    { 
+      name: 'Data Architecture', 
+      score: metrics.properties.length > 0 
+        ? Math.max(0, 100 - Math.min(Math.round((redundantProps / metrics.properties.length) * 100), 100))
+        : 0, 
+      color: '#fbbf24' 
+    }
+  ], [metrics.workflows, metrics.sequences, metrics.properties, redundantProps]);
+
+  const overallScore = React.useMemo(() => 
+    healthData.length > 0 ? Math.round(healthData.reduce((acc: number, d: any) => acc + d.score, 0) / healthData.length) : 0
+  , [healthData]);
+
+  const StatCard = ({ title, value, sub, icon: Icon, colorClass, gradient }: any) => {
     return (
-      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-lg transition-all duration-300 relative overflow-hidden group">
-        <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${baseColor}-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500 ease-out`}></div>
+      <div className="glass-card p-8 group relative overflow-hidden transition-all duration-300 hover:-translate-y-1">
+        <div className={`absolute -right-6 -top-6 w-32 h-32 ${gradient} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity`}></div>
         
         <div className="relative z-10">
-          <div className="flex justify-between items-start mb-4">
-             <div className={`p-3 rounded-xl bg-${baseColor}-50 text-${baseColor}-600`}>
-               <Icon size={24} />
+          <div className="flex justify-between items-center mb-6">
+             <div className={`p-4 rounded-2xl bg-white/5 border border-white/10 text-white shadow-xl`}>
+               <Icon size={28} />
              </div>
-             {trend && (
-               <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full text-xs font-semibold">
-                 <TrendingUp size={12} />
-                 <span>+4%</span>
-               </div>
-             )}
+             <div className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em]">Real-time</div>
           </div>
           
-          <div>
-            <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{value}</h3>
-            <p className="text-sm font-medium text-slate-500 mt-1">{title}</p>
+          <div className="space-y-1">
+            <span className="text-4xl font-extrabold text-white tracking-tighter">{loading ? '...' : value}</span>
+            <h2 className="text-sm font-bold text-slate-400 mt-2 uppercase tracking-wider">{title}</h2>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${colorClass}`}></div>
-            <p className="text-xs text-slate-400 font-medium">{sub}</p>
+          <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <div className={`w-1.5 h-1.5 rounded-full ${colorClass}`}></div>
+                <p className="text-xs text-slate-400 font-bold">{sub}</p>
+            </div>
+            <ArrowUpRight size={14} className="text-slate-400 group-hover:text-white transition-colors" />
           </div>
         </div>
       </div>
@@ -47,130 +119,238 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Portal Overview</h1>
-          <p className="text-slate-500 mt-2 text-lg">Real-time optimization analysis of your HubSpot instance.</p>
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Premium Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-indigo-500 animate-pulse' : 'bg-slate-500'}`}></div>
+            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em]">Strategic Analysis Engine</span>
+          </div>
+          <div className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+            Portal <span className="gradient-text">Intelligence.</span>
+          </div>
+          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+            Real-time heuristic analysis of your HubSpot environment. identifying critical bottlenecks, redundant architecture, and automated scaling opportunities.
+          </p>
         </div>
-        <div className="bg-white border border-slate-200 shadow-sm px-4 py-2 rounded-full flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-sm font-semibold text-slate-700">System Operational</span>
+        
+        <div className="flex items-center gap-4">
+            <div className={`px-5 py-3 glass-card flex items-center gap-3 ${
+              localStorage.getItem('hubspot_client_id') === '9d7c3c51-862a-4604-9668-cad9bf5aed93' 
+                ? 'border-indigo-500/50 bg-indigo-500/10' 
+                : 'border-emerald-500/20'
+            }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  isConnected 
+                    ? (localStorage.getItem('hubspot_client_id') === '9d7c3c51-862a-4604-9668-cad9bf5aed93' ? 'bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]')
+                    : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
+                }`}></div>
+                <span className="text-xs font-bold text-white uppercase tracking-widest whitespace-nowrap">
+                  {isConnected 
+                    ? (localStorage.getItem('hubspot_client_id') === '9d7c3c51-862a-4604-9668-cad9bf5aed93' ? 'MCP Bridge Active' : 'Heuristics Active') 
+                    : 'Offline Mode'}
+                </span>
+            </div>
+            <button 
+              id="generate-audit-btn"
+              className="glass-button px-6 py-3 text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all" 
+              title="Generate Audit"
+              aria-label="Generate deep audit"
+              onClick={() => {
+                console.log("🧩 Dashboard: Deep audit requested.");
+                hubSpotService.validateConnection().then(v => {
+                  if (v.success) window.dispatchEvent(new Event('hubspot_connection_changed'));
+                });
+              }}
+            >
+                <Sparkles size={16} className="text-indigo-400" />
+                Generate Deep Audit
+            </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Main Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          title="Overall Health Score" 
-          value="72" 
-          sub="Top 15% of portals" 
-          icon={Activity} 
-          colorClass="bg-indigo-600" 
-          trend="up"
+          title="Consolidated Health" 
+          value={isConnected && !loading ? `${overallScore}%` : "0%"} 
+          sub={isConnected && !loading ? (overallScore > 0 ? "Analyzed" : "Pending Audit") : "Unauthorized"} 
+          icon={Cpu} 
+          colorClass="bg-indigo-400" 
+          gradient="bg-indigo-500"
         />
         <StatCard 
-          title="Active Workflows" 
-          value="42" 
-          sub="3 critical bottlenecks" 
+          title="Active Automations" 
+          value={isConnected && !loading ? activeWorkflows : "0"} 
+          sub={isConnected && !loading ? `${criticalWorkflows} Stall Alerts` : "Limited Access"} 
           icon={Zap} 
-          colorClass="bg-amber-500" 
+          colorClass="bg-emerald-400" 
+          gradient="bg-emerald-500"
         />
         <StatCard 
-          title="Active Sequences" 
-          value="13" 
-          sub="12.4% avg reply rate" 
-          icon={CheckCircle} 
-          colorClass="bg-emerald-500" 
-          trend="up"
+          title="Market Sequences" 
+          value={isConnected && !loading ? metrics.sequences.length : "0"} 
+          sub={isConnected && !loading ? "Live Vol Track" : "Inactive"} 
+          icon={Target} 
+          colorClass="bg-pink-400" 
+          gradient="bg-pink-500"
         />
         <StatCard 
-          title="Pending Issues" 
-          value="7" 
-          sub="Requires attention" 
-          icon={AlertTriangle} 
-          colorClass="bg-rose-500" 
+          title="Architectural Risks" 
+          value={isConnected && !loading ? (criticalWorkflows + redundantProps) : "0"} 
+          sub="Critical Exposure" 
+          icon={ShieldAlert} 
+          colorClass="bg-rose-400" 
+          gradient="bg-rose-500"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Chart Section */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-          <div className="mb-8 flex justify-between items-center">
+        {/* Deep Breakdown */}
+        <div className="lg:col-span-2 glass-card p-10 flex flex-col space-y-10">
+          <div className="flex justify-between items-start">
              <div>
-                <h3 className="text-lg font-bold text-slate-900">Health Breakdown</h3>
-                <p className="text-sm text-slate-500">Optimization scores by category</p>
+                <h2 className="text-2xl font-bold text-white">Heuristic Score Breakdown</h2>
+                <p className="text-slate-400 mt-2 font-medium">Categorized performance metrics against industry benchmarks.</p>
              </div>
-             <button className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-600">
-               <MoreHorizontal size={20} />
-             </button>
+             <div className="flex items-center gap-2 glass-card border-white/5 px-4 py-2">
+                <ShieldCheck size={16} className="text-emerald-400" />
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Secure Data</span>
+             </div>
           </div>
-          <div className="flex-1 min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={healthData} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                <XAxis type="number" domain={[0, 100]} hide />
-                <YAxis 
-                    dataKey="name" 
-                    type="category" 
-                    width={100} 
-                    tick={{ fontSize: 13, fill: '#64748b', fontWeight: 500 }} 
-                    axisLine={false} 
-                    tickLine={false} 
-                />
-                <Tooltip 
-                    cursor={{fill: '#f8fafc'}}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar dataKey="score" radius={[0, 6, 6, 0]} barSize={32}>
-                  {healthData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
+
+          <div className="flex-1 min-h-[350px] w-full">
+            <ResponsiveContainer width="100%" height={350}>
+              {!isConnected || loading || overallScore === 0 ? (
+                <div className="h-full w-full flex items-center justify-center border border-dashed border-white/10 rounded-3xl text-slate-400 font-bold uppercase tracking-widest text-xs">
+                    Insufficient Data for Visualization
+                </div>
+              ) : (
+                <BarChart data={healthData} layout="vertical" margin={{ left: 0, right: 40, top: 0, bottom: 0 }}>
+                  <XAxis type="number" domain={[0, 100]} hide />
+                  <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      width={150} 
+                      tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 700 }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                  />
+                  <Tooltip 
+                      cursor={{fill: 'rgba(255,255,255,0.03)'}}
+                      contentStyle={{ 
+                          backgroundColor: '#1e293b', 
+                          borderRadius: '16px', 
+                          border: '1px solid rgba(255,255,255,0.1)', 
+                          boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.3)',
+                          padding: '12px'
+                      }}
+                      itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                  />
+                  <Bar 
+                    dataKey="score" 
+                    radius={[0, 12, 12, 0]} 
+                    barSize={40}
+                    isAnimationActive={false}
+                  >
+                    {healthData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              )}
             </ResponsiveContainer>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t border-white/5">
+                <div>
+                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em] mb-2">Automation Health</p>
+                    <p className="text-xl font-bold text-white">{isConnected ? (overallScore > 0 ? "Scanning" : "Pending") : "No Connection"}</p>
+                </div>
+                <div>
+                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em] mb-2">Schema Stability</p>
+                    <p className="text-xl font-bold text-white">{isConnected ? (redundantProps > 5 ? "Critical" : "Stable") : "No Connection"}</p>
+                </div>
+                <div>
+                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em] mb-2">Lead Momentum</p>
+                    <p className="text-xl font-bold text-indigo-400">{isConnected ? "Live Stream" : "N/A"}</p>
+                </div>
           </div>
         </div>
 
-        {/* Action List */}
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="mb-6 flex justify-between items-center">
-             <div>
-                <h3 className="text-lg font-bold text-slate-900">Priority Actions</h3>
-                <p className="text-sm text-slate-500">Suggested optimizations</p>
-             </div>
+        {/* Intelligence Actions */}
+        <div className="glass-card p-10 space-y-8 min-h-[500px]">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">Intelligence Tasks</h2>
+            <p className="text-slate-400 text-sm font-medium">AI-prioritized architectural improvements.</p>
           </div>
           
-          <div className="space-y-3">
-            {[
-              { label: 'Optimize "Abandoned Cart" Flow', impact: 'High', type: 'Auto', time: '5m' },
-              { label: 'Merge "Niche" properties', impact: 'Med', type: 'Data', time: '10m' },
-              { label: 'Update "Cold Outreach" Copy', impact: 'Med', type: 'Sales', time: '2m' },
-              { label: 'Fix broken branch in "Webinar"', impact: 'Crit', type: 'Auto', time: '1m' },
-            ].map((item, i) => (
-              <div key={i} className="group flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/50 transition-all cursor-pointer">
-                <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm
-                        ${item.type === 'Auto' ? 'bg-indigo-100 text-indigo-700' : 
-                          item.type === 'Data' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {item.type.charAt(0)}
-                    </div>
-                    <div>
-                        <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-900 block">{item.label}</span>
-                        <span className="text-xs text-slate-400 group-hover:text-indigo-400">{item.time} est.</span>
-                    </div>
+          <div className="space-y-4">
+            {isConnected && !loading ? (
+              [
+                { label: `Fix ${criticalWorkflows} broken workflows`, impact: 'Critical', type: 'Architecture', color: 'text-indigo-400' },
+                { label: `Refactor ${redundantProps} legacy properties`, impact: 'High', type: 'Database', color: 'text-amber-400' },
+                { label: 'Optimize sequence outreach', impact: 'Medium', type: 'Sales', color: 'text-emerald-400' },
+                { label: 'Scan for ghost list segments', impact: 'Medium', type: 'Cleanup', color: 'text-rose-400' },
+              ].map((item, i) => (
+                <div key={i} className="group flex items-center justify-between p-5 rounded-3xl border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all cursor-pointer">
+                  <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm bg-slate-800 border border-white/5 ${item.color}`}>
+                          {item.type.charAt(0)}
+                      </div>
+                      <div>
+                          <span className="text-sm font-bold text-white group-hover:text-indigo-400 block transition-colors">{item.label}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">{item.type}</span>
+                              <div className="w-1 h-1 rounded-full bg-slate-700"></div>
+                              <span className={`text-[10px] font-extrabold uppercase tracking-widest ${item.impact === 'Critical' ? 'text-rose-500' : 'text-slate-400'}`}>
+                                  {item.impact}
+                              </span>
+                          </div>
+                      </div>
+                  </div>
+                  <ArrowUpRight size={18} className="text-slate-700 group-hover:text-white transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
                 </div>
-                <div>
-                   <ArrowUpRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
+              ))
+            ) : (
+                <div className="p-10 text-center border border-dashed border-white/5 rounded-3xl text-slate-400 font-bold uppercase tracking-widest text-[10px] italic">
+                    Requires Secure Connection to Populate Task Queue
                 </div>
-              </div>
-            ))}
+            )}
           </div>
           
-          <button className="w-full mt-6 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
-            View All Recommendations
+          <button className="w-full py-5 rounded-3xl premium-gradient text-white text-sm font-bold shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all" title="Optimizer">
+            Launch Heuristic Optimizer
           </button>
         </div>
       </div>
+
+      {/* Connection Prompt for Demo Users */}
+      {!isConnected && !loading && (
+        <div className="glass-card p-10 border-indigo-500/20 bg-indigo-500/5 relative overflow-hidden">
+          <div className="absolute top-1/2 -translate-y-1/2 right-0 p-10 opacity-20 hidden lg:block">
+             <img src="/logo.png" alt="Brand Logo" className="w-80 h-80 object-contain" />
+          </div>
+          <div className="relative z-10 max-w-2xl space-y-6">
+            <h3 className="text-3xl font-bold text-white">Link your production environment.</h3>
+            <p className="text-slate-400 text-lg font-medium leading-relaxed">
+              Unlock real-time sequence debugging, workflow logic optimization, and CRM property consolidating by linking your HubSpot Pro/Enterprise portal.
+            </p>
+            <div className="flex flex-wrap gap-4 pt-4">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                    <ShieldCheck size={18} className="text-emerald-400" />
+                    Secure PKCE Auth
+                </div>
+                <div className={`w-1 h-1 rounded-full bg-slate-700 self-center`}></div>
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                    <Activity size={18} className="text-indigo-400" />
+                    Strategic Insights
+                </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
