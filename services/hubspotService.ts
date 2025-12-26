@@ -217,7 +217,9 @@ export class HubSpotService {
       }
       
       const data = await response.json();
+      console.log("🧩 Workflows Raw:", data);
       const workflows = data.results || data.objects || [];
+      console.log("🧩 Workflows Count:", workflows.length);
 
       return workflows.map((wf: any) => {
         // Heuristic scoring: Active workflows with enrolled contacts score higher.
