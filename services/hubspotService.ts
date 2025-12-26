@@ -186,8 +186,8 @@ export class HubSpotService {
       const token = this.getToken();
       if (!token) return null;
       
-      // Get token info which includes user ID
-      const response = await fetch(`https://api.hubapi.com/oauth/v1/access-tokens/${token}`);
+      // Get token info which includes user ID - route through our proxy
+      const response = await this.request(`/oauth/v1/access-tokens/${token}`);
       if (!response.ok) return null;
       
       const data = await response.json();
