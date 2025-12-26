@@ -219,7 +219,7 @@ export class HubSpotService {
       
       const data = await response.json();
       console.log("🧩 Workflows Raw:", data);
-      const workflows = data.results || data.objects || [];
+      const workflows = data.workflows || data.results || data.objects || [];
       console.log("🧩 Workflows Count:", workflows.length);
 
       return workflows.map((wf: any) => {
@@ -252,15 +252,16 @@ export class HubSpotService {
       const response = await this.request('/automation/v4/sequences');
       
       if (!response.ok) {
-        if (response.status === 404 || response.status === 403) {
-             console.warn(`Sequences API not available (Status ${response.status}) - likely missing Sales Hub Pro`);
+        if (response.status === 404 || response.status === 403 || response.status === 400) {
+             console.warn(`Sequences API not available (Status ${response.status}) - likely missing Sales Hub Pro or scope`);
              return [];
         }
         throw new Error(`Sequence sequence-link failed: ${response.status}`);
       }
 
       const data = await response.json();
-      const sequences = Array.isArray(data) ? data : (data.results || data.objects || []);
+      console.log("🧩 Sequences Raw:", data);
+      const sequences = Array.isArray(data) ? data : (data.sequences || data.results || data.objects || []);
 
       return sequences.map((seq: any) => {
         const replyRate = seq.stats?.reply_rate || 0;
