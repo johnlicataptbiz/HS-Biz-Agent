@@ -243,7 +243,7 @@ export class HubSpotService {
   public async fetchSequences(): Promise<Sequence[]> {
     try {
       // Validated HubSpot API endpoint for sequences (v1 is legacy, v4 is current but strict)
-      const response = await this.request('/automation/v1/sequences/page');
+      const response = await this.request('/automation/v1/sequences/page?limit=50');
       
       if (!response.ok) {
         throw new Error(`Sequence sequence-link failed: ${response.status}`);
