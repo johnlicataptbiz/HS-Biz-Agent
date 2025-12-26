@@ -1,14 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/hubspot/token",
-      "destination": "https://api.hubapi.com/oauth/v1/token"
-    },
-    {
-      "source": "/api/hubspot/:path*",
-      "destination": "https://api.hubapi.com/:path*"
-    },
-    {
       "source": "/((?!api/.*).*)",
       "destination": "/index.html"
     }
