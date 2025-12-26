@@ -18,6 +18,7 @@
         "crm.lists.read",
         "automation",
         "automation.sequences.read",
+        "content",
         "oauth"
       ],
       "conditionallyRequiredScopes": []

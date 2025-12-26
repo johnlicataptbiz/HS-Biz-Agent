@@ -73,6 +73,7 @@ export class HubSpotService {
           'crm.lists.read',
           'automation',
           'automation.sequences.read',
+          'content',
           'oauth'
         ];
 
