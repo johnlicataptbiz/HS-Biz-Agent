@@ -4,6 +4,8 @@ import Dashboard from './pages/Dashboard';
 
 const Workflows = lazy(() => import('./pages/Workflows'));
 const Sequences = lazy(() => import('./pages/Sequences'));
+const Campaigns = lazy(() => import('./pages/Campaigns'));
+const Contacts = lazy(() => import('./pages/Contacts'));
 const DataModel = lazy(() => import('./pages/DataModel'));
 const BreezeTools = lazy(() => import('./pages/BreezeTools'));
 const CoPilot = lazy(() => import('./pages/CoPilot'));
@@ -111,9 +113,11 @@ const App: React.FC = () => {
       case 'copilot': return <CoPilot />;
       case 'workflows': return <Workflows />;
       case 'sequences': return <Sequences />;
+      case 'campaigns': return <Campaigns />;
+      case 'contacts': return <Contacts />;
       case 'datamodel': return <DataModel />;
       case 'breezetools': return <BreezeTools />;
-      default: return <Dashboard />;
+      default: return <Dashboard onNavigate={setActiveTab} />;
     }
   };
 
