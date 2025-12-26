@@ -1,7 +1,10 @@
 export default async function handler(req, res) {
-  // Get the path after /api/hubspot/
+  // Get the path from query parameter
   const { path } = req.query;
-  const apiPath = Array.isArray(path) ? path.join('/') : path;
+  
+  if (!path) {
+    return res.status(400).json({ error: 'Missing path parameter' });
+  }
   
   // Get the authorization header from the request
   const authHeader = req.headers.authorization;
@@ -10,18 +13,25 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Missing Authorization header' });
   }
 
-  const hubspotUrl = `https://api.hubapi.com/${apiPath}`;
+  // Construct the full HubSpot URL
+  const hubspotUrl = `https://api.hubapi.com/${path}`;
+  
+  console.log('Proxying to:', hubspotUrl);
   
   try {
-    const response = await fetch(hubspotUrl, {
+    const fetchOptions = {
       method: req.method,
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
-      body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
-    });
-
+    };
+    
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      fetchOptions.body = JSON.stringify(req.body);
+    }
+    
+    const response = await fetch(hubspotUrl, fetchOptions);
     const data = await response.json();
     
     // Forward the status code from HubSpot
