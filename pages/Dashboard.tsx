@@ -10,6 +10,9 @@ const Dashboard: React.FC = () => {
     workflows: [] as any[],
     sequences: [] as any[],
     properties: [] as any[],
+    segments: [] as any[],
+    campaigns: [] as any[],
+  });
   });
 
   useEffect(() => {
@@ -26,17 +29,19 @@ const Dashboard: React.FC = () => {
         const isMcp = localStorage.getItem('hubspot_client_id') === '9d7c3c51-862a-4604-9668-cad9bf5aed93';
 
         if (validation.success) {
-          const [wf, seq, prop] = await Promise.all([
+          const [wf, seq, prop, seg, camp] = await Promise.all([
             hubSpotService.fetchWorkflows(),
             hubSpotService.fetchSequences(),
-            hubSpotService.fetchProperties()
+            hubSpotService.fetchProperties(),
+            hubSpotService.fetchSegments(),
+            hubSpotService.fetchCampaigns()
           ]);
           if (isMounted) {
-            setMetrics({ workflows: wf, sequences: seq, properties: prop });
+            setMetrics({ workflows: wf, sequences: seq, properties: prop, segments: seg, campaigns: camp });
           }
         } else {
           if (isMounted) {
-            setMetrics({ workflows: [], sequences: [], properties: [] });
+            setMetrics({ workflows: [], sequences: [], properties: [], segments: [], campaigns: [] });
           }
         }
       } catch (e) {
@@ -76,13 +81,19 @@ const Dashboard: React.FC = () => {
       color: '#34d399' 
     },
     { 
-      name: 'Data Architecture', 
       score: metrics.properties.length > 0 
         ? Math.max(0, 100 - Math.min(Math.round((redundantProps / metrics.properties.length) * 100), 100))
         : 0, 
       color: '#fbbf24' 
+    },
+    {
+      name: 'Organization',
+      score: metrics.segments.length > 0
+        ? Math.round(metrics.segments.reduce((acc: number, s: any) => acc + (s.aiScore || 0), 0) / metrics.segments.length)
+        : 0,
+      color: '#c084fc'
     }
-  ], [metrics.workflows, metrics.sequences, metrics.properties, redundantProps]);
+  ], [metrics.workflows, metrics.sequences, metrics.properties, metrics.segments, redundantProps]);
 
   const overallScore = React.useMemo(() => 
     healthData.length > 0 ? Math.round(healthData.reduce((acc: number, d: any) => acc + d.score, 0) / healthData.length) : 0
@@ -196,11 +207,10 @@ const Dashboard: React.FC = () => {
           colorClass="bg-pink-400" 
           gradient="bg-pink-500"
         />
-        <StatCard 
-          title="Architectural Risks" 
-          value={isConnected && !loading ? (criticalWorkflows + redundantProps) : "0"} 
-          sub="Critical Exposure" 
-          icon={ShieldAlert} 
+          title="Campaign Focus" 
+          value={isConnected && !loading ? metrics.campaigns.length : "0"} 
+          sub={isConnected && !loading ? `${metrics.segments.length} Lists Active` : "No Data"}
+          icon={Target} 
           colorClass="bg-rose-400" 
           gradient="bg-rose-500"
         />
