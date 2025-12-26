@@ -245,8 +245,8 @@ export class HubSpotService {
 
   public async fetchSequences(): Promise<Sequence[]> {
     try {
-      // Validated HubSpot API endpoint for sequences (v1 is legacy, v4 is current but strict)
-      const response = await this.request('/automation/v1/sequences/page?limit=50');
+      // Using V4 API as requested (https://developers.hubspot.com/docs/api-reference/automation-sequences-v4/guide)
+      const response = await this.request('/automation/v4/sequences');
       
       if (!response.ok) {
         if (response.status === 404 || response.status === 403) {
