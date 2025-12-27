@@ -142,118 +142,90 @@ const OPTIMIZE_SCHEMA = {
 };
 
 export default async function handler(req, res) {
-  try {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const body = req.body;
     const { mode, prompt, hubspotToken, contextType } = body || {};
     
-    console.log(`🧠 AI Agentic Request [${MODEL_NAME}]: ${mode}`);
-    
-    if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
-
-    // Hardcoded Pro Key as requested by user
-    const apiKey = "AIzaSyDfofU97_DajcmqjpsF3gZnGKS-0gSRe-A";
-    if (!apiKey) return res.status(503).json({ error: 'Missing AI Key' });
-    
-    const genAI = new GoogleGenerativeAI(apiKey);
-
-    // Define Advanced Tool Logic
-    const advancedHubspotTools = {
-      portal_health_audit: async (token) => {
-          // Run parallel checks for efficiency
-          const [wfs, seqs, contacts] = await Promise.all([
-              hubspotTools.list_workflows(token),
-              hubspotTools.list_sequences(token),
-              hubspotTools.list_newest_contacts(token)
-          ]);
-          return {
-              workflows_summary: `Found ${wfs.workflows?.length || 0} active workflows (limited to top 20).`,
-              sequences_summary: `Found ${seqs.sequences?.length || 0} templates.`,
-              contact_status: `Latest contact created at: ${contacts.results?.[0]?.createdAt || 'N/A'}`
-          };
-      },
-      ...hubspotTools
-    };
-
-    const ADVANCED_MCP_CONFIG = [
-      {
-          functionDeclarations: [
-              ...MCP_TOOLS_CONFIG[0].functionDeclarations,
-              {
-                  name: "portal_health_audit",
-                  description: "Perform a comprehensive strategic audit of the entire HubSpot portal including workflows and sequences.",
-                  parameters: { type: SchemaType.OBJECT, properties: {} }
-              }
-          ]
-      }
-    ];
-
-    const AGENT_SYSTEM_INSTRUCTION = `
-${systemInstruction}
-
-**MODE**: Full Strategic Agent Intelligence.
-1. Use 'portal_health_audit' for all health queries.
-2. Deliver high-impact strategic insights backed by portal metrics.
-3. Formulate 'spec.apiCalls' for all proposed architectural changes.
-`;
-
-    // Helper for Quota Resilience
-    const safeGenerate = async (modelConfig, inputBody, retryCount = 0) => {
-      try {
-          const model = genAI.getGenerativeModel({
-              model: MODEL_NAME,
-              ...modelConfig,
-              generationConfig: { ...GENERATION_CONFIG, ...modelConfig.generationConfig }
-          });
-          return await model.generateContent(inputBody);
-      } catch (err) {
-          const errStr = String(err).toLowerCase();
-          const isQuota = errStr.includes('429') || errStr.includes('quota');
-          
-          if (isQuota && retryCount < 8) {
-              const delay = 2000 * Math.pow(1.5, retryCount);
-              console.warn(`⚠️ [BACKEND] Quota hit, retry in ${delay}ms...`);
-              await new Promise(r => setTimeout(r, delay));
-              return safeGenerate(modelConfig, inputBody, retryCount + 1);
-          }
-          throw err;
-      }
-    };
-
-    // --- OPTIMIZE/AUDIT MODE ---
-    if (mode === 'optimize' || mode === 'audit') {
-        const optimizePrompt = `${prompt}\n\nReturn output as JSON adhering to constraints.`;
-        const result = await safeGenerate({
-            systemInstruction: AGENT_SYSTEM_INSTRUCTION,
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: OPTIMIZE_SCHEMA
-            }
-        }, { contents: [{ role: 'user', parts: [{ text: optimizePrompt }]}] });
-
-        return res.status(200).json(JSON.parse(result.response.text()));
+    if (!prompt) {
+      return res.status(400).json({ error: 'Missing prompt in request body' });
     }
 
-    // --- CHAT MODE ---
-    const chatModel = genAI.getGenerativeModel({ 
-        model: MODEL_NAME,
-        tools: ADVANCED_MCP_CONFIG,
-        systemInstruction: AGENT_SYSTEM_INSTRUCTION + "\n\nALWAYS return JSON matching Chat Schema.",
-        generationConfig: {
-            ...GENERATION_CONFIG,
-            responseMimeType: "application/json",
-            responseSchema: CHAT_SCHEMA
+    // Hardcoded Pro Key
+    const apiKey = "AIzaSyDfofU97_DajcmqjpsF3gZnGKS-0gSRe-A";
+    const genAI = new GoogleGenerativeAI(apiKey);
+
+    console.log(`🧠 AI [${MODEL_NAME}]: ${mode} - Context: ${contextType}`);
+
+    // Helper for Quota/Error resilience
+    const safeGenerate = async (genOptions, input) => {
+      let lastErr;
+      for (let i = 0; i < 5; i++) {
+        try {
+          const model = genAI.getGenerativeModel(genOptions);
+          return await model.generateContent(input);
+        } catch (err) {
+          lastErr = err;
+          const errStr = String(err).toLowerCase();
+          if (errStr.includes('429') || errStr.includes('quota')) {
+            const delay = 2000 * Math.pow(1.5, i);
+            console.warn(`⚠️ Quota hit, retry ${i+1} in ${delay}ms...`);
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+          throw err;
         }
+      }
+      throw lastErr;
+    };
+
+    if (mode === 'optimize' || mode === 'audit') {
+      const result = await safeGenerate({
+        model: MODEL_NAME,
+        systemInstruction: AGENT_SYSTEM_INSTRUCTION,
+        generationConfig: {
+          ...GENERATION_CONFIG,
+          responseMimeType: "application/json",
+          responseSchema: OPTIMIZE_SCHEMA
+        }
+      }, prompt);
+
+      const text = result.response.text();
+      return res.status(200).json(JSON.parse(text));
+    }
+
+    // Default Chat Mode
+    const chatModel = genAI.getGenerativeModel({ 
+      model: MODEL_NAME,
+      systemInstruction: AGENT_SYSTEM_INSTRUCTION,
+      generationConfig: {
+        ...GENERATION_CONFIG,
+        responseMimeType: "application/json",
+        responseSchema: CHAT_SCHEMA
+      }
     });
 
-    const chat = chatModel.startChat();
-    const chatResult = await chat.sendMessage(prompt);
-    
-    return res.status(200).json(JSON.parse(chatResult.response.text()));
+    const result = await chatModel.generateContent(prompt);
+    return res.status(200).json(JSON.parse(result.response.text()));
 
   } catch (error) {
-    console.error("AI API ERROR:", error);
-    return res.status(500).json({ error: error.message, stack: error.stack });
+    console.error("❌ CRITICAL API ERROR:", error);
+    return res.status(500).json({ 
+      error: "AI Generation Failed", 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 }

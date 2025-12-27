@@ -355,24 +355,23 @@ export class HubSpotService {
 
   public async fetchSequences(): Promise<Sequence[]> {
     try {
-      console.log('🧩 Fetching all sequences for portal audit...');
+      console.log('🧩 Fetching detailed sequences (V2)...');
       
-      // Try V4 broad fetch first - requesting common properties
-      let response = await this.request('/automation/v4/sequences?limit=100&properties=name,active,stepCount,replyRate,openRate,state');
+      // Try V2 first - it often returns full stats and steps in the list view
+      let response = await this.request('/automation/v2/sequences?limit=100');
       
-      // If V4 broad fails, try V3
+      // Fallback to V4 user-specific if V2 fails (V2 is often restricted in some portals)
       if (!response.ok) {
-        console.log('🧩 V4 broad fetch failed, trying V3...');
-        response = await this.request('/automation/v3/sequences?limit=100');
-      }
-
-      // Final fallback: try user-specific if still failing
-      if (!response.ok) {
+        console.log('🧩 V2 fetch restricted, trying user-specific V4...');
         const userId = await this.getCurrentUserId();
         if (userId) {
-          console.log('🧩 Trying user-specific V4 sequences for:', userId);
-          response = await this.request(`/automation/v4/sequences?userId=${userId}&properties=name,active,stepCount,replyRate,openRate,state`);
+          response = await this.request(`/automation/v4/sequences?userId=${userId}`);
         }
+      }
+      
+      // Last ditch: V4 general (might be restricted/minimal)
+      if (!response.ok) {
+        response = await this.request('/automation/v4/sequences?limit=100');
       }
       
       if (!response.ok) {
