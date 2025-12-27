@@ -176,23 +176,23 @@ export default async function handler(req, res) {
 
     const AGENT_SYSTEM_INSTRUCTION = `${systemInstruction}\n\n**MODE**: Full Strategic Agent Intelligence.\n1. Deliver high-impact strategic insights.\n2. Formulate 'spec.apiCalls' for architectural changes.`;
 
-    // Helper for Quota/Error resilience
+    // Helper for Quota/Error resilience - Strictly for Vercel 10s limit
     const safeGenerate = async (genOptions, input) => {
       let lastErr;
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 2; i++) {
         try {
           const model = genAI.getGenerativeModel(genOptions);
+          // Set a timeout for the actual fetch if possible, though SDK handles it
           const result = await model.generateContent(input);
           return result;
         } catch (err) {
           lastErr = err;
-          const errStr = String(err).toLowerCase();
           console.error(`⚠️ AI Attempt ${i+1} failed:`, err.message);
-          if (errStr.includes('429') || errStr.includes('quota')) {
-            const delay = 3500 * Math.pow(2, i); // Aggressive backoff for free quota
-            console.warn(`🕒 Retrying in ${Math.round(delay/1000)}s...`);
-            await new Promise(r => setTimeout(r, delay));
-            continue;
+          if (err.message?.includes('429') || err.message?.toLowerCase().includes('quota')) {
+            if (i === 0) {
+              await new Promise(r => setTimeout(r, 1000));
+              continue;
+            }
           }
           throw err;
         }
