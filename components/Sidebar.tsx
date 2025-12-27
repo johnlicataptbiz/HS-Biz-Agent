@@ -22,57 +22,88 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
     return () => window.removeEventListener('hubspot_connection_changed', checkAuth);
   }, []);
 
-  const navItems = [
-    { id: 'dashboard', label: 'Overview', icon: DashboardIcon },
-    { id: 'reports', label: 'Reports', icon: ReportsIcon },
-    { id: 'copilot', label: 'Co-Pilot', icon: CopilotIcon },
-    { id: 'workflows', label: 'Workflows', icon: WorkflowsIcon },
-    { id: 'sequences', label: 'Sequences', icon: SequencesIcon },
-    { id: 'campaigns', label: 'Campaigns', icon: CampaignsIcon },
-    { id: 'journey', label: 'Journey Map', icon: GitForkIcon },
-    { id: 'contacts', label: 'Lists & Contacts', icon: ContactsIcon },
-    { id: 'datamodel', label: 'Data Model', icon: DataIcon },
-    { id: 'breezetools', label: 'Breeze Tools', icon: ToolsIcon },
+  const navGroups = [
+    {
+      title: 'Intelligence',
+      items: [
+        { id: 'dashboard', label: 'Overview', icon: DashboardIcon },
+        { id: 'contacts', label: 'Database Brain', icon: ContactsIcon },
+        { id: 'reports', label: 'Health Reports', icon: ReportsIcon },
+      ]
+    },
+    {
+      title: 'Strategy',
+      items: [
+        { id: 'copilot', label: 'AI Strategist', icon: CopilotIcon },
+        { id: 'journey', label: 'Journey Map', icon: GitForkIcon },
+        { id: 'campaigns', label: 'Campaigns', icon: CampaignsIcon },
+      ]
+    },
+    {
+      title: 'Operation',
+      items: [
+        { id: 'workflows', label: 'Workflows', icon: WorkflowsIcon },
+        { id: 'sequences', label: 'Sequences', icon: SequencesIcon },
+        { id: 'breezetools', label: 'Advanced Tools', icon: ToolsIcon },
+      ]
+    }
   ];
 
   return (
     <div id="sidebar-container" className="w-72 bg-[#0a0f1d] text-white flex flex-col h-screen fixed left-0 top-0 border-r border-white/5 z-50 shadow-2xl">
       <div className="p-8 pb-4">
-        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => onTabChange('dashboard')}>
+        <div className="flex items-center gap-4 group cursor-pointer" onClick={() => onTabChange('dashboard')}>
           <div className="relative">
-            <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full group-hover:bg-indigo-500/40 transition-all duration-500"></div>
-            <img src="/logo.png" alt="AI Optimizer" className="w-12 h-12 object-contain relative z-10 transition-transform duration-500 group-hover:scale-110" />
-          </div>
-          <div className="relative z-10">
-            <span className="font-extrabold text-xl tracking-tighter block leading-none gradient-text uppercase italic">AI Optimizer</span>
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-1.5 block">Premium Heuristics</span>
+            <div className="absolute inset-0 bg-indigo-500/10 blur-2xl rounded-full group-hover:bg-indigo-500/20 transition-all duration-500"></div>
+            <svg width="240" height="52" viewBox="0 0 240 52" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10 transition-transform duration-500 group-hover:scale-105">
+              {/* Outer Square */}
+              <rect x="2" y="4" width="44" height="44" rx="8" stroke="white" strokeWidth="2" />
+              {/* Inner Square/Diamond container */}
+              <rect x="10" y="12" width="28" height="28" rx="2" stroke="white" strokeWidth="1" opacity="0.3" />
+              {/* Central Diamond */}
+              <path d="M24 18L32 26L24 34L16 26L24 18Z" stroke="white" strokeWidth="2.5" strokeLinejoin="round" />
+              
+              {/* Divider Line */}
+              <line x1="56" y1="10" x2="56" y2="42" stroke="white" strokeWidth="1.5" opacity="0.2" />
+              
+              {/* Branding Text - Core UI */}
+              <text x="68" y="27" fill="white" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900, fontSize: '24px', letterSpacing: '-0.03em'}}>Core UI</text>
+              <text x="148" y="26" fill="white" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: '8px', opacity: 0.5, letterSpacing: '0.05em'}}>by PT Biz</text>
+              
+              {/* Strategic Sub-text - Integrated */}
+              <text x="69" y="42" fill="white" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '6.5px', opacity: 0.4, letterSpacing: '0.15em', textTransform: 'uppercase'}}>Strategic Operations Platform</text>
+            </svg>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-3 mt-8 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-        <div className="px-4 mb-2">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main Menu</p>
-        </div>
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            id={`nav-link-${item.id}`}
-            onClick={() => onTabChange(item.id)}
-            aria-label={`Navigate to ${item.label}`}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-              activeTab === item.id
-                ? 'bg-indigo-600/10 text-white border border-indigo-500/30 shadow-[0_0_20px_rgba(79,70,229,0.1)]'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
-            }`}
-          >
-            <div className={`p-2 rounded-lg transition-colors ${
-              activeTab === item.id ? 'bg-indigo-500 text-white' : 'bg-slate-800/50 group-hover:bg-slate-700'
-            }`}>
-                <item.icon size={18} />
+      <nav className="flex-1 px-4 mt-8 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent space-y-8">
+        {navGroups.map((group) => (
+          <div key={group.title} className="space-y-2">
+            <div className="px-4 mb-2">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{group.title}</p>
             </div>
-            <span className="font-semibold text-sm">{item.label}</span>
-          </button>
+            {group.items.map((item) => (
+              <button
+                key={item.id}
+                id={`nav-link-${item.id}`}
+                onClick={() => onTabChange(item.id)}
+                aria-label={`Navigate to ${item.label}`}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 group ${
+                  activeTab === item.id
+                    ? 'bg-indigo-600/10 text-white border border-indigo-500/30 shadow-[0_0_20px_rgba(79,70,229,0.1)]'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                <div className={`p-2 rounded-lg transition-colors ${
+                  activeTab === item.id ? 'bg-indigo-500 text-white' : 'bg-slate-800/50 group-hover:bg-slate-700'
+                }`}>
+                    <item.icon size={16} />
+                </div>
+                <span className="font-bold text-xs uppercase tracking-tight">{item.label}</span>
+              </button>
+            ))}
+          </div>
         ))}
       </nav>
 

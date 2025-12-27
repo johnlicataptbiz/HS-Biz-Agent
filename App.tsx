@@ -203,7 +203,7 @@ const App: React.FC = () => {
         </main>
 
         <footer className="p-10 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.5em]">Jack Licata Design Co • Modern Intelligence</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.5em]">Jack Licata Design Co • Practice Intelligence</p>
         </footer>
       </div>
 

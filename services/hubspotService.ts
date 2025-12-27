@@ -566,6 +566,38 @@ export class HubSpotService {
     }
   }
 
+  public async getContactNotes(contactId: string): Promise<string[]> {
+    try {
+      // 1. Get associated note IDs
+      const assocResponse = await this.request(`/crm/v3/objects/contacts/${contactId}/associations/notes`);
+      if (!assocResponse.ok) return [];
+      
+      const assocData = await assocResponse.json();
+      const noteIds = (assocData.results || []).map((r: any) => r.id);
+      
+      if (noteIds.length === 0) return [];
+
+      // 2. Fetch the actual note content (batch)
+      const notesResponse = await this.request('/crm/v3/objects/notes/batch/read', {
+        method: 'POST',
+        body: JSON.stringify({
+            properties: ['hs_note_body', 'hs_lastmodifieddate'],
+            inputs: noteIds.map((id: string) => ({ id }))
+        })
+      });
+
+      if (!notesResponse.ok) return [];
+      const notesData = await notesResponse.json();
+      
+      return (notesData.results || [])
+        .sort((a: any, b: any) => new Date(b.properties.hs_lastmodifieddate).getTime() - new Date(a.properties.hs_lastmodifieddate).getTime())
+        .map((n: any) => n.properties.hs_note_body || '');
+    } catch (e) {
+      console.error("Failed to fetch notes:", e);
+      return [];
+    }
+  }
+
   public async listNewestContacts(limit: number = 5): Promise<any[]> {
     try {
       const response = await this.request(`/crm/v3/objects/contacts?limit=${limit}&sort=-createdate`);
@@ -1012,15 +1044,23 @@ export class HubSpotService {
     
     // Normalize lifecycle stage
     const stage = (props.lifecyclestage || '').toLowerCase();
-    const activeClientStages = ['customer', 'subscriber', 'evangelist']; // MM member, CRM member, Customer
+    const memType = (props.membership_type || '').toLowerCase();
+    const memStatus = (props.membership_status || '').toLowerCase();
+
+    // MM member, CRM member, or standard HubSpot Customer/Evangelist
+    const isActiveClient = 
+      stage.includes('member') || stage.includes('mm') || stage.includes('crm') ||
+      memType.includes('member') || memType.includes('mm') || memType.includes('crm') ||
+      memStatus.includes('active') || memStatus.includes('member') ||
+      ['customer', 'evangelist', 'subscriber'].includes(stage);
     
     // 1. TRASH (Bounces or obvious test accounts)
     if (props.hs_email_bounce > 0 || (props.firstname || '').toLowerCase().includes('test') || (props.email || '').includes('example.com')) {
       return 'Trash';
     }
 
-    // 2. ACTIVE CLIENT - Currently paying (MM member, CRM member, or Customer)
-    if (activeClientStages.includes(stage)) {
+    // 2. ACTIVE CLIENT
+    if (isActiveClient) {
       return 'Active Client';
     }
 
@@ -1088,7 +1128,8 @@ export class HubSpotService {
         '/crm/v3/objects/contacts?limit=100&properties=' + 
         'lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status,' + 
         'hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated,' + 
-        'associatedcompanyid,firstname,email,hs_email_last_open_date'
+        'associatedcompanyid,firstname,email,hs_email_last_open_date,membership_type,membership_status,' +
+        'num_conversion_events,hs_analytics_num_page_views'
       );
       
       if (!response.ok) {

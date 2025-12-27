@@ -141,6 +141,31 @@ const OPTIMIZE_SCHEMA = {
   required: ["specType", "spec", "analysis", "diff"]
 };
 
+const CLASSIFY_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    status: { 
+      type: "STRING", 
+      description: "One of the 9 Lead Statuses: New, Hot, Nurture, Watch, Unqualified, Past Client, Active Client, Rejected, Trash." 
+    },
+    tags: { 
+      type: "ARRAY", 
+      items: { 
+        type: "OBJECT",
+        properties: {
+          label: { type: "STRING" },
+          description: { type: "STRING" },
+          color: { type: "STRING" }
+        },
+        required: ["label", "description", "color"]
+      }
+    },
+    inference: { type: "STRING", description: "Strategic inference based on notes and property data (max 2 sentences)." },
+    strategicPriority: { type: "NUMBER", description: "Score from 0-100 indicating value to the business." }
+  },
+  required: ["status", "tags", "inference", "strategicPriority"]
+};
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -200,19 +225,25 @@ export default async function handler(req, res) {
       throw lastErr;
     };
 
-    if (mode === 'optimize' || mode === 'audit') {
-      console.log("🛠️ Starting Optimization/Audit...");
-    const result = await safeGenerate({
+    if (mode === 'optimize' || mode === 'audit' || mode === 'classify') {
+      console.log(`🛠️ Starting ${mode}...`);
+      const schemaMapping = {
+        'optimize': OPTIMIZE_SCHEMA,
+        'audit': OPTIMIZE_SCHEMA,
+        'classify': CLASSIFY_SCHEMA
+      };
+
+      const result = await safeGenerate({
         model: MODEL_NAME,
         systemInstruction: AGENT_SYSTEM_INSTRUCTION,
         generationConfig: {
           ...GENERATION_CONFIG,
           responseMimeType: "application/json",
-          responseSchema: OPTIMIZE_SCHEMA
+          responseSchema: schemaMapping[mode]
         }
       }, prompt);
 
-      const text = result.response.text();
+      const text = await result.response.text();
       console.log("✅ AI Response received (Length:", text.length, ")");
       
       try {
@@ -236,16 +267,17 @@ export default async function handler(req, res) {
       }
     });
 
-    const result = await chatModel.generateContent(prompt);
-    return res.status(200).json(JSON.parse(result.response.text()));
+    const chatResult = await chatModel.generateContent(prompt);
+    const chatText = await chatResult.response.text();
+    return res.status(200).json(JSON.parse(chatText));
 
   } catch (error) {
     console.error("❌ CRITICAL AI ERROR:", error);
     return res.status(500).json({ 
       error: "AI Generation Failed", 
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      type: error.constructor.name
     });
   }
 }
- a

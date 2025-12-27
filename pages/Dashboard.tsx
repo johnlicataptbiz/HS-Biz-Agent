@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
-import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot, Users } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot, Users, RefreshCw } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
 import AiModal from '../components/AiModal';
 import AuditReportModal from '../components/AuditReportModal';
@@ -159,13 +159,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-indigo-500 animate-pulse' : 'bg-slate-500'}`}></div>
-            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em]">Strategic Analysis Engine</span>
+            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em]">Strategic Operations Engine</span>
           </div>
           <div className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
-            Portal <span className="gradient-text">Intelligence.</span>
+            Strategic <span className="gradient-text">Intelligence.</span>
           </div>
           <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
-            Real-time heuristic analysis of your HubSpot environment. identifying critical bottlenecks, redundant architecture, and automated scaling opportunities.
+            Enterprise-grade CRM analysis and business growth heuristics. Identify critical architecture bottlenecks and automated scaling opportunities for your organization.
           </p>
         </div>
         

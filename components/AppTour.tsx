@@ -19,62 +19,55 @@ interface AppTourProps {
 const TOUR_STEPS: TourStep[] = [
   {
     targetId: 'center-screen',
-    title: 'High-Velocity Ops',
-    description: 'Welcome. I am Antigravity. This isn\'t just a dashboard—it\'s a command center for Revenue Architecture. Let\'s deploy.',
+    title: 'Core UI by PT Biz',
+    description: 'Welcome. I am the Core Intelligence Assistant. This is your command center for high-velocity practice growth and CRM operations.',
     position: 'center'
   },
   {
     targetId: 'connection-status',
-    title: 'Live Portal Link',
-    description: 'We maintain a neural link with your HubSpot portal. Red means friction; Green means we are ready to scale.',
+    title: 'HubSpot Pulse',
+    description: 'We maintain a live link with your CRM database, monitoring health indices in real-time to ensure maximum operational efficiency.',
     position: 'right'
   },
   {
-    targetId: 'launch-audit-btn', // Dashboard audit button
-    title: 'Deterministic Audit',
-    description: 'Skip the AI guesswork. Click here to run hardcoded scripts that find ghost workflows and data decay instantly.',
+    targetId: 'launch-audit-btn', 
+    title: 'Strategic Audit',
+    description: 'Run deep heuristics on your portal to identify ghost enrollments, architectural debt, and data decay instantly.',
     position: 'bottom',
     route: 'dashboard'
   },
   {
-    targetId: 'stat-revenue-risk', // Revenue at Risk card
-    title: 'Revenue Guardrails',
-    description: 'We track exactly how much capital is sitting in stalled deal stages. Our target is zero leakage.',
+    targetId: 'stat-revenue-risk',
+    title: 'Growth Leakage',
+    description: 'We track potential revenue stalled in your journey stages. Our target is zero leakage and maximum practice scale.',
     position: 'bottom',
     route: 'dashboard'
   },
   {
     targetId: 'nav-link-journey',
-    title: 'Revenue Journey',
-    description: 'Visualize the physical flow of leads. From Cold Contact to Closed Won—we identify where the system breaks.',
+    title: 'Behavioral Journey',
+    description: 'Visualize the flow of leads—from cold contacts to active members. We find exactly where the pipeline is breaking.',
     position: 'right',
     route: 'journey'
   },
   {
-    targetId: 'clean-up-contacts-btn',
-    title: 'Database Intelligence',
-    description: 'Our 9-point classification engine labels your messy database into actionable statuses like Hot, Nurture, and Watch.',
-    position: 'bottom',
+    targetId: 'nav-link-contacts',
+    title: 'Database Brain',
+    description: 'Our AI classification engine organizes your lead database into actionable cohorts: New, Active Member, and Nurture.',
+    position: 'right',
     route: 'contacts'
   },
   {
-    targetId: 'run-audit-btn',
-    title: 'Schema Architecture',
-    description: 'Map your portal\'s DNA. We identify redundant properties and technical debt before it slows you down.',
-    position: 'bottom',
-    route: 'datamodel'
-  },
-  {
-    targetId: 'draft-tool-btn',
-    title: 'Edge Extensions',
-    description: 'Extend HubSpot via Breeze. We draft custom CRM cards and serverless logic to solve your specific niche problems.',
-    position: 'bottom',
-    route: 'breezetools'
+    targetId: 'nav-link-copilot',
+    title: 'Core Strategist',
+    description: 'Need a tactical plan? Your Practice Strategist is ready. It doesn\'t just chat—it executes CRM and operational improvements.',
+    position: 'right',
+    route: 'copilot'
   },
   {
     targetId: 'ai-chat-trigger',
-    title: 'Strategic Co-Pilot',
-    description: 'Need a tactical plan? Your AI Operator is ready. It doesn\'t just chat—it drafts executable API blueprints.',
+    title: 'AI Command',
+    description: 'Trigger the global AI assistant from anywhere to perform mass updates or architectural audits.',
     position: 'left'
   }
 ];

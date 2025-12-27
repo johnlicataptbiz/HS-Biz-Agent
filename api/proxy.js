@@ -28,21 +28,34 @@ export default async function handler(req, res) {
       method: req.method,
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
     };
     
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      fetchOptions.body = JSON.stringify(req.body);
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+      fetchOptions.headers['Content-Type'] = 'application/json';
+      fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     }
     
     const response = await fetch(hubspotUrl, fetchOptions);
-    const data = await response.json();
+    const contentType = response.headers.get('content-type');
+    
+    let data;
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      data = { message: text };
+    }
     
     // Forward the status code from HubSpot
     res.status(response.status).json(data);
   } catch (error) {
     console.error('HubSpot API Proxy Error:', error);
-    res.status(500).json({ error: 'Failed to proxy request to HubSpot', details: error.message });
+    res.status(500).json({ 
+      error: 'Failed to proxy request to HubSpot', 
+      details: error.message,
+      path: hubspotUrl 
+    });
   }
 }

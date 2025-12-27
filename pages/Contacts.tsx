@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { hubSpotService } from '../services/hubspotService';
 import { leadStatusService, IntelligenceContact } from '../services/leadStatusService';
 import { Segment, LeadStatus } from '../types';
-import { Users, RefreshCw, Sparkles, ShieldCheck, List, UserCheck, UserX, Clock, Filter, AlertCircle, ArrowRight, Trash2, Trophy, Tag, Eye, Layers, ChevronRight, CheckCircle2, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { Users, RefreshCw, Sparkles, ShieldCheck, List, UserCheck, UserX, Clock, Filter, AlertCircle, ArrowRight, Trash2, Trophy, Tag, Eye, Layers, ChevronRight, CheckCircle2, ArrowUpDown, ChevronUp, ChevronDown, Brain, Zap } from 'lucide-react';
 import AiModal from '../components/AiModal';
 import Pagination from '../components/Pagination';
 
@@ -28,6 +28,8 @@ const Contacts: React.FC = () => {
   const [showAi, setShowAi] = useState(false);
   const [showListAi, setShowListAi] = useState(false);
   const [listPrompt, setListPrompt] = useState('');
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [isBulkScanning, setIsBulkScanning] = useState(false);
   
   // Intelligence Sorting & Pagination
   const [intelPage, setIntelPage] = useState(1);
@@ -85,6 +87,40 @@ const Contacts: React.FC = () => {
         alert("Execution failed.");
     } finally {
         setIsExecuting(false);
+    }
+  };
+
+  const runBrainScan = async (contact: IntelligenceContact) => {
+    if (scanningId) return;
+    setScanningId(contact.id);
+    try {
+        const updated = await leadStatusService.deepScanContact(contact);
+        setIntelContacts(prev => prev.map(c => c.id === contact.id ? updated : c));
+    } catch (e) {
+        console.error("Scan failed");
+    } finally {
+        setScanningId(null);
+    }
+  };
+
+  const executeBulkBrainScan = async () => {
+    if (!window.confirm(`Run Intelligent Brain Scan on ${intelContacts.length} contacts? This will analyze notes and properties for granular tagging.`)) return;
+    
+    setIsBulkScanning(true);
+    try {
+        // Run in series to avoid rate limits
+        for (let i = 0; i < intelContacts.length; i++) {
+            const contact = intelContacts[i];
+            setScanningId(contact.id);
+            const updated = await leadStatusService.deepScanContact(contact);
+            setIntelContacts(prev => prev.map(c => c.id === contact.id ? updated : c));
+        }
+        alert("Deep Intelligence Scan Complete.");
+    } catch (e) {
+        alert("Bulk scan failed.");
+    } finally {
+        setIsBulkScanning(false);
+        setScanningId(null);
     }
   };
 
@@ -148,44 +184,53 @@ const Contacts: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-500'}`}></div>
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-[0.3em]">Organization Engine</span>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-indigo-500 animate-pulse' : 'bg-slate-500'}`}></div>
+            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em]">Lead Velocity Intelligence</span>
           </div>
           <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
-            Database <span className="gradient-text">Intelligence.</span>
+            Database <span className="gradient-text">Brain.</span>
           </h1>
           <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
-            Advanced 9-point classification, B2B association tracking, and automated lead tagging.
+            AI-powered lead classification and membership tracking for high-velocity sales.
           </p>
         </div>
         
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <div className="flex p-1 bg-white/5 border border-white/10 rounded-2xl">
              <button 
                onClick={() => setView('funnel')}
-               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${view === 'funnel' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-               title="Funnel View"
+               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${view === 'funnel' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
              >
                 <Layers size={14} /> Funnel
              </button>
              <button 
                onClick={() => setView('list')}
-               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${view === 'list' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-               title="Contact List View"
+               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${view === 'list' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
              >
                 <Users size={14} /> Contacts
              </button>
           </div>
+          
+          <button 
+            onClick={executeBulkBrainScan}
+            disabled={isBulkScanning || !isConnected}
+            className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 border-2 ${
+                isBulkScanning ? 'bg-slate-700 text-slate-400 border-slate-600' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20'
+            }`}
+          >
+              {isBulkScanning ? <RefreshCw className="animate-spin" size={14} /> : <Brain size={14} />}
+              Scan Intelligence
+          </button>
+          
           <button 
             onClick={executeBulkLabeling}
             disabled={isExecuting || !isConnected}
-            title="Apply intelligence labels to HubSpot"
-            className={`px-8 py-3 rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl flex items-center gap-2 ${
-                isExecuting ? 'bg-slate-700 text-slate-400' : 'premium-gradient text-white shadow-indigo-500/20'
+            className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 ${
+                isExecuting ? 'bg-slate-700 text-slate-400' : 'premium-gradient text-white shadow-indigo-500/20 hover:scale-105 active:scale-95'
             }`}
           >
-              {isExecuting ? <RefreshCw className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
-              Apply Labels
+              {isExecuting ? <RefreshCw className="animate-spin" size={14} /> : <CheckCircle2 size={14} />}
+              Sync HubSpot
           </button>
         </div>
       </div>
@@ -369,9 +414,15 @@ const Contacts: React.FC = () => {
                                                'bg-slate-500/20 text-slate-400 border border-slate-500/30'
                                            }`}>{contact.status}</span>
                                        </p>
-                                       <p className="text-xs text-slate-500 font-medium">{contact.email}</p>
-                                   </div>
-                               </td>
+                                        <p className="text-xs text-slate-500 font-medium">{contact.email}</p>
+                                        {contact.inference && (
+                                            <p className="text-[10px] text-indigo-300 mt-2 font-medium italic leading-tight max-w-xs animate-in fade-in slide-in-from-left-2 duration-500">
+                                                <span className="text-indigo-500 font-black not-italic mr-1">AI:</span>
+                                                "{contact.inference}"
+                                            </p>
+                                        )}
+                                    </div>
+                                </td>
                                <td className="px-6 py-4">
                                    <div className="flex items-center gap-2">
                                        <div className={`w-2 h-2 rounded-full ${
@@ -385,8 +436,8 @@ const Contacts: React.FC = () => {
                                <td className="px-6 py-4">
                                    <div className="flex items-center gap-3">
                                        <div className="w-12 h-2 bg-slate-800 rounded-full overflow-hidden">
-                                           <div 
-                                               className="h-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
+                                           <div
+                                               className="h-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]"
                                                style={{ width: `${contact.rawProperties.strategic_score}%` }}
                                            ></div>
                                        </div>
@@ -408,18 +459,32 @@ const Contacts: React.FC = () => {
                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Last Site Visit</span>
                                    </div>
                                </td>
-                               <td className="px-6 py-4 text-right">
-                                   <div className="flex flex-col items-end">
-                                       <span className="text-xs font-bold text-indigo-400">{contact.associatedDeals} Associated Deals</span>
-                                       {contact.associatedCompany && <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.1em]">Target Account</span>}
-                                   </div>
-                               </td>
+                                <td className="px-6 py-4 text-right">
+                                    <div className="flex items-center justify-end gap-3">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-xs font-bold text-indigo-400">{contact.associatedDeals} Associated Deals</span>
+                                            {contact.associatedCompany && <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.1em]">Target Account</span>}
+                                        </div>
+                                        <button
+                                            onClick={() => runBrainScan(contact)}
+                                            disabled={scanningId === contact.id}
+                                            className={`p-2 rounded-lg border transition-all ${
+                                                contact.deepScanned
+                                                ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400'
+                                                : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+                                            }`}
+                                            title="Run Deep Brain Scan (AI Notes Analysis)"
+                                        >
+                                            {scanningId === contact.id ? <RefreshCw className="animate-spin" size={16} /> : <Brain size={16} />}
+                                        </button>
+                                    </div>
+                                </td>
                            </tr>
                        ))}
                    </tbody>
                </table>
            </div>
-           
+
            <Pagination
                 page={intelPage}
                 pageSize={intelPageSize}
