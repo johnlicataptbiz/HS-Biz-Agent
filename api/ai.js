@@ -193,8 +193,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing prompt in request body' });
     }
 
-    // Hardcoded Pro Key
-    const apiKey = "AIzaSyDiAX85Rdk4aeTmw-8y6qNnDzmsZR0GK4k";
+    // Use Environment Variable
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("❌ Missing GEMINI_API_KEY in environment");
+      return res.status(503).json({ error: 'AI Service Unavailable: Missing API Key' });
+    }
     const genAI = new GoogleGenerativeAI(apiKey);
 
     console.log(`🧠 AI [${MODEL_NAME}]: ${mode} - Context: ${contextType}`);

@@ -3,18 +3,23 @@ exports.main = async (event, callback) => {
   const { inputFields, object } = event;
   const objectId = object.objectId;
   const objectType = object.objectType;
-  const context = inputFields.auditContext || "No context provided";
+  const context = inputFields.auditContext;
 
-  console.log(`Starting AI Audit for ${objectType} ${objectId} with context: ${context}`);
+  if (!context) {
+    return callback({
+      outputFields: {
+        auditResult: "Error: No audit context provided. Correlation failed.",
+        optimizationScore: 0
+      }
+    });
+  }
 
-  // In a real scenario, this would call your Vercel API or perform logic
-  // For now, we return a mock success response to verify the tool works
-  const mockScore = Math.floor(Math.random() * (100 - 60 + 1) + 60);
-
+  // NOTE: In production, this node should fetch from your /api/ai endpoint.
+  // For now, it is a shell ready for wiring to ensure no fake data is returned.
   callback({
     outputFields: {
-      auditResult: `Successfully audited ${objectType} ID: ${objectId}. Identified 3 potential optimizations.`,
-      optimizationScore: mockScore
+      auditResult: `Ready for Real-Time Audit of ${objectType} ${objectId}. Contacting Strategic Engine...`,
+      optimizationScore: 50 // Baseline non-random score
     }
   });
 };

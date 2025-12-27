@@ -28,13 +28,9 @@ export default async function handler(req, res) {
 
     // 2. CONSOLIDATE LISTS (Placeholder for sequence of moves)
     if (action === 'merge-lists') {
-        const { targetListId, sourceListIds } = payload;
-        // Logic: Theoretically move contacts, but HubSpot Lists are dynamic. 
-        // Real consolidation usually involves updating the 'target' list filters 
-        // to include the 'source' list criteria.
-        return res.status(200).json({ 
-            success: true, 
-            message: `Consolidation logic triggered for ${sourceListIds.length} lists into Target #${targetListId}. Note: Dynamic filters updated.` 
+        return res.status(501).json({ 
+            success: false, 
+            error: 'Consolidation logic (merge-lists) is not yet implemented for production. Please use HubSpot UI.' 
         });
     }
 

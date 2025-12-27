@@ -51,14 +51,8 @@ export const generateOptimization = async (
 
   } catch (error: any) {
     const isQuota = error.message?.includes("429") || error.message?.includes("quota");
-    return {
-      specType: 'workflow_spec',
-      spec: { name: 'Error Fallback' },
-      analysis: isQuota 
-        ? "The AI is currently processing high volume. Please give it 30 seconds to refresh."
-        : "I encountered an error. Please check your connection.",
-      diff: [isQuota ? "Retry in 30s" : "Check logs"]
-    };
+    console.error("AI Service Optimization Error:", error);
+    throw error;
   }
 };
 

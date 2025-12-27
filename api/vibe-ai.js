@@ -19,9 +19,12 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { contact } = req.body;
-  const apiKey = "AIzaSyDiAX85Rdk4aeTmw-8y6qNnDzmsZR0GK4k";
+  const apiKey = process.env.GEMINI_API_KEY;
   
-  if (!apiKey) return res.status(503).json({ error: 'Missing AI Key' });
+  if (!apiKey) {
+    console.error("❌ Missing GEMINI_API_KEY in environment");
+    return res.status(503).json({ error: 'Vibe AI Unavailable: Missing API Key' });
+  }
   const genAI = new GoogleGenerativeAI(apiKey);
 
   const prompt = `

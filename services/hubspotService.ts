@@ -478,7 +478,7 @@ export class HubSpotService {
           label: prop.label,
           type: prop.type,
           group: prop.groupName,
-          usage: Math.floor(Math.random() * 100), // Note: Real usage requires engagement API
+          usage: null, // Note: Real usage requires engagement API
           redundant: isRedundant
         };
       });

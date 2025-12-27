@@ -3,26 +3,27 @@ exports.main = async (event, callback) => {
 
   const objectId = object.objectId;
   const objectType = object.objectType || 'UNKNOWN';
-  const prompt = inputFields.agentPrompt || 'No prompt provided';
+  const prompt = inputFields.agentPrompt;
   const urgency = (inputFields.urgency || 'medium').toLowerCase();
 
-  // Strategic scoring logic
+  // Strategic scoring logic - Deterministic
   const urgencyWeights = { low: 70, medium: 80, high: 92 };
   const baseScore = urgencyWeights[urgency] || 75;
   
-  // Simulated AI Reasoning
-  const findings = [
-    `Detected incomplete attribution data for ${objectType}.`,
-    `Workflow enrollment logic for ID:${objectId} is suboptimal.`,
-    `Communication frequency on this ${objectType} is below benchmark.`
-  ];
+  if (!prompt) {
+    return callback({
+      outputFields: {
+        recommendation: "Error: No agent prompt provided. Reasoning engine suspended.",
+        confidenceScore: 0
+      }
+    });
+  }
   
-  const randomFinding = findings[Math.floor(Math.random() * findings.length)];
-  const recommendation = `STRATEGIC AUDIT COMPLETE: ${randomFinding} Action: Increase touchpoint frequency and verify source property. Confidence: ${baseScore}%`;
-
+  // NOTE: In production, this node should fetch from your /api/ai endpoint.
+  // For now, it is a shell ready for wiring to ensure no fake findings are returned.
   callback({
     outputFields: {
-      recommendation,
+      recommendation: `Breeze Agent Standby for ${objectType} ${objectId}. Requesting Real-Time Optimization for: "${prompt.substring(0, 50)}..."`,
       confidenceScore: baseScore
     }
   });
