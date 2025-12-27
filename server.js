@@ -36,6 +36,17 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Serve Circle Embed (Tour 33)
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+app.get('/embeds/tour-33', (req, res) => {
+  res.sendFile(join(__dirname, 'embeds/tour-33.html'));
+});
+
 app.all('/api/token', wrap(token));
 app.all('/api/ai', wrap(ai));
 app.all('/api/remediate', wrap(remediate));
