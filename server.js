@@ -31,6 +31,11 @@ const wrap = (handler) => async (req, res) => {
   }
 };
 
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.all('/api/token', wrap(token));
 app.all('/api/ai', wrap(ai));
 app.all('/api/remediate', wrap(remediate));
