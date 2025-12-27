@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-const MODEL_NAME = 'gemini-2.0-flash-exp';
+const MODEL_NAME = 'gemini-1.5-flash-latest';
 
 const SCHEMA = {
   type: "OBJECT",
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
   try {
     const model = genAI.getGenerativeModel({ 
         model: MODEL_NAME,
-        systemInstruction: { parts: [{ text: "You are Antigravity, the Strategic Architectural Lead. You provide ruthless, ROI-driven sales intelligence." }] },
+        systemInstruction: "You are Antigravity, the Strategic Architectural Lead. You provide ruthless, ROI-driven sales intelligence.",
         generationConfig: {
             responseMimeType: "application/json",
             responseSchema: SCHEMA

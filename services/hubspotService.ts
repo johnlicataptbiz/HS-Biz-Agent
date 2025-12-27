@@ -938,57 +938,21 @@ export class HubSpotService {
           if (!v2Resp.ok) return [];
 
           const data = await v2Resp.json();
-          const forms = await Promise.all(data.map(async (form: any) => {
+          const forms: any[] = [];
+          
+          // Use sequential processing to avoid 429/Fetch errors
+          for (const form of data.slice(0, 40)) {
               const name = form.name || 'Unnamed Form';
               const guid = form.guid;
               const nameLower = name.toLowerCase();
               const isLeadMagnet = nameLower.includes('guide') || nameLower.includes('ebook') || nameLower.includes('download') || nameLower.includes('hiring') || nameLower.includes('blueprint');
               
-              // Priority 1: Direct form status
-              let submissions = analyticsDataMap[guid] || 
-                               form.performance?.submissionsCount || 
-                               form.submissionsCount || 0;
+              let submissions = analyticsDataMap[guid] || form.submissionsCount || 0;
 
-              // Priority 2: Deep Scan for Lead Magnets if still 0
+              // Only deep scan if necessary and it's a lead magnet
               if (submissions === 0 && isLeadMagnet && guid) {
                   try {
                       const deepResp = await this.request(`/forms/v2/forms/${guid}`);
-                      if (deepResp.ok) {
-                          const deepData = await deepResp.json();
-                          submissions = deepData.performance?.submissionsCount || 
-                                      deepData.submissionsCount || 
-                                      deepData.formResponseCount || 0;
-                          if (submissions > 0) {
-                              console.log(`🔍 DEEP SCAN SUCCESS: [${name}] has ${submissions} subs`);
-                          }
-                      }
-                  } catch (e) {
-                      console.warn(`Deep scan failed for ${name}`);
-                  }
-              }
-
-              // Priority 3: ELITE Fuzzy Match from Pages
-              if (submissions === 0) {
-                  const stopWords = ['form', 'copy', 'landing', 'page', 'blueprint', 'guide', 'lead', 'magnet', 'opt-in', 'download', 'thank', 'you', 'confirmation'];
-                  const formWords = nameLower.split(/[^a-z0-9]/).filter((w: string) => w.length > 3 && !stopWords.includes(w));
-
-                  const matchedName = Object.keys(pageSubmissionsMap).find(pN => {
-                      const pageWords = pN.split(/[^a-z0-9]/).filter((w: string) => w.length > 3 && !stopWords.includes(w));
-                      return formWords.some((fw: string) => pageWords.includes(fw)) || pN.includes(nameLower) || nameLower.includes(pN);
-                  });
-
-                  if (matchedName) {
-                      submissions = pageSubmissionsMap[matchedName];
-                      if (submissions > 0) {
-                          console.log(`✅ DATA ADOPTION: [${name}] matched with page [${matchedName}] (${submissions} subs)`);
-                      }
-                  }
-              }
-
-              // Priority 3: Deep Scan Fallback
-              if (isLeadMagnet && submissions === 0) {
-                  try {
-                      const deepResp = await this.request(`/forms/v2/forms/${form.guid}`);
                       if (deepResp.ok) {
                           const deepData = await deepResp.json();
                           submissions = deepData.submissionsCount || deepData.formResponseCount || 0;
@@ -996,7 +960,7 @@ export class HubSpotService {
                   } catch (e) {}
               }
 
-              return {
+              forms.push({
                   id: form.guid,
                   name: name,
                   submissions: Number(submissions),
@@ -1004,8 +968,8 @@ export class HubSpotService {
                   leadMagnet: isLeadMagnet,
                   createdAt: form.createdAt,
                   guid: form.guid
-              };
-          }));
+              });
+          }
 
           return forms;
       } catch (e) {

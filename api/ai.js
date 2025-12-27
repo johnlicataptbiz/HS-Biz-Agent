@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-const MODEL_NAME = 'gemini-2.0-flash-exp';
+const MODEL_NAME = 'gemini-1.5-flash-latest';
 const GENERATION_CONFIG = {
     temperature: 0.2,
     topP: 0.95,
@@ -204,7 +204,7 @@ export default async function handler(req, res) {
       console.log("🛠️ Starting Optimization/Audit...");
     const result = await safeGenerate({
         model: MODEL_NAME,
-        systemInstruction: { parts: [{ text: AGENT_SYSTEM_INSTRUCTION }] },
+        systemInstruction: AGENT_SYSTEM_INSTRUCTION,
         generationConfig: {
           ...GENERATION_CONFIG,
           responseMimeType: "application/json",
@@ -228,7 +228,7 @@ export default async function handler(req, res) {
     console.log("💬 Starting Chat...");
     const chatModel = genAI.getGenerativeModel({ 
       model: MODEL_NAME,
-      systemInstruction: { parts: [{ text: AGENT_SYSTEM_INSTRUCTION }] },
+      systemInstruction: AGENT_SYSTEM_INSTRUCTION,
       generationConfig: {
         ...GENERATION_CONFIG,
         responseMimeType: "application/json",
