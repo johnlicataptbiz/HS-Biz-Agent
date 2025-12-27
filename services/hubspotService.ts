@@ -997,14 +997,19 @@ export class HubSpotService {
     // 1. TRASH (Bounces or obvious test accounts)
     if (props.hs_email_bounce > 0 || (props.firstname || '').toLowerCase().includes('test') || (props.email || '').includes('example.com')) return 'Trash';
 
-    // 2. ACTIVE CLIENT (HubSpot Customer Stage)
-    if (props.lifecyclestage === 'customer') return 'Active Client';
+    // Normalize lifecycle stage for comparison
+    const stage = (props.lifecyclestage || '').toLowerCase();
+    const activeClientStages = ['customer', 'subscriber', 'evangelist']; // MM member, CRM member, Customer
+    
+    // 2. ACTIVE CLIENT - Only for specific lifecycle stages (MM member, CRM member, or Customer)
+    if (activeClientStages.includes(stage)) {
+      // Check for Past Client: was in active stage but no activity in >1 year
+      if (daysSinceAct > 365) return 'Past Client';
+      return 'Active Client';
+    }
 
     // 3. REJECTED (Explicitly marked as other/rejected)
-    if (props.hs_lead_status === 'Rejected' || props.lifecyclestage === 'other') return 'Rejected';
-
-    // 4. PAST CLIENT (Was customer but zero activity in >1 year)
-    if (props.lifecyclestage === 'customer' && daysSinceAct > 365) return 'Past Client';
+    if (props.hs_lead_status === 'Rejected' || stage === 'other') return 'Rejected';
 
     // 5. UNQUALIFIED (Explicitly disqualified)
     if (props.hs_lead_status === 'Unqualified' || props.hs_lead_status === 'Bad Timing') return 'Unqualified';
