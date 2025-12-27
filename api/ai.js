@@ -169,6 +169,15 @@ export default async function handler(req, res) {
 
     console.log(`🧠 AI [${MODEL_NAME}]: ${mode} - Context: ${contextType}`);
 
+    const AGENT_SYSTEM_INSTRUCTION = `
+${systemInstruction}
+
+**MODE**: Full Strategic Agent Intelligence.
+1. Use 'portal_health_audit' for all health queries (if available).
+2. Deliver high-impact strategic insights backed by portal metrics.
+3. Formulate 'spec.apiCalls' for all proposed architectural changes.
+`;
+
     // Helper for Quota/Error resilience
     const safeGenerate = async (genOptions, input) => {
       let lastErr;
