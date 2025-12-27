@@ -355,26 +355,30 @@ export class HubSpotService {
 
   public async fetchSequences(): Promise<Sequence[]> {
     try {
-      // V4 Sequences API requires userId
-      const userId = await this.getCurrentUserId();
-      console.log('🧩 Fetching sequences for userId:', userId);
+      console.log('🧩 Fetching all sequences for portal audit...');
       
-      if (!userId) {
-        console.warn('Cannot fetch sequences without user ID');
-        return [];
+      // Try V4 broad fetch first
+      let response = await this.request('/automation/v4/sequences?limit=100');
+      
+      // If V4 broad fails, try V3 which is often more permissive for list-all
+      if (!response.ok) {
+        console.log('🧩 V4 broad fetch failed, trying V3...');
+        response = await this.request('/automation/v3/sequences?limit=100');
       }
-      
-      // V4 API with userId parameter
-      const response = await this.request(`/automation/v4/sequences?userId=${userId}`);
+
+      // Final fallback: try user-specific if still failing
+      if (!response.ok) {
+        const userId = await this.getCurrentUserId();
+        if (userId) {
+          console.log('🧩 Trying user-specific V4 sequences for:', userId);
+          response = await this.request(`/automation/v4/sequences?userId=${userId}`);
+        }
+      }
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error(`🧩 Sequences API Error (${response.status}):`, errorData);
-        if (response.status === 404 || response.status === 403 || response.status === 400) {
-             console.warn(`Sequences API not available (Status ${response.status}) - likely missing Sales Hub Pro or scope`);
-             return [];
-        }
-        throw new Error(`Sequence sequence-link failed: ${response.status}`);
+        return [];
       }
 
       const data = await response.json();
@@ -388,21 +392,37 @@ export class HubSpotService {
       };
 
       return sequences.map((seq: any) => {
-        const replyRate = normalizeRate(seq.stats?.reply_rate || seq.stats?.replyRate || 0);
-        const openRate = normalizeRate(seq.stats?.open_rate || seq.stats?.openRate || 0);
+        // Improved stats extraction - sequences stats can be found in several places
+        const stats = seq.stats || seq.enrollmentStats || seq.performance || {};
+        const replyRate = normalizeRate(stats.reply_rate || stats.replyRate || stats.replied || 0);
+        const openRate = normalizeRate(stats.open_rate || stats.openRate || stats.opened || 0);
+        
+        // Fix: steps count can be an array or a numeric field
+        let stepsCount = 0;
+        if (Array.isArray(seq.steps)) {
+            stepsCount = seq.steps.length;
+        } else if (typeof seq.stepCount === 'number') {
+            stepsCount = seq.stepCount;
+        } else if (typeof seq.step_count === 'number') {
+            stepsCount = seq.step_count;
+        } else if (typeof seq.numSteps === 'number') {
+            stepsCount = seq.numSteps;
+        }
+
         let aiScore = 50;
         if (replyRate > 0.1) aiScore += 30;
-        if (seq.active) aiScore += 10;
+        if (seq.active || seq.state === 'ACTIVE') aiScore += 10;
+        if (stepsCount > 3) aiScore += 5;
         
         return {
-          id: String(seq.id || seq.hs_id),
-          name: seq.name || seq.label || 'Unlabeled Sequence',
-          active: seq.active !== false && !seq.archived,
-          stepsCount: (seq.steps || seq.step_count || []).length || 0,
+          id: String(seq.id || seq.hs_id || seq.guid),
+          name: seq.name || seq.label || seq.title || 'Unlabeled Sequence',
+          active: seq.active === true || seq.state === 'ACTIVE' || (!seq.archived && seq.active !== false),
+          stepsCount: stepsCount,
           replyRate: replyRate,
           openRate: openRate,
           aiScore: Math.min(100, aiScore),
-          targetPersona: replyRate > 0.15 ? 'High Value Target' : 'Needs Optimization'
+          targetPersona: replyRate > 0.15 ? 'High Value Target' : (replyRate > 0 ? 'Qualified Lead' : 'Needs Optimization')
         };
       });
     } catch (e) {
