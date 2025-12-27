@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot, Users } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
 import AiModal from '../components/AiModal';
+import AuditReportModal from '../components/AuditReportModal';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -22,7 +23,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     contactHealth: { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 },
   });
   const [showAuditModal, setShowAuditModal] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
   const [auditPrompt, setAuditPrompt] = useState('');
+
+  // ... (keep previous loadData logic)
+
 
   useEffect(() => {
     let isMounted = true;
@@ -186,32 +191,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               title="Generate Audit"
               aria-label="Generate deep audit"
               onClick={() => {
-                console.log("🧩 Dashboard: Deep audit requested.");
                 hubSpotService.validateConnection().then(v => {
                   if (v.success) {
-                    setAuditPrompt(
-                      `Perform a Deep Heuristic Audit of this HubSpot Portal based on the following scan data:\n\n` +
-                      `-- PORTAL HEALTH --\n` +
-                      `Overall Score: ${overallScore}%\n` +
-                      `Revenue At Risk: $${(metrics.deals.reduce((acc: number, d: any) => acc + d.amount, 0) / 1000).toFixed(1)}k (${metrics.deals.length} stalled deals)\n` +
-                      `Contact Health: ${metrics.contactHealth.healthScore}% (${metrics.contactHealth.unclassified} unclassified, ${metrics.contactHealth.inactive} inactive)\n\n` +
-                      `-- AUTOMATION --\n` +
-                      `Active Workflows: ${activeWorkflows}\n` +
-                      `Critical Issues: ${criticalWorkflows} stalled/ghost workflows\n\n` +
-                      `-- DATA MODEL --\n` +
-                      `Redundant Properties: ${redundantProps}\n\n` +
-                      `INSTRUCTIONS:\n` +
-                      `1. Identify the top 3 critical bottlenecks reducing revenue or efficiency.\n` +
-                      `2. For each, propose a specific "Fix It" plan.\n` +
-                      `3. Return a 'task_list' spec that I can check off.`
-                    );
                     setShowAuditModal(true);
                   } else {
-                    alert("Please connect your HubSpot portal to generate an audit.");
+                    alert("Please connect your HubSpot portal to run an audit.");
                   }
-                }).catch(err => {
-                   console.error("Audit launch failed:", err);
-                   alert("Failed to validate connection. See console.");
                 });
               }}
             >
@@ -221,7 +206,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Main Stats */}
+      {/* Main Stats (keep existing grid) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Consolidated Health" 
@@ -354,11 +339,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       <div>
                           <span className="text-sm font-bold text-white group-hover:text-indigo-400 block transition-colors">{item.label}</span>
                           <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">{item.type}</span>
-                              <div className="w-1 h-1 rounded-full bg-slate-700"></div>
-                              <span className={`text-[10px] font-extrabold uppercase tracking-widest ${item.impact === 'Critical' ? 'text-rose-500' : 'text-slate-400'}`}>
-                                  {item.impact}
-                              </span>
+                               <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">{item.type}</span>
+                               <div className="w-1 h-1 rounded-full bg-slate-700"></div>
+                               <span className={`text-[10px] font-extrabold uppercase tracking-widest ${item.impact === 'Critical' ? 'text-rose-500' : 'text-slate-400'}`}>
+                                   {item.impact}
+                               </span>
                           </div>
                       </div>
                   </div>
@@ -372,7 +357,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             )}
           </div>
           
-          <button className="w-full py-5 rounded-3xl premium-gradient text-white text-sm font-bold shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all" title="Optimizer">
+          <button 
+            className="w-full py-5 rounded-3xl premium-gradient text-white text-sm font-bold shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all" 
+            title="Optimizer"
+            onClick={() => setShowAuditModal(true)}
+          >
             Launch Heuristic Optimizer
           </button>
         </div>
@@ -404,10 +393,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
       )}
 
+      <AuditReportModal 
+         isOpen={showAuditModal} 
+         onClose={() => setShowAuditModal(false)}
+         onRunAiRefinement={(prompt) => {
+             setAuditPrompt(prompt);
+             setShowAiModal(true);
+         }}
+      />
+
       <AiModal 
-        isOpen={showAuditModal} 
-        onClose={() => setShowAuditModal(false)}
-        contextType="workflow" /* Using workflow context as a catch-all for broad portal changes */
+        isOpen={showAiModal} 
+        onClose={() => setShowAiModal(false)}
+        contextType="workflow"
         contextName="Global Portal Audit"
         initialPrompt={auditPrompt}
       />

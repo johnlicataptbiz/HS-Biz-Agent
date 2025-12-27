@@ -151,7 +151,7 @@ const AppTour: React.FC<AppTourProps> = ({ isOpen, onClose, onComplete, onNaviga
   const step = TOUR_STEPS[currentStep];
   const isLastStep = currentStep === TOUR_STEPS.length - 1;
 
-  // Calculate Popover Position
+  // Calculate Popover Position with Boundary Detection
   const getPopoverStyle = () => {
     if (!targetRect || step.position === 'center') {
       return {
@@ -162,31 +162,75 @@ const AppTour: React.FC<AppTourProps> = ({ isOpen, onClose, onComplete, onNaviga
     }
 
     const gap = 20;
-    
-    switch (step.position) {
-      case 'right':
-        return {
-          top: targetRect.top + (targetRect.height / 2) - 100, // Center roughly
-          left: targetRect.right + gap,
-        };
-      case 'left':
-        return {
-          top: targetRect.top + (targetRect.height / 2) - 100,
-          right: window.innerWidth - targetRect.left + gap,
-        };
-      case 'bottom':
-        return {
-          top: targetRect.bottom + gap,
-          left: targetRect.left + (targetRect.width / 2) - 150,
-        };
-      case 'top':
-        return {
-          bottom: window.innerHeight - targetRect.top + gap,
-          left: targetRect.left + (targetRect.width / 2) - 150,
-        };
-      default:
-        return {};
+    const POPOVER_WIDTH = 320;
+    const POPOVER_HEIGHT = 200; // Approx height
+    const SCREEN_PADDING = 20;
+
+    let top = 0;
+    let left = 0;
+    let newPos = step.position;
+
+    // Helper to check if rect fits
+    const checkFit = (t: number, l: number) => {
+        return (
+            t >= SCREEN_PADDING &&
+            l >= SCREEN_PADDING &&
+            t + POPOVER_HEIGHT <= window.innerHeight - SCREEN_PADDING &&
+            l + POPOVER_WIDTH <= window.innerWidth - SCREEN_PADDING
+        );
+    };
+
+    // calculate initial coords based on preferred position
+    const getCoords = (pos: string) => {
+        switch (pos) {
+            case 'right':
+                return {
+                    top: targetRect.top + (targetRect.height / 2) - 100,
+                    left: targetRect.right + gap
+                };
+            case 'left':
+                return {
+                    top: targetRect.top + (targetRect.height / 2) - 100,
+                    left: targetRect.left - gap - POPOVER_WIDTH
+                };
+            case 'bottom':
+                return {
+                    top: targetRect.bottom + gap,
+                    left: targetRect.left + (targetRect.width / 2) - (POPOVER_WIDTH / 2)
+                };
+            case 'top':
+                return {
+                    top: targetRect.top - gap - POPOVER_HEIGHT,
+                    left: targetRect.left + (targetRect.width / 2) - (POPOVER_WIDTH / 2)
+                };
+            default:
+                return { top: 0, left: 0 };
+        }
+    };
+
+    let coords = getCoords(newPos);
+
+    // Auto-flip logic
+    if (!checkFit(coords.top, coords.left)) {
+        const flipMap: Record<string, string> = { right: 'left', left: 'right', bottom: 'top', top: 'bottom' };
+        if (flipMap[newPos]) {
+            const flippedCoords = getCoords(flipMap[newPos]);
+            // If flipped fits better (or at least valid X/Y), use it
+            // We favor the one that is mostly on screen
+            if (checkFit(flippedCoords.top, flippedCoords.left)) {
+                coords = flippedCoords;
+            }
+        }
     }
+
+    // Safety Clamp (ensure it never goes fully off screen)
+    coords.top = Math.max(SCREEN_PADDING, Math.min(coords.top, window.innerHeight - POPOVER_HEIGHT - SCREEN_PADDING));
+    coords.left = Math.max(SCREEN_PADDING, Math.min(coords.left, window.innerWidth - POPOVER_WIDTH - SCREEN_PADDING));
+
+    return {
+        top: coords.top,
+        left: coords.left
+    };
   };
 
   return (

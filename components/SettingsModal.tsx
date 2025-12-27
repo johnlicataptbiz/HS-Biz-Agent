@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Check, AlertCircle, ExternalLink, Shield, Zap, RefreshCw, LogOut, Lock, Globe, ShieldCheck, Copy, Database, Code } from 'lucide-react';
+import { X, Check, AlertCircle, ExternalLink, Shield, Zap, RefreshCw, LogOut, Lock, Globe, ShieldCheck, Copy, Database, Code, Sparkles } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
 
 interface SettingsModalProps {

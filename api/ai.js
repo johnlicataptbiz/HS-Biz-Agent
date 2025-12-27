@@ -1,6 +1,12 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-const MODEL_NAME = 'gemini-2.0-flash';
+const MODEL_NAME = 'gemini-1.5-flash';
+const GENERATION_CONFIG = {
+    temperature: 0.2,
+    topP: 0.95,
+    topK: 40,
+    maxOutputTokens: 2048,
+};
 
 // Define Tool Logic Functions
 const hubspotTools = {
@@ -11,16 +17,29 @@ const hubspotTools = {
         return await resp.json();
     },
     list_workflows: async (token) => {
-        const resp = await fetch('https://api.hubapi.com/automation/v3/workflows', {
+        const resp = await fetch('https://api.hubapi.com/automation/v3/workflows?properties=name,type,enabled', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        return await resp.json();
+        const data = await resp.json();
+        const simplified = (data.workflows || []).map((w) => ({
+            id: w.id,
+            name: w.name,
+            type: w.type,
+            active: w.enabled
+        }));
+        return { workflows: simplified.slice(0, 20) }; // Cap at 20 for prompt health
     },
     list_sequences: async (token) => {
         const resp = await fetch('https://api.hubapi.com/automation/v2/sequences', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        return await resp.json();
+        const data = await resp.json();
+        const simplified = (data || []).map((s) => ({
+            id: s.id,
+            name: s.name,
+            steps: s.stepsCount
+        }));
+        return { sequences: simplified.slice(0, 15) };
     },
     get_contact: async (token, { id }) => {
         const resp = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${id}?properties=email,firstname,lastname,jobtitle`, {
@@ -61,12 +80,20 @@ const MCP_TOOLS_CONFIG = [
   }
 ];
 
-const PT_BIZ_SYSTEM_INSTRUCTION = `
-You are the "HubSpot AI Optimizer" for PT Biz.
-Your goal is to optimize HubSpot portals for Physical Therapy clinics.
+const systemInstruction = `You are Antigravity, the Strategic Architectural Lead for a high-performance HubSpot Operations team.
+Your objective is to transform messy CRM data into high-velocity sales engines.
 
-**ACTION**: Use your tools to fetch real data whenever possible. Do not guess about contacts or workflows.
-`;
+TACTICAL DIRECTIVES:
+1. PRIORITIZE DETERMINISTIC FINDINGS: Always reference actual portal metrics (workflows with 0 enrollments, redundant properties, etc.) before offering AI-generated suggestions.
+2. ROI-DRIVEN ADVICE: Focus on 'Revenue at Risk', 'Sales Velocity', and 'Lead Decay'. Every suggestion must have a business justification.
+3. ARCHITECTURAL EXCELLENCE: Suggest clean, scalable structures. Avoid 'quick fixes' that create technical debt.
+4. AGENTIC EXECUTION: When producing 'apiCalls', ensure they are precisely formatted for the HubSpot proxy (/api/hubspot/v3/objects/contacts).
+5. TONE: Professional, executive, and highly tactical. You are a senior operator, not a chatbot.
+
+INTELLIGENCE LAYER:
+- You have access to a 9-point Lead Status Funnel (New, Hot, Nurture, Watch, Unqualified, Past Client, Active Client, Rejected, Trash).
+- You utilize Strategic Priority Scores (0-100) and Risk Assessment Levels (Low/Med/High) to guide your optimization plans.
+- If a user asks for a 'Deep Audit', focus on 'Architectural Fragility'—where is the system likely to break?`;
 
 const CHAT_SCHEMA = {
   type: SchemaType.OBJECT,
@@ -97,7 +124,7 @@ const OPTIMIZE_SCHEMA = {
             properties: {
               method: { type: SchemaType.STRING },
               path: { type: SchemaType.STRING },
-              body: { type: SchemaType.OBJECT },
+              body: { type: SchemaType.STRING, description: "Stringified JSON object of the request body" },
               description: { type: SchemaType.STRING }
             },
             required: ["method", "path"]
@@ -117,88 +144,164 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { mode, prompt, hubspotToken, contextType } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
+  // Hardcoded Pro Key as requested by user
+  const apiKey = "AIzaSyDfofU97_DajcmqjpsF3gZnGKS-0gSRe-A";
   if (!apiKey) return res.status(503).json({ error: 'Missing AI Key' });
+  
+  const genAI = new GoogleGenerativeAI(apiKey);
+
+  // Define Advanced Tool Logic
+  const advancedHubspotTools = {
+    portal_health_audit: async (token) => {
+        // Run parallel checks for efficiency
+        const [wfs, seqs, contacts] = await Promise.all([
+            hubspotTools.list_workflows(token),
+            hubspotTools.list_sequences(token),
+            hubspotTools.list_newest_contacts(token)
+        ]);
+        return {
+            workflows_summary: `Found ${wfs.workflows?.length || 0} active workflows (limited to top 20).`,
+            sequences_summary: `Found ${seqs.sequences?.length || 0} templates.`,
+            contact_status: `Latest contact created at: ${contacts.results?.[0]?.createdAt || 'N/A'}`
+        };
+    },
+    ...hubspotTools
+  };
+
+  const ADVANCED_MCP_CONFIG = [
+    {
+        functionDeclarations: [
+            ...MCP_TOOLS_CONFIG[0].functionDeclarations,
+            {
+                name: "portal_health_audit",
+                description: "Perform a comprehensive strategic audit of the entire HubSpot portal including workflows and sequences.",
+                parameters: { type: SchemaType.OBJECT, properties: {} }
+            }
+        ]
+    }
+  ];
+
+  const AGENT_SYSTEM_INSTRUCTION = `
+${systemInstruction}
+
+**MODE**: Full Strategic Agent Intelligence.
+1. Use 'portal_health_audit' for all health queries.
+2. Deliver high-impact strategic insights backed by deterministic portal metrics.
+3. Formulate 'spec.apiCalls' for all proposed architectural changes.
+4. You have high-priority operator access.
+`;
+
+  // Helper for Quota Resilience - Expanded to 10 retries with longer backoff
+  const safeGenerate = async (modelConfig, inputBody, retryCount = 0) => {
+    try {
+        const model = genAI.getGenerativeModel({
+            model: MODEL_NAME,
+            ...modelConfig,
+            generationConfig: { ...GENERATION_CONFIG, ...modelConfig.generationConfig }
+        });
+        return await model.generateContent(inputBody);
+    } catch (err) {
+        const errStr = String(err).toLowerCase();
+        const isQuota = errStr.includes('429') || errStr.includes('quota') || errStr.includes('exhausted');
+        
+        if (isQuota && retryCount < 8) {
+            const delay = 2000 * Math.pow(1.5, retryCount); // Slightly gentler exponential: 2s, 3s, 4.5s, 6.7s...
+            console.warn(`⚠️ [BACKEND] Quota hit, retry #${retryCount+1} in ${Math.round(delay)}ms...`);
+            await new Promise(r => setTimeout(r, delay));
+            return safeGenerate(modelConfig, inputBody, retryCount + 1);
+        }
+        throw err;
+    }
+  };
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-        model: MODEL_NAME,
-        tools: MCP_TOOLS_CONFIG,
-        systemInstruction: PT_BIZ_SYSTEM_INSTRUCTION
-    });
-
-    console.log(`🧠 AI Agentic Request: ${mode}`);
+    console.log(`🧠 AI Agentic Request [${MODEL_NAME}]: ${mode}`);
     
-    if (mode === 'optimize') {
+    // --- OPTIMIZE/AUDIT MODE ---
+    if (mode === 'optimize' || mode === 'audit') {
         const optimizePrompt = [
             prompt,
             "",
             "Return output as JSON using the provided schema.",
             "Include both spec.yaml and spec.json when possible.",
             `Use specType based on contextType: ${contextType || 'unknown'}.`,
-            "If write actions are possible, include spec.apiCalls with method, path, body, and description.",
+            "If write actions are possible, include spec.apiCalls. Ensure 'body' is a JSON string, not an object.",
             "Keep diff short and actionable."
         ].join("\n");
 
-        const finalResult = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: optimizePrompt }]}],
+        const result = await safeGenerate({
+            systemInstruction: AGENT_SYSTEM_INSTRUCTION,
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: OPTIMIZE_SCHEMA
             }
-        });
+        }, { contents: [{ role: 'user', parts: [{ text: optimizePrompt }]}] });
 
-        return res.status(200).json(JSON.parse(finalResult.response.text()));
+        return res.status(200).json(JSON.parse(result.response.text()));
     }
 
-    // Start Chat
-    const chat = model.startChat();
-    let result = await chat.sendMessage(prompt);
-    
-    // Check for Tool Calls
-    let call = result.response.functionCalls()?.[0];
-    
-    // Single loop for simplicity in serverless environment
-    // For a more robust agent, you'd use a while loop, but Vercel has timeouts.
-    if (call && hubspotToken) {
-        console.log(`🛠️ Executing Tool: ${call.name}`);
-        const toolFn = hubspotTools[call.name];
-        if (toolFn) {
-            const toolData = await toolFn(hubspotToken, call.args);
-            // Feed result back to AI
-            result = await chat.sendMessage([{
-                functionResponse: {
-                    name: call.name,
-                    response: { content: JSON.stringify(toolData) }
-                }
-            }]);
-        }
-    }
-
-    // Now get the final text response using the CHAT_SCHEMA
-    // We do this by asking the AI to format its final conclusion into our schema
-    const finalResult = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: "Format your final answer using JSON schema: " + prompt }]}],
+    // --- CHAT MODE (High Performance Agentic) ---
+    const chatModel = genAI.getGenerativeModel({ 
+        model: MODEL_NAME,
+        tools: ADVANCED_MCP_CONFIG,
+        systemInstruction: AGENT_SYSTEM_INSTRUCTION + "\n\nALWAYS return your final answer as JSON matching the Chat Schema: { text: string, suggestions: string[] }.",
         generationConfig: {
+            ...GENERATION_CONFIG,
             responseMimeType: "application/json",
             responseSchema: CHAT_SCHEMA
         }
     });
 
-    return res.status(200).json(JSON.parse(finalResult.response.text()));
+    const chat = chatModel.startChat();
+    const sendWithRetry = async (msg, r = 0) => {
+        try { return await chat.sendMessage(msg); }
+        catch (e) {
+            const errStr = String(e).toLowerCase();
+            const isQuota = errStr.includes('429') || errStr.includes('quota') || errStr.includes('exhausted');
+            
+            if (isQuota && r < 5) {
+                const delay = 2000 * Math.pow(1.5, r);
+                console.warn(`⚠️ [CHAT] Quota hit, retry #${r+1} in ${Math.round(delay)}ms...`);
+                await new Promise(p => setTimeout(p, delay));
+                return sendWithRetry(msg, r+1);
+            }
+            throw e;
+        }
+    };
+
+    let chatResult = await sendWithRetry(prompt);
+    let call = chatResult.response.functionCalls()?.[0];
+    
+    // Agent Loop (Max 2 turns to respect timeouts)
+    let turns = 0;
+    while (call && hubspotToken && turns < 2) {
+        console.log(`🛠️ Agent executing ${call.name}...`);
+        const toolFn = advancedHubspotTools[call.name];
+        if (toolFn) {
+            const toolData = await toolFn(hubspotToken, call.args);
+            chatResult = await sendWithRetry([{
+                functionResponse: {
+                    name: call.name,
+                    response: { content: JSON.stringify(toolData) }
+                }
+            }]);
+            call = chatResult.response.functionCalls()?.[0];
+            turns++;
+        } else {
+            break;
+        }
+    }
+
+    // Return the result directly - it's already schema-forced
+    const finalData = JSON.parse(chatResult.response.text());
+    return res.status(200).json(finalData);
 
   } catch (error) {
     console.error("AI API Error:", error);
-    
-    // Check for Quota/Rate Limit
-    if (error.message?.includes("429") || error.message?.includes("quota")) {
-        return res.status(429).json({ 
-            error: "Gemini API Quota Exceeded. Please wait a moment before trying again.",
-            details: error.message
-        });
-    }
-    
-    res.status(500).json({ error: error.message });
+    const isQuota = error.message?.includes("429") || error.message?.includes("quota");
+    return res.status(isQuota ? 429 : 500).json({ 
+        error: isQuota ? "Quota limits exceeded." : error.message,
+        details: error.message 
+    });
   }
 }

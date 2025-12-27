@@ -143,7 +143,40 @@ export class HubSpotService {
 
   // --- REQUEST HELPER ---
 
-  private async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  public async refreshAccessToken(): Promise<boolean> {
+      try {
+          const refreshToken = localStorage.getItem(this.STORAGE_KEYS.REFRESH_TOKEN);
+          if (!refreshToken) return false;
+
+          const clientId = localStorage.getItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID) || this.CLIENT_ID;
+
+          const response = await fetch('/api/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  refresh_token: refreshToken,
+                  client_id: clientId
+              })
+          });
+
+          if (!response.ok) {
+              console.error("Refresh failed:", response.status);
+              return false;
+          }
+
+          const data = await response.json();
+          this.saveToken(data.access_token, data.refresh_token, data.expires_in);
+          console.log("🔄 Session refreshed successfully.");
+          return true;
+      } catch (e) {
+          console.error("Token Refresh Error:", e);
+          return false;
+      }
+  }
+
+  // --- REQUEST HELPER ---
+
+  private async request(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<Response> {
     const token = this.getToken();
     if (!token) throw new Error("Authentication required");
 
@@ -152,7 +185,24 @@ export class HubSpotService {
     headers.set('Content-Type', 'application/json');
     headers.set('Authorization', `Bearer ${token}`);
 
-    return fetch(url, { ...options, headers });
+    const response = await fetch(url, { ...options, headers });
+
+    // Automatic Token Refresh on 401
+    if (response.status === 401 && !isRetry) {
+        console.warn("⚠️ 401 Detected. Attempting session refresh...");
+        const refreshed = await this.refreshAccessToken();
+        if (refreshed) {
+            // Retry with new token
+            const newToken = this.getToken();
+            headers.set('Authorization', `Bearer ${newToken}`);
+            return fetch(url, { ...options, headers });
+        } else {
+            // Refresh failed - force logout
+            this.disconnect();
+        }
+    }
+
+    return response;
   }
 
   // --- TOKEN MANAGEMENT ---
@@ -403,11 +453,14 @@ export class HubSpotService {
       if (!appId) return [];
 
       // 1. Fetch CRM Cards (UI Extensions) - V3
-      const cardPromise = this.request(`/crm/v3/extensions/cards/${appId}`).then(r => r.ok ? r.json() : { results: [] });
+      const cardPromise = this.request(`/crm/v3/extensions/cards/${appId}`)
+          .then(r => r.ok ? r.json() : { results: [] })
+          .catch(e => { console.warn("Breeze Cards access denied (403). Missing developer scope."); return { results: [] }; });
       
       // 2. Fetch Custom Code Actions - V4 (Breeze Actions)
-      // Note: This endpoint often requires the explicit App ID. We use the connected Client ID as a proxy.
-      const actionPromise = this.request(`/automation/v4/actions/${appId}`).then(r => r.ok ? r.json() : { results: [] });
+      const actionPromise = this.request(`/automation/v4/actions/${appId}`)
+          .then(r => r.ok ? r.json() : { results: [] })
+          .catch(e => { console.warn("Breeze Actions access denied (403). Missing automation scope."); return { results: [] }; });
 
       const [cardData, actionData] = await Promise.all([cardPromise, actionPromise]);
 
@@ -544,23 +597,30 @@ export class HubSpotService {
       
       const data = await response.json();
       console.log('🧩 Lists Search Raw:', data);
-      
-      const lists = data.lists || [];
+      const lists = data.results || data.lists || [];
       console.log('🧩 Lists Count:', lists.length);
       
       return lists.map((list: any) => {
          let score = 50;
-         const size = list.size || list.metaData?.size || list.memberCount || 0;
+         // Exhaustive check for list size across different API versions/responses
+         const size = list.membershipCount ?? 
+                      list.size ?? 
+                      list.metaData?.size ?? 
+                      list.memberCount ?? 
+                      list.metadata?.membershipCount ?? 
+                      list.totalRecords ?? 
+                      0;
+
          const name = list.name || 'Unnamed List';
          if (size > 0) score += 20;
          if (name.toLowerCase().includes('untitled')) score -= 30;
          
          return {
-           id: String(list.listId || list.id),
-           name: name,
-           contactCount: size,
-           isDynamic: list.processingType === 'DYNAMIC',
-           filters: [],
+            id: String(list.listId || list.id),
+            name: name,
+            contactCount: size,
+            isDynamic: list.processingType === 'DYNAMIC' || list.dynamic === true || list.listType === 'DYNAMIC',
+            filters: [],
             lastUpdated: list.updatedAt || list.createdAt,
             aiScore: Math.max(0, Math.min(100, score))
           };
@@ -929,37 +989,34 @@ export class HubSpotService {
     const daysSinceVisit = (now - lastVisit) / (1000 * 60 * 60 * 24);
     const daysSinceAct = (now - lastAct) / (1000 * 60 * 60 * 24);
     
-    // 1. TRASH
-    if (props.hs_email_bounce > 0 || (props.firstname || '').toLowerCase().includes('test')) return 'Trash';
+    // 1. TRASH (Bounces or obvious test accounts)
+    if (props.hs_email_bounce > 0 || (props.firstname || '').toLowerCase().includes('test') || (props.email || '').includes('example.com')) return 'Trash';
 
-    // 2. ACTIVE CLIENT
-    // Note: We use string includes because associated deals are often comma-separated IDs
+    // 2. ACTIVE CLIENT (HubSpot Customer Stage)
     if (props.lifecyclestage === 'customer') return 'Active Client';
-    // If we had deal object data we would check for Closed Won here too
 
-    // 3. REJECTED
-    if (props.hs_lead_status === 'Unqualified' || props.lifecyclestage === 'other') return 'Rejected';
+    // 3. REJECTED (Explicitly marked as other/rejected)
+    if (props.hs_lead_status === 'Rejected' || props.lifecyclestage === 'other') return 'Rejected';
 
-    // 4. PAST CLIENT
-    // Heuristic: Was a customer but no recent activity (simplified w/o deal history)
+    // 4. PAST CLIENT (Was customer but zero activity in >1 year)
     if (props.lifecyclestage === 'customer' && daysSinceAct > 365) return 'Past Client';
 
-    // 5. HOT
-    if (daysSinceVisit < 7 || (props.num_associated_deals > 0)) return 'Hot';
+    // 5. UNQUALIFIED (Explicitly disqualified)
+    if (props.hs_lead_status === 'Unqualified' || props.hs_lead_status === 'Bad Timing') return 'Unqualified';
 
-    // 6. NURTURE
-    if (daysSinceAct > 30 && daysSinceAct < 90) return 'Nurture';
+    // 6. HOT (Recent web visit OR active open deals)
+    if (daysSinceVisit < 14 || (Number(props.num_associated_deals) > 0)) return 'Hot';
 
-    // 7. WATCH
-    if (props.associatedcompanyid && daysSinceAct > 90) return 'Watch';
+    // 7. NEW (Created in last 7 days with no activity yet)
+    if (daysSinceCreate < 7 && daysSinceAct > daysSinceCreate) return 'New';
 
-    // 8. NEW
-    if (daysSinceCreate < 14) return 'New';
+    // 8. NURTURE (Engaged in the last 3 months, but not 'Hot')
+    if (daysSinceAct < 90) return 'Nurture';
 
-    // 9. UNQUALIFIED (Fallback for explicit status)
-    if (props.hs_lead_status === 'Bad Timing') return 'Unqualified';
+    // 9. WATCH (Old leads > 3 months since last touch)
+    if (daysSinceAct >= 90 || props.associatedcompanyid) return 'Watch';
 
-    return 'Unclassified';
+    return 'New'; 
   }
 
   public async scanContactOrganization(): Promise<{

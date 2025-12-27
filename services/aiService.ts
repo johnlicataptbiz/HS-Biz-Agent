@@ -1,5 +1,23 @@
 import { AiResponse, ChatResponse } from '../types';
 
+const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): Promise<Response> => {
+    try {
+        const response = await fetch(url, options);
+        if (response.status === 429 && retries > 0) {
+            console.warn(`Quota hit on client, retrying in ${2000 * (4 - retries)}ms...`);
+            await new Promise(r => setTimeout(r, 2000 * (4 - retries)));
+            return fetchWithRetry(url, options, retries - 1);
+        }
+        return response;
+    } catch (e) {
+        if (retries > 0) {
+            await new Promise(r => setTimeout(r, 2000));
+            return fetchWithRetry(url, options, retries - 1);
+        }
+        throw e;
+    }
+};
+
 /**
  * Calls the backend API to generate an optimization plan.
  */
@@ -11,7 +29,7 @@ export const generateOptimization = async (
   try {
     const accessToken = localStorage.getItem('hubspot_access_token');
 
-    const response = await fetch('/api/ai', {
+    const response = await fetchWithRetry('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -25,7 +43,6 @@ export const generateOptimization = async (
 
     if (!response.ok) {
         const errText = await response.text();
-        console.error(`AI Optimization Error (${response.status}):`, errText);
         throw new Error(`Server Error: ${response.status} - ${errText}`);
     }
 
@@ -33,17 +50,14 @@ export const generateOptimization = async (
     return data as AiResponse;
 
   } catch (error: any) {
-    console.error("AI Generation Error:", error);
-    
     const isQuota = error.message?.includes("429") || error.message?.includes("quota");
-    
     return {
       specType: 'workflow_spec',
       spec: { name: 'Error Fallback' },
       analysis: isQuota 
-        ? "QUOTA_EXCEEDED: The AI is taking a quick breath. Please wait about 60 seconds for the free tier limit to reset."
-        : "I encountered an error while processing your request. Please ensure the environment is configured correctly.",
-      diff: [isQuota ? "Wait 60 seconds" : "Retry Request"]
+        ? "The AI is currently processing high volume. Please give it 30 seconds to refresh."
+        : "I encountered an error. Please check your connection.",
+      diff: [isQuota ? "Retry in 30s" : "Check logs"]
     };
   }
 };
@@ -55,7 +69,7 @@ export const generateChatResponse = async (message: string): Promise<ChatRespons
   try {
     const accessToken = localStorage.getItem('hubspot_access_token');
     
-    const response = await fetch('/api/ai', {
+    const response = await fetchWithRetry('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -67,7 +81,6 @@ export const generateChatResponse = async (message: string): Promise<ChatRespons
 
     if (!response.ok) {
         const errText = await response.text();
-        console.error(`Chat Error (${response.status}):`, errText);
         throw new Error(`Server Error: ${response.status} - ${errText}`);
     }
 
@@ -75,15 +88,14 @@ export const generateChatResponse = async (message: string): Promise<ChatRespons
     return data as ChatResponse;
 
   } catch (error: any) {
-    console.error("Chat Error:", error);
-    if (error.message.includes("429")) {
+    if (error.message.includes("429") || error.message.includes("quota")) {
         return {
-            text: "QUOTA_EXCEEDED: The AI is taking a quick breath. Please wait about 60 seconds for the free tier limit to reset.",
-            suggestions: ["Retry in 1 minute"]
+            text: "The AI agent is managing tight rate limits. If this persists, try again in 30 seconds or refresh the page.",
+            suggestions: ["Retry", "Audit Data Health"]
         };
     }
     return {
-        text: "I'm having trouble connecting right now. Please check your connection or HubSpot token.",
+        text: "Connection lost. Please refresh or verify your HubSpot link.",
         suggestions: ["Retry"]
     };
   }

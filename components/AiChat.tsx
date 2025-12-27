@@ -110,19 +110,24 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
     }
   };
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text: string, isAutoRetry = false) => {
     if (!text.trim()) return;
 
-    setSuggestions([]);
-    const userMessage: Message = { id: Date.now().toString(), role: 'user', content: text };
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
+    if (!isAutoRetry) {
+        setSuggestions([]);
+        const userMessage: Message = { id: Date.now().toString(), role: 'user', content: text };
+        setMessages(prev => [...prev, userMessage]);
+        setInputValue('');
+    }
+    
     setIsTyping(true);
 
     try {
-      const aiData = await generateChatResponse(userMessage.content);
+      const aiData = await generateChatResponse(text);
       
-      // 1. Add the textual response
+      // If the response is a quota error but we haven't retried yet, the service handles it.
+      // But if it still comes back as "The AI is managing tight rate limits", we show a special UI.
+
       const botMessageId = (Date.now() + 1).toString();
       const botMessage: Message = {
         id: botMessageId,
@@ -132,52 +137,27 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
       setMessages(prev => [...prev, botMessage]);
       setSuggestions(aiData.suggestions || []);
 
-      // 2. Handle Tool Calls (The Agent Loop Simulation)
-      if (aiData.toolCalls && aiData.toolCalls.length > 0) {
-        for (const tool of aiData.toolCalls) {
-            const toolMsgId = (Date.now() + 2).toString();
-            try {
-                const result = await executeToolCall(tool.name, tool.arguments);
-                
-                // Construct a Tool Result Message
-                const toolMessage: Message = {
-                    id: toolMsgId,
-                    role: 'assistant',
-                    content: `Executed tool: ${tool.name}`,
-                    toolCallResult: {
-                        toolName: tool.name,
-                        status: 'success',
-                        dataSummary: `Retrieved ${result.count || 0} items successfully.`,
-                        rawData: result
-                    }
-                };
-                setMessages(prev => [...prev, toolMessage]);
-
-            } catch (e) {
-                const errorMessage: Message = {
-                    id: toolMsgId,
-                    role: 'assistant',
-                    content: `Failed to execute ${tool.name}`,
-                    toolCallResult: {
-                        toolName: tool.name,
-                        status: 'error',
-                        dataSummary: "Connection or API Error",
-                        rawData: { error: String(e) }
-                    }
-                };
-                setMessages(prev => [...prev, errorMessage]);
-            }
-        }
-      }
-
-      // 3. Handle UI Action (Modal Open)
+      // 2. Handle UI Action (Modal Open)
       if (aiData.action && onTriggerAction) {
         onTriggerAction(aiData.action);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      const isQuota = error.message?.includes("429") || error.message?.includes("quota");
+      
+      if (isQuota && !isAutoRetry) {
+          // Silent internal retry after 2 seconds
+          setTimeout(() => handleSend(text, true), 3000);
+          return;
+      }
+
       setSuggestions(["Retry"]);
+      setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: "System: I encountered a rate limit or connection issue. If you have a paid Gemini key, please add it in Settings to skip these limits."
+      }]);
     } finally {
       setIsTyping(false);
     }

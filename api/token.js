@@ -3,16 +3,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { code, redirect_uri, client_id } = req.body;
+  const { code, refresh_token, redirect_uri, client_id } = req.body;
 
   console.log("Token API called with:", { 
     hasCode: !!code, 
+    hasRefreshToken: !!refresh_token,
     redirect_uri, 
     provided_client_id: client_id 
   });
 
-  if (!code) {
-    return res.status(400).json({ error: 'Code is required' });
+  if (!code && !refresh_token) {
+    return res.status(400).json({ error: 'Code or refresh_token is required' });
   }
 
   // Determine which client ID to use (Default to Standard App if not provided)
@@ -37,20 +38,23 @@ export default async function handler(req, res) {
 
   console.log(`Using Client ID: ${clientId}`);
   console.log(`Secret Source: ${secretSource}`);
-  console.log(`Secret Length: ${clientSecret ? clientSecret.length : 0}`);
-  // Log first 3 chars of secret for debugging (safe)
-  console.log(`Secret Preview: ${clientSecret ? clientSecret.substring(0, 3) + '...' : 'NONE'}`);
 
   if (!clientId || !clientSecret) {
     return res.status(500).json({ error: 'HubSpot credentials not configured on server' });
   }
 
   const params = new URLSearchParams();
-  params.append('grant_type', 'authorization_code');
   params.append('client_id', clientId);
   params.append('client_secret', clientSecret);
-  params.append('redirect_uri', redirect_uri);
-  params.append('code', code);
+  
+  if (refresh_token) {
+      params.append('grant_type', 'refresh_token');
+      params.append('refresh_token', refresh_token);
+  } else {
+      params.append('grant_type', 'authorization_code');
+      params.append('redirect_uri', redirect_uri);
+      params.append('code', code);
+  }
 
   try {
     const response = await fetch('https://api.hubapi.com/oauth/v1/token', {
