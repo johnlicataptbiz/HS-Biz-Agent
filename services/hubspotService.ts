@@ -983,48 +983,93 @@ export class HubSpotService {
   
 
   // --- LEAD STATUS ENGINE ---
+  // Business Logic:
+  // - Active Client: MM member, CRM member, or Customer lifecycle stage (paying)
+  // - Past Client: Was in active stages but has left (no longer subscriber/customer)
+  // - New: Never communicated with us or hasn't told us their story
+  // - Unqualified: New leads that didn't communicate after 10 days, or unknown status
+  // - Hot: Will buy in 0-1 month (needs weekly follow up) - recent engagement
+  // - Nurture: Will buy in 1-3 months (needs monthly follow up)
+  // - Watch: Will buy in 3-12 months (needs quarterly follow up)
+  // - Rejected: Explicitly marked as rejected
+  // - Trash: Bounced emails, test accounts
 
   private classifyContact(props: any): LeadStatus {
     const now = Date.now();
     const created = new Date(props.createdate || 0).getTime();
     const lastVisit = props.hs_analytics_last_visit_timestamp ? Number(props.hs_analytics_last_visit_timestamp) : 0;
     const lastAct = props.notes_last_updated ? new Date(props.notes_last_updated).getTime() : 0;
+    const lastEmail = props.hs_email_last_open_date ? new Date(props.hs_email_last_open_date).getTime() : 0;
     
     const daysSinceCreate = (now - created) / (1000 * 60 * 60 * 24);
-    const daysSinceVisit = (now - lastVisit) / (1000 * 60 * 60 * 24);
-    const daysSinceAct = (now - lastAct) / (1000 * 60 * 60 * 24);
+    const daysSinceVisit = lastVisit ? (now - lastVisit) / (1000 * 60 * 60 * 24) : Infinity;
+    const daysSinceAct = lastAct ? (now - lastAct) / (1000 * 60 * 60 * 24) : Infinity;
+    const daysSinceEmail = lastEmail ? (now - lastEmail) / (1000 * 60 * 60 * 24) : Infinity;
     
-    // 1. TRASH (Bounces or obvious test accounts)
-    if (props.hs_email_bounce > 0 || (props.firstname || '').toLowerCase().includes('test') || (props.email || '').includes('example.com')) return 'Trash';
-
-    // Normalize lifecycle stage for comparison
+    // Most recent engagement across all channels
+    const daysSinceEngagement = Math.min(daysSinceVisit, daysSinceAct, daysSinceEmail);
+    const hasEverCommunicated = lastAct > 0 || lastEmail > 0 || lastVisit > 0;
+    
+    // Normalize lifecycle stage
     const stage = (props.lifecyclestage || '').toLowerCase();
     const activeClientStages = ['customer', 'subscriber', 'evangelist']; // MM member, CRM member, Customer
     
-    // 2. ACTIVE CLIENT - Only for specific lifecycle stages (MM member, CRM member, or Customer)
+    // 1. TRASH (Bounces or obvious test accounts)
+    if (props.hs_email_bounce > 0 || (props.firstname || '').toLowerCase().includes('test') || (props.email || '').includes('example.com')) {
+      return 'Trash';
+    }
+
+    // 2. ACTIVE CLIENT - Currently paying (MM member, CRM member, or Customer)
     if (activeClientStages.includes(stage)) {
-      // Check for Past Client: was in active stage but no activity in >1 year
-      if (daysSinceAct > 365) return 'Past Client';
       return 'Active Client';
     }
 
-    // 3. REJECTED (Explicitly marked as other/rejected)
-    if (props.hs_lead_status === 'Rejected' || stage === 'other') return 'Rejected';
+    // 3. PAST CLIENT - Was a customer/member but no longer (stage changed away from active)
+    // Detected by: lifecyclestage is 'lead' or 'opportunity' but they have historical engagement patterns
+    if ((stage === 'lead' || stage === 'opportunity' || stage === 'marketingqualifiedlead' || stage === 'salesqualifiedlead') 
+        && daysSinceCreate > 180 && hasEverCommunicated && daysSinceEngagement > 180) {
+      return 'Past Client';
+    }
 
-    // 5. UNQUALIFIED (Explicitly disqualified)
-    if (props.hs_lead_status === 'Unqualified' || props.hs_lead_status === 'Bad Timing') return 'Unqualified';
+    // 4. REJECTED (Explicitly marked)
+    if (props.hs_lead_status === 'Rejected' || stage === 'other') {
+      return 'Rejected';
+    }
 
-    // 6. HOT (Recent web visit OR active open deals)
-    if (daysSinceVisit < 14 || (Number(props.num_associated_deals) > 0)) return 'Hot';
+    // 5. UNQUALIFIED - New leads that didn't respond after 10 days, or we don't know their status
+    if (props.hs_lead_status === 'Unqualified' || props.hs_lead_status === 'Bad Timing') {
+      return 'Unqualified';
+    }
+    if (daysSinceCreate > 10 && !hasEverCommunicated) {
+      return 'Unqualified'; // No response after 10 days
+    }
 
-    // 7. NEW (Created in last 7 days with no activity yet)
-    if (daysSinceCreate < 7 && daysSinceAct > daysSinceCreate) return 'New';
+    // 6. NEW - Never communicated or just created
+    if (!hasEverCommunicated || daysSinceCreate <= 7) {
+      return 'New';
+    }
 
-    // 8. NURTURE (Engaged in the last 3 months, but not 'Hot')
-    if (daysSinceAct < 90) return 'Nurture';
+    // ENGAGED LEADS - Classify by sales velocity/timeline
+    // 7. HOT - Will buy in 0-1 month (weekly follow up needed)
+    // Recent engagement (within 30 days) OR has open deals
+    if (daysSinceEngagement < 30 || (Number(props.num_associated_deals) > 0)) {
+      return 'Hot';
+    }
 
-    // 9. WATCH (Old leads > 3 months since last touch)
-    if (daysSinceAct >= 90 || props.associatedcompanyid) return 'Watch';
+    // 8. NURTURE - Will buy in 1-3 months (monthly follow up needed)
+    if (daysSinceEngagement >= 30 && daysSinceEngagement < 90) {
+      return 'Nurture';
+    }
+
+    // 9. WATCH - Will buy in 3-12 months (quarterly follow up needed)
+    if (daysSinceEngagement >= 90 && daysSinceEngagement < 365) {
+      return 'Watch';
+    }
+
+    // Default: If engagement is >12 months old, treat as unqualified (stale)
+    if (daysSinceEngagement >= 365) {
+      return 'Unqualified';
+    }
 
     return 'New'; 
   }
@@ -1043,7 +1088,7 @@ export class HubSpotService {
         '/crm/v3/objects/contacts?limit=100&properties=' + 
         'lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status,' + 
         'hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated,' + 
-        'associatedcompanyid,firstname,email'
+        'associatedcompanyid,firstname,email,hs_email_last_open_date'
       );
       
       if (!response.ok) {
