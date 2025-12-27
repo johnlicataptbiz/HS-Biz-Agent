@@ -23,7 +23,7 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
  */
 export const generateOptimization = async (
   prompt: string,
-  contextType: 'workflow' | 'sequence' | 'data' | 'breeze_tool',
+  contextType: 'workflow' | 'sequence' | 'data' | 'breeze_tool' | 'segment_consolidation' | 'property_migration',
   contextId?: string
 ): Promise<AiResponse> => {
   try {

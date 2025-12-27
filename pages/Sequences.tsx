@@ -88,6 +88,7 @@ const Sequences: React.FC = () => {
             id="optimize-sequence-btn"
             onClick={() => setShowGeneralAi(true)}
             aria-label="Draft new persona with AI"
+            title="Draft New Persona"
             className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
           >
               <Sparkles size={18} />
@@ -202,18 +203,19 @@ const Sequences: React.FC = () => {
                </div>
 
                <div className="flex gap-4 pt-8 border-t border-white/5">
-                  <button 
+                   <button 
                     onClick={() => {
                       const reply = seq.replyRate ? `${(seq.replyRate * 100).toFixed(1)}%` : 'N/A';
                       const open = seq.openRate ? `${(seq.openRate * 100).toFixed(1)}%` : 'N/A';
                       setSequencePrompt(
-                        `Analyze sequence "${seq.name}" (reply rate: ${reply}, open rate: ${open}). ` +
-                        `Provide 3 specific improvements to increase replies and 2 subject-line or timing changes to improve opens. ` +
-                        `Return a sequence_spec with draft email templates (subject + body) in spec.json and a YAML version in spec.yaml. ` +
+                        `Analyze sequence "${seq.name}" (reply rate: ${reply}, open rate: ${open}). \n` +
+                        `Provide 3 specific improvements to increase replies and 2 subject-line or timing changes to improve opens. \n` +
+                        `Return a sequence_spec with draft email templates (subject + body) in spec.json and a YAML version in spec.yaml. \n` +
                         `If write actions are possible, include spec.apiCalls for HubSpot sequence updates.`
                       );
                       setSelectedSeq(seq);
                     }}
+                    title="Optimize sequence logic with AI"
                     className="flex-1 py-4 premium-gradient text-white text-[10px] font-extrabold uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-emerald-500/20 flex items-center justify-center gap-2"
                   >
                     <Sparkles size={14} />

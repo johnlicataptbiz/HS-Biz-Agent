@@ -7,7 +7,7 @@ import { AiResponse } from '../types';
 interface AiModalProps {
   isOpen: boolean;
   onClose: () => void;
-  contextType: 'workflow' | 'sequence' | 'data' | 'breeze_tool';
+  contextType: 'workflow' | 'sequence' | 'data' | 'breeze_tool' | 'segment_consolidation' | 'property_migration';
   contextId?: string;
   contextName?: string;
   initialPrompt?: string;
@@ -130,6 +130,18 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
         "Design an NPS Calculation tool",
         "Create a custom SMS reminder action",
         "Define inputs for a Revenue Forecast tool"
+      ],
+      segment_consolidation: [
+        "Find overlapping dynamic lists",
+        "Propose logic for a 'Master Newsletter' list",
+        "Identify inactive segments with no recent activity",
+        "Consolidate 'Import' lists into lifecycle stages"
+      ],
+      property_migration: [
+        "Map legacy fields to structured system properties",
+        "Identify data type mismatches in redundant fields",
+        "Propose logic for data backfilling during merge",
+        "Draft property group structure for audit"
       ]
     };
 

@@ -122,10 +122,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
             </div>
             <button 
               id="close-settings-btn"
-              onClick={onClose} 
-              className="p-3 text-slate-400 hover:text-white glass-button border-transparent hover:border-white/10 transition-all" 
+              onClick={onClose}
               title="Close Settings"
-              aria-label="Close settings"
+              className="p-3 text-slate-400 hover:text-white glass-button border-transparent transition-all"
             >
               <X size={20} />
             </button>
@@ -155,6 +154,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                   onClick={() => handleConnect(false)}
                   disabled={connectionStatus === 'checking'}
                   aria-label="Connect using Standard Optimizer OAuth"
+                  title="Connect using Standard Optimizer OAuth"
                   className="w-full py-6 px-8 premium-gradient text-white rounded-3xl font-extrabold uppercase tracking-[0.2em] text-sm shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all flex flex-col items-center justify-center gap-2 group"
                 >
                   <div className="flex items-center gap-4">
@@ -169,6 +169,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                   onClick={() => handleConnect(true)}
                   disabled={connectionStatus === 'checking'}
                   aria-label="Force User-Level Auth using MCP"
+                  title="Force User-Level Auth using MCP"
                   className="w-full py-5 px-8 glass-button border-indigo-500/30 text-indigo-300 rounded-3xl font-extrabold uppercase tracking-[0.2em] text-[10px] hover:bg-indigo-500/10 transition-all flex flex-col items-center justify-center gap-2 group"
                 >
                   <div className="flex items-center gap-4">
@@ -241,7 +242,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
             <button 
               id="toggle-diagnostics-btn"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              aria-expanded={showAdvanced}
+              aria-expanded={showAdvanced ? "true" : "false"}
               aria-controls="diagnostics-panel"
               className="text-[10px] font-extrabold text-slate-400 hover:text-slate-200 uppercase tracking-[0.2em] transition-colors mx-auto block"
             >
@@ -249,7 +250,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
             </button>
             
             {showAdvanced && (
-              <div className="space-y-6 animate-in fade-in duration-500">
+              <div id="diagnostics-panel" className="space-y-6 animate-in fade-in duration-500">
                 {/* Metadata Section for MCP Inspector */}
                 <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl space-y-4">
                   <div className="flex items-center gap-2 mb-2">

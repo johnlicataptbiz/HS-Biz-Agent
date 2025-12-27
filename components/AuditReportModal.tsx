@@ -55,7 +55,13 @@ const AuditReportModal: React.FC<AuditReportModalProps> = ({ isOpen, onClose, on
 
     return createPortal(
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
-            <div className="absolute inset-0 bg-[#020617]/80 backdrop-blur-md transition-opacity duration-500" onClick={onClose}></div>
+            <div 
+                className="absolute inset-0 bg-[#020617]/80 backdrop-blur-md transition-opacity duration-500" 
+                onClick={onClose}
+                role="button"
+                aria-label="Close Modal"
+                title="Close modal"
+            ></div>
 
             <div className="relative glass-card border-white/10 w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-300 shadow-[0_0_100px_rgba(79,70,229,0.2)] max-h-[90vh] flex flex-col">
                 <div className="premium-gradient h-1.5 w-full shrink-0" />
@@ -77,6 +83,7 @@ const AuditReportModal: React.FC<AuditReportModalProps> = ({ isOpen, onClose, on
                     </div>
                     <button 
                         onClick={onClose}
+                        title="Close Audit Report"
                         className="p-3 text-slate-400 hover:text-white glass-button border-transparent transition-all"
                     >
                         <X size={20} />

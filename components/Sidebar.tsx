@@ -94,17 +94,25 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
             </div>
         </div>
         
-        <div className="p-4 border-t border-white/5">
-        <div className="p-4 border-t border-white/5 flex gap-2">
-           <button className="flex-1 py-3 px-4 glass-button rounded-xl flex items-center justify-center gap-2 group transition-all hover:bg-white/5 text-slate-400 hover:text-white" onClick={onSettingsClick} title="Settings">
+      <div className="p-6 border-t border-white/5 space-y-4">
+        <div className="flex gap-2">
+           <button 
+             className="flex-1 py-3 px-4 glass-button rounded-2xl flex items-center justify-center gap-2 group transition-all hover:bg-white/5 text-slate-400 hover:text-white border-white/5" 
+             onClick={onSettingsClick} 
+             title="Settings"
+           >
               <SettingsIcon size={16} className="group-hover:rotate-90 transition-transform duration-500" />
            </button>
-           <button className="flex-1 py-3 px-4 glass-button rounded-xl flex items-center justify-center gap-2 group transition-all hover:bg-white/5 text-slate-400 hover:text-white" onClick={onTourClick} title="Replay Tour">
-              <span className="text-xs font-bold uppercase tracking-widest">Help</span>
+           <button 
+             className="flex-1 py-3 px-4 glass-button rounded-2xl flex items-center justify-center gap-2 group transition-all hover:bg-white/5 text-slate-400 hover:text-white border-white/5" 
+             onClick={onTourClick} 
+             title="Replay Tour"
+           >
+              <span className="text-[10px] font-black uppercase tracking-widest">Guide</span>
            </button>
         </div>
         <div className="text-center">
-            <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">v2.5 (Org Engine)</p>
+            <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Operator Console v2.5</p>
         </div>
       </div>
       </div>

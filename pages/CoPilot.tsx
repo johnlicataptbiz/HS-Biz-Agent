@@ -53,7 +53,11 @@ const CoPilot: React.FC = () => {
                 color: "purple" 
             }
         ].map((action, i) => (
-            <button key={i} className="glass-card text-left p-10 group relative overflow-hidden transition-all duration-500 hover:-translate-y-2 border-white/5 hover:border-indigo-500/30">
+            <button 
+                key={i} 
+                className="glass-card text-left p-10 group relative overflow-hidden transition-all duration-500 hover:-translate-y-2 border-white/5 hover:border-indigo-500/30"
+                title={`Initialize ${action.title} Module`}
+            >
                 <div className={`absolute -right-10 -top-10 w-40 h-40 bg-${action.color}-500/5 rounded-full blur-[80px] group-hover:bg-${action.color}-500/10 transition-colors`}></div>
                 
                 <div className="flex items-center justify-between mb-8 relative z-10">

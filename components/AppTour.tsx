@@ -18,75 +18,63 @@ interface AppTourProps {
 
 const TOUR_STEPS: TourStep[] = [
   {
-    targetId: 'center-screen', // specialized handling
-    title: 'Welcome to AI Optimizer',
-    description: 'Your intelligent command center for HubSpot revenue architecture. Let\'s get you oriented.',
+    targetId: 'center-screen',
+    title: 'High-Velocity Ops',
+    description: 'Welcome. I am Antigravity. This isn\'t just a dashboard—it\'s a command center for Revenue Architecture. Let\'s deploy.',
     position: 'center'
   },
   {
-    targetId: 'sidebar-container',
-    title: 'Command Center',
-    description: 'Navigate between your key revenue engines: Workflows, Campaigns, and the new Journey Map.',
+    targetId: 'connection-status',
+    title: 'Live Portal Link',
+    description: 'We maintain a neural link with your HubSpot portal. Red means friction; Green means we are ready to scale.',
     position: 'right'
   },
   {
-    targetId: 'connection-status',
-    title: 'Live Neural Link',
-    description: 'Real-time sync status with your HubSpot portal. We monitor api limits and data health.',
-    position: 'right'
+    targetId: 'launch-audit-btn', // Dashboard audit button
+    title: 'Deterministic Audit',
+    description: 'Skip the AI guesswork. Click here to run hardcoded scripts that find ghost workflows and data decay instantly.',
+    position: 'bottom',
+    route: 'dashboard'
+  },
+  {
+    targetId: 'stat-revenue-risk', // Revenue at Risk card
+    title: 'Revenue Guardrails',
+    description: 'We track exactly how much capital is sitting in stalled deal stages. Our target is zero leakage.',
+    position: 'bottom',
+    route: 'dashboard'
   },
   {
     targetId: 'nav-link-journey',
     title: 'Revenue Journey',
-    description: 'Visualize your entire customer path. Identify leakage from Cold Contact to Closed Deal.',
+    description: 'Visualize the physical flow of leads. From Cold Contact to Closed Won—we identify where the system breaks.',
     position: 'right',
-    route: 'dashboard'
-  },
-  {
-    targetId: 'draft-workflow-btn',
-    title: 'Workflow Audit',
-    description: 'Identify ghost workflows and redundant enrollments. Let the AI optimize your automation logic.',
-    position: 'bottom',
-    route: 'workflows'
-  },
-  {
-    targetId: 'optimize-sequence-btn',
-    title: 'Sequence Intelligence',
-    description: 'Analyze reply rates and sentiment. The AI can rewrite steps to improve conversion.',
-    position: 'bottom',
-    route: 'sequences'
+    route: 'journey'
   },
   {
     targetId: 'clean-up-contacts-btn',
-    title: 'Data Hygiene',
-    description: 'Find duplicates and unclassified records. Execute bulk cleanups with confidence.',
+    title: 'Database Intelligence',
+    description: 'Our 9-point classification engine labels your messy database into actionable statuses like Hot, Nurture, and Watch.',
     position: 'bottom',
     route: 'contacts'
   },
   {
     targetId: 'run-audit-btn',
     title: 'Schema Architecture',
-    description: 'Visualize your entire data model. Identify unused properties and structural debt.',
+    description: 'Map your portal\'s DNA. We identify redundant properties and technical debt before it slows you down.',
     position: 'bottom',
     route: 'datamodel'
   },
   {
     targetId: 'draft-tool-btn',
-    title: 'Breeze Tools',
-    description: 'Extend HubSpot with custom UI cards. The AI drafts the React/Node.js code for you.',
+    title: 'Edge Extensions',
+    description: 'Extend HubSpot via Breeze. We draft custom CRM cards and serverless logic to solve your specific niche problems.',
     position: 'bottom',
     route: 'breezetools'
   },
   {
-    targetId: 'global-search-btn',
-    title: 'Heuristic Search',
-    description: 'Quickly find specific automations, contacts, or logic gaps using semantic search.',
-    position: 'bottom'
-  },
-  {
     targetId: 'ai-chat-trigger',
-    title: 'AI Co-Pilot',
-    description: 'Your 24/7 Analyst. Ask it to audit workflows, draft plans, or fix data issues instantly.',
+    title: 'Strategic Co-Pilot',
+    description: 'Need a tactical plan? Your AI Operator is ready. It doesn\'t just chat—it drafts executable API blueprints.',
     position: 'left'
   }
 ];
@@ -294,7 +282,7 @@ const AppTour: React.FC<AppTourProps> = ({ isOpen, onClose, onComplete, onNaviga
                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
                        <BrainCircuit size={20} />
                    </div>
-                   <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+                   <button onClick={onClose} title="Dismiss Tour" className="text-slate-500 hover:text-white transition-colors">
                        <X size={16} />
                    </button>
                </div>

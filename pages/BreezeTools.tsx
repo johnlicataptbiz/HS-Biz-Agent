@@ -151,7 +151,7 @@ const BreezeTools: React.FC = () => {
                     <Code size={14} />
                     Inspect JSON
                 </button>
-                <button className="flex-1 py-4 glass-button border-purple-500/20 text-white hover:bg-purple-500/10 uppercase tracking-widest text-[10px] font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg hover:shadow-purple-500/5">
+                <button className="flex-1 py-4 glass-button border-purple-500/20 text-white hover:bg-purple-500/10 uppercase tracking-widest text-[10px] font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg hover:shadow-purple-500/5" title="Refine Tool with AI">
                     <Sparkles size={14} className="text-purple-400" />
                     Refine Tool
                 </button>
@@ -161,6 +161,7 @@ const BreezeTools: React.FC = () => {
 
         <button 
             onClick={handleOpenDraft}
+            title="Draft new edge logic with AI"
             className="group glass-card p-12 flex flex-col items-center justify-center text-center space-y-6 hover:border-purple-500/30 hover:bg-purple-500/5 transition-all h-[400px]"
         >
             <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:bg-purple-500/20 transition-all border border-white/10 group-hover:border-purple-500/30">

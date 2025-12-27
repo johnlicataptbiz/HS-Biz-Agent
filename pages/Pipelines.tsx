@@ -7,6 +7,7 @@ import AiModal from '../components/AiModal';
 const Pipelines: React.FC = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [deals, setDeals] = useState<any[]>([]);
   const [leadStatusBreakdown, setLeadStatusBreakdown] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -26,13 +27,15 @@ const Pipelines: React.FC = () => {
     
     if (validation.success) {
       try {
-        const [pipelineData, leadData, contactScan] = await Promise.all([
+        const [pipelineData, leadData, dealData, contactScan] = await Promise.all([
             hubSpotService.fetchPipelines('deals'),
             hubSpotService.fetchLeads(),
+            hubSpotService.fetchDeals(),
             hubSpotService.scanContactOrganization()
         ]);
         setPipelines(pipelineData);
         setLeads(leadData);
+        setDeals(dealData);
         setLeadStatusBreakdown(contactScan.statusBreakdown as any);
       } catch (e) {
         console.error("Journey fetch error:", e);
@@ -84,6 +87,7 @@ const Pipelines: React.FC = () => {
                 );
                 setShowAi(true);
             }}
+            title="Audit Revenue Flow"
             className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
           >
               <Sparkles size={18} />
@@ -179,23 +183,50 @@ const Pipelines: React.FC = () => {
                      <h3 className="text-2xl font-bold text-white mb-1">Deal Pipelines</h3>
                      <p className="text-slate-400 text-sm mb-6">Revenue opportunities in flight</p>
 
-                     <div className="mt-auto overflow-y-auto max-h-[200px] pr-2 space-y-2 scrollbar-thin scrollbar-thumb-white/10">
-                        {pipelines.length === 0 ? (
-                            <div className="text-center p-4 border border-dashed border-white/10 rounded-lg text-slate-500 text-xs">No Deployment</div>
-                        ) : pipelines.map(p => (
-                            <div key={p.id} className="bg-white/5 p-3 rounded-lg">
-                                <div className="flex justify-between mb-2">
-                                    <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider">{p.label}</span>
-                                    <span className="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">{p.stages.length} Stages</span>
+                      <div className="mt-auto overflow-y-auto max-h-[300px] pr-2 space-y-3 scrollbar-thin scrollbar-thumb-white/10">
+                         {pipelines.length === 0 ? (
+                             <div className="text-center p-4 border border-dashed border-white/10 rounded-lg text-slate-500 text-xs">No Deployment</div>
+                         ) : pipelines.map(p => {
+                            const pipelineDeals = deals.filter(d => d.pipeline === p.id);
+                            const totalAmount = pipelineDeals.reduce((acc, d) => acc + (d.amount || 0), 0);
+                            
+                            return (
+                                <div key={p.id} className="bg-white/5 p-4 rounded-2xl border border-white/5 hover:border-indigo-500/20 transition-all">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div>
+                                            <span className="text-xs font-black text-white uppercase tracking-wider">{p.label}</span>
+                                            <p className="text-[10px] text-slate-500 font-bold mt-0.5">${(totalAmount / 1000).toFixed(1)}k Pipeline Value</p>
+                                        </div>
+                                        <span className="text-[10px] bg-slate-800 px-2 py-1 rounded-lg text-indigo-400 font-bold border border-white/5">{p.stages.length} Nodes</span>
+                                    </div>
+                                    <div className="flex gap-1.5 h-3 w-full">
+                                        {p.stages.map((s) => {
+                                            const stageDeals = pipelineDeals.filter(d => d.stage === s.id);
+                                            const stageAmount = stageDeals.reduce((acc, d) => acc + (d.amount || 0), 0);
+                                            const intensity = totalAmount > 0 ? (stageAmount / totalAmount) : 0;
+                                            
+                                            return (
+                                                <div 
+                                                    key={s.id} 
+                                                    className="h-full rounded-full transition-all group/node relative" 
+                                                    style={{ 
+                                                        flex: 1,
+                                                        backgroundColor: intensity > 0.4 ? '#f43f5e' : (intensity > 0.1 ? '#fbbf24' : '#10b981'),
+                                                        opacity: 0.3 + (intensity * 0.7),
+                                                        boxShadow: intensity > 0.5 ? '0 0 10px rgba(244,63,94,0.3)' : 'none'
+                                                    }}
+                                                >
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 border border-white/10 rounded text-[8px] font-bold text-white opacity-0 group-hover/node:opacity-100 whitespace-nowrap z-50 transition-opacity">
+                                                        {s.label}: ${Math.round(stageAmount/1000)}k
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                                <div className="flex gap-1 h-1.5 w-full">
-                                    {p.stages.map((s, i) => (
-                                        <div key={s.id} className="h-full rounded-full bg-emerald-500" style={{ opacity: 0.2 + ((i+1)/p.stages.length * 0.8), flex: 1 }}></div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                     </div>
+                            );
+                         })}
+                      </div>
                 </div>
             </div>
 

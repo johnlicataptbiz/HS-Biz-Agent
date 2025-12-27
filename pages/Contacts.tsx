@@ -23,6 +23,7 @@ const Contacts: React.FC = () => {
   const [intelContacts, setIntelContacts] = useState<IntelligenceContact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [isConsolidating, setIsConsolidating] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [showAi, setShowAi] = useState(false);
   const [showListAi, setShowListAi] = useState(false);
@@ -105,12 +106,14 @@ const Contacts: React.FC = () => {
              <button 
                onClick={() => setView('funnel')}
                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${view === 'funnel' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+               title="Funnel View"
              >
                 <Layers size={14} /> Funnel
              </button>
              <button 
                onClick={() => setView('list')}
                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${view === 'list' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+               title="Contact List View"
              >
                 <Users size={14} /> Contacts
              </button>
@@ -118,6 +121,7 @@ const Contacts: React.FC = () => {
           <button 
             onClick={executeBulkLabeling}
             disabled={isExecuting || !isConnected}
+            title="Apply intelligence labels to HubSpot"
             className={`px-8 py-3 rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl flex items-center gap-2 ${
                 isExecuting ? 'bg-slate-700 text-slate-400' : 'premium-gradient text-white shadow-indigo-500/20'
             }`}
@@ -156,7 +160,11 @@ const Contacts: React.FC = () => {
                { id: 'Trash', color: 'bg-gray-700', icon: Trash2 },
                { id: 'Unclassified', color: 'bg-slate-800', icon: AlertCircle, border: true }
              ].map((status: any) => (
-                <div key={status.id} className={`glass-card p-5 relative overflow-hidden group hover:-translate-y-1 transition-all ${status.border ? 'border-dashed border-slate-600' : ''}`}>
+                <div 
+                  key={status.id} 
+                  className={`glass-card p-5 relative overflow-hidden group hover:-translate-y-1 transition-all ${status.border ? 'border-dashed border-slate-600' : ''}`}
+                  title={`View ${status.id} contacts`}
+                >
                    {status.pulse && <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>}
                    <div className="flex justify-between items-start mb-3">
                       <div className={`p-2.5 rounded-xl ${status.color} bg-opacity-20 text-white`}>
@@ -177,6 +185,25 @@ const Contacts: React.FC = () => {
                  <List className="text-indigo-400" />
                  Active Segments
               </h2>
+              <button 
+                onClick={() => {
+                    const sample = segments.slice(0, 10).map(s => `${s.name} (${s.contactCount})`).join(', ');
+                    setListPrompt(
+                        `Analyze these HubSpot lists for redundancy and consolidation:\n\n` +
+                        `LISTS: ${sample}\n\n` +
+                        `INSTRUCTIONS:\n` +
+                        `1. Identify which lists likely have significant overlap (e.g. 'Newsletter' vs 'Blog Subs').\n` +
+                        `2. Propose a 'Master List' architecture.\n` +
+                        `3. Provide a 'merge_spec' in JSON if possible.`
+                    );
+                    setShowListAi(true);
+                }}
+                className="px-4 py-2 glass-button border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500/10 flex items-center gap-2"
+                title="Run list consolidation analysis"
+              >
+                  <Sparkles size={14} />
+                  Analyze Segments
+              </button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -289,6 +316,14 @@ const Contacts: React.FC = () => {
         onClose={() => setShowAi(false)} 
         contextType="workflow"
         contextName="Contact Organization"
+      />
+
+      <AiModal 
+        isOpen={showListAi} 
+        onClose={() => setShowListAi(false)} 
+        contextType="segment_consolidation"
+        contextName="Segment Intelligence"
+        initialPrompt={listPrompt}
       />
     </div>
   );

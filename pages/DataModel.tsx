@@ -14,6 +14,7 @@ const DataModel: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [auditPrompt, setAuditPrompt] = useState('');
+  const [isRemediating, setIsRemediating] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -40,6 +41,36 @@ const DataModel: React.FC = () => {
     }
     setIsLoading(false);
   };
+
+  const handleArchive = async (propName: string) => {
+    if (!window.confirm(`Are you sure you want to ARCHIVE the property '${propName}'? This action cannot be easily undone via API.`)) return;
+    
+    setIsRemediating(propName);
+    try {
+        const token = localStorage.getItem('hubspot_access_token');
+        const resp = await fetch('/api/remediate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'archive-property',
+                hubspotToken: token,
+                payload: { propertyName: propName }
+            })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            alert(data.message);
+            await loadData();
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (e) {
+        alert("Remediation failed.");
+    } finally {
+        setIsRemediating(null);
+    }
+  };
+
   const filteredProperties = properties.filter(p => 
     p.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -220,10 +251,20 @@ const DataModel: React.FC = () => {
                             </td>
                             <td className="px-8 py-6 text-right">
                                 {prop.redundant ? (
-                                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400 text-[10px] font-extrabold uppercase tracking-widest border border-rose-500/20 shadow-lg shadow-rose-500/5">
-                                        <AlertOctagon size={14} />
-                                        REDUNDANT ARCHITECTURE
-                                    </span>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400 text-[10px] font-extrabold uppercase tracking-widest border border-rose-500/20 shadow-lg shadow-rose-500/5">
+                                            <AlertOctagon size={14} />
+                                            REDUNDANT ARCHITECTURE
+                                        </span>
+                                        <button 
+                                            onClick={() => handleArchive(prop.name)}
+                                            disabled={isRemediating === prop.name}
+                                            className="text-[10px] font-black text-rose-500 hover:text-rose-400 uppercase tracking-widest flex items-center gap-1 group/btn"
+                                        >
+                                            {isRemediating === prop.name ? <RefreshCw size={10} className="animate-spin" /> : <RefreshCw size={10} className="group-hover/btn:rotate-180 transition-transform" />}
+                                            Execute Archive
+                                        </button>
+                                    </div>
                                 ) : (
                                     <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-500/10 text-slate-400 text-[10px] font-extrabold uppercase tracking-widest border border-white/5">
                                         ANALYZED NODE

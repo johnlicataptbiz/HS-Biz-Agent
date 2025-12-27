@@ -25,6 +25,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [auditPrompt, setAuditPrompt] = useState('');
+  const [isHealing, setIsHealing] = useState(false);
 
   // ... (keep previous loadData logic)
 
@@ -186,7 +187,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </span>
             </div>
             <button 
-              id="generate-audit-btn"
+              id="launch-audit-btn"
               className="glass-button px-6 py-3 text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all" 
               title="Generate Audit"
               aria-label="Generate deep audit"
@@ -203,6 +204,42 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <Sparkles size={16} className="text-indigo-400" />
                 Generate Deep Audit
             </button>
+            <button 
+              onClick={async () => {
+                if (!window.confirm("This will automatically pause all active workflows with zero enrollments (Ghost Workflows) to optimize API usage. Proceed?")) return;
+                setIsHealing(true);
+                try {
+                    const token = localStorage.getItem('hubspot_access_token');
+                    const ghosts = metrics.workflows.filter((w: any) => w.enabled && (w.enrolledCount || 0) === 0);
+                    const resp = await fetch('/api/remediate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'pause-ghosts',
+                            hubspotToken: token,
+                            payload: { workflowIds: ghosts.map(g => g.id) }
+                        })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        alert(`Self-Heal Complete: Paused ${data.processed} ghost workflows.`);
+                        window.location.reload(); 
+                    }
+                } catch (e) {
+                    alert("Self-healing failed.");
+                } finally {
+                    setIsHealing(false);
+                }
+              }}
+              disabled={isHealing || !isConnected}
+              className={`px-6 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 transition-all border ${
+                isHealing ? 'bg-slate-800 text-slate-500 border-white/5' : 'glass-button border-rose-500/20 text-rose-400 hover:bg-rose-500/10'
+              }`}
+              title="Pause Ghost Workflows"
+            >
+                {isHealing ? <RefreshCw size={16} className="animate-spin" /> : <ShieldAlert size={16} />}
+                {isHealing ? 'Healing...' : 'Self-Heal Portal'}
+            </button>
         </div>
       </div>
 
@@ -216,14 +253,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           colorClass="bg-indigo-400" 
           gradient="bg-indigo-500"
         />
-        <StatCard 
-          title="Revenue at Risk" 
-          value={isConnected && !loading ? `$${(metrics.deals.reduce((acc: number, d: any) => acc + d.amount, 0) / 1000).toFixed(1)}k` : "$0"} 
-          sub={isConnected && !loading ? `${metrics.deals.length} Stalled Opportunities` : "Pipeline Scan Inactive"} 
-          icon={TrendingUp} 
-          colorClass="bg-rose-400" 
-          gradient="bg-rose-500"
-        />
+        <div id="stat-revenue-risk">
+            <StatCard 
+                title="Revenue at Risk" 
+                value={isConnected && !loading ? `$${(metrics.deals.reduce((acc: number, d: any) => acc + d.amount, 0) / 1000).toFixed(1)}k` : "$0"} 
+                sub={isConnected && !loading ? `${metrics.deals.length} Stalled Opportunities` : "Pipeline Scan Inactive"} 
+                icon={TrendingUp} 
+                colorClass="bg-rose-400" 
+                gradient="bg-rose-500"
+            />
+        </div>
         <StatCard 
           title="Active Automations" 
           value={isConnected && !loading ? activeWorkflows : "0"} 

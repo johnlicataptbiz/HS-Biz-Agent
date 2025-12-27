@@ -50,13 +50,29 @@ exports.main = async (context = {}) => {
         riskFactors.push("No Website URL");
     }
 
-    // 3. Return Real Analysis
+    // 3. Call our AI Workforce for Strategic Intelligence
+    const aiResp = await axios.post('https://hubspot-ai-optimizer-murex.vercel.app/api/vibe-ai', {
+        contact: {
+            firstname: props.firstname,
+            lastname: props.lastname,
+            jobtitle: props.jobtitle,
+            company: props.company,
+            website: props.website,
+            lifecyclestage: props.lifecyclestage
+        }
+    });
+
+    const aiData = aiResp.data;
+
+    // 4. Return Augmented Analysis
     return {
-      vibeScore: Math.min(100, Math.max(0, score)),
-      fitType: score > 75 ? "High Fit" : (score > 50 ? "Medium Fit" : "Low Fit"),
-      summary: `Analyzed ${props.firstname || 'Contact'}. ${opportunities.length > 0 ? 'Strong alignment via ' + opportunities.join(', ') : 'Standard profile'}.`,
-      riskFactors: riskFactors,
-      conversationStarters: [
+      vibeScore: aiData.vibeScore || score,
+      persona: aiData.persona || "Standard Profile",
+      fitType: aiData.vibeScore > 75 ? "High Fit" : (aiData.vibeScore > 50 ? "Medium Fit" : "Low Fit"),
+      summary: aiData.summary,
+      strategicAdvice: aiData.strategicAdvice,
+      riskFactors: aiData.riskFactors || riskFactors,
+      conversationStarters: aiData.conversationStarters || [
           `Reference their role as ${props.jobtitle}`,
           props.company ? `Ask about current initiatives at ${props.company}` : `Ask about their company goals`
       ]

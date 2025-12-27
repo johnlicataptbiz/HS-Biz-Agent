@@ -36,17 +36,17 @@ const App: React.FC = () => {
   }, [activeTab]);
 
   useEffect(() => {
-      // Check for first-time user tour
-      const hasSeenTour = localStorage.getItem('has_seen_app_tour_v1');
+      // Check for first-time user tour (Intelligence Engine version)
+      const hasSeenTour = localStorage.getItem('has_seen_tour_intel_v2');
       if (!hasSeenTour) {
-          // Slight delay to ensure DOM is ready
+          // Slight delay to ensure DOM is ready and page-state is stable
           setTimeout(() => setIsTourOpen(true), 1500);
       }
   }, []);
 
-  const handleTourComplete = () => {
+  const handleTourDismiss = () => {
       setIsTourOpen(false);
-      localStorage.setItem('has_seen_app_tour_v1', 'true');
+      localStorage.setItem('has_seen_tour_intel_v2', 'true');
   };
   const [globalModal, setGlobalModal] = useState<GlobalModalState>({
     isOpen: false,
@@ -192,7 +192,7 @@ const App: React.FC = () => {
             </div>
         </header>
 
-        <main id="main-content" className="p-10 flex-1 overflow-x-hidden" aria-labelledby="active-tab-heading">
+        <main id="main-content" className="p-10 flex-1 overflow-x-hidden" aria-labelledby="active-tab-heading" role="main">
           <Suspense fallback={
             <div className="h-full w-full flex items-center justify-center">
               <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
@@ -223,8 +223,8 @@ const App: React.FC = () => {
 
       <AppTour 
         isOpen={isTourOpen}
-        onClose={() => setIsTourOpen(false)}
-        onComplete={handleTourComplete}
+        onClose={handleTourDismiss}
+        onComplete={handleTourDismiss}
         onNavigate={setActiveTab}
       />
     </div>

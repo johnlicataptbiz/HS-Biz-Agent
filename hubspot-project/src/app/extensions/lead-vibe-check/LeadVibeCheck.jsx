@@ -46,36 +46,62 @@ const LeadVibeCheck = ({ context, runServerless, sendAlert }) => {
     );
   }
 
-  const { vibeScore, summary, riskFactors, fitType } = data || {};
+  const { vibeScore, persona, summary, strategicAdvice, riskFactors, conversationStarters } = data || {};
 
   return (
     <Flex direction="column" gap="md">
-      <Flex justify="between" align="center">
-          <Text format={{ fontWeight: "bold" }}>Fit Score</Text>
-          <Tag variant={vibeScore > 80 ? "success" : (vibeScore > 50 ? "warning" : "danger")}>
-             {vibeScore}/100
-          </Tag>
-      </Flex>
+      <Box variant="card" padding="md">
+        <Flex justify="between" align="center">
+            <Text format={{ fontWeight: "bold", fontSize: "small" }} variant="microcopy" uppercase>Fit Persona</Text>
+            <Tag variant={vibeScore > 80 ? "success" : (vibeScore > 50 ? "warning" : "danger")}>
+               {vibeScore}/100
+            </Tag>
+        </Flex>
+        <Text variant="title" format={{ fontSize: "large", fontWeight: "bold" }}>{persona || "Analyzing..."}</Text>
+      </Box>
       
       <Box>
-         <Text>{summary}</Text>
+         <Text format={{ italic: true }}>"{summary}"</Text>
       </Box>
 
       <Divider />
 
-      <Text format={{ fontWeight: "bold" }}>Risk Factors</Text>
-      <Flex direction="column" gap="sm">
+      <Box>
+        <Text format={{ fontWeight: "bold" }} variant="microcopy" uppercase>Strategic Advice</Text>
+        <Alert variant="info" title="Expert Tactic">
+            {strategicAdvice}
+        </Alert>
+      </Box>
+
+      <Box>
+        <Text format={{ fontWeight: "bold" }} variant="microcopy" uppercase>Conversation Starters</Text>
+        <Flex direction="column" gap="xs">
+            {conversationStarters && conversationStarters.map((starter, idx) => (
+                <Text key={idx} variant="microcopy">• {starter}</Text>
+            ))}
+        </Flex>
+      </Box>
+
+      <Divider />
+
+      <Text format={{ fontWeight: "bold" }} variant="microcopy" uppercase>Risk Factors</Text>
+      <Flex direction="row" gap="sm" wrap="wrap">
           {riskFactors && riskFactors.map((risk, idx) => (
-              <Tag key={idx} variant="info">{risk}</Tag>
+              <Tag key={idx} variant="error">{risk}</Tag>
           ))}
           {!riskFactors?.length && <Text>No major risks detected.</Text>}
       </Flex>
       
       <Flex justify="end">
-         <Button onClick={() => sendAlert({ message: "Note saved to timeline!", type: "success" })}>
+         <Button 
+            variant="primary"
+            onClick={() => sendAlert({ message: "Strategic analysis synced to timeline.", type: "success" })}
+         >
             Save Analysis
          </Button>
       </Flex>
     </Flex>
   );
 };
+
+export default LeadVibeCheck;
