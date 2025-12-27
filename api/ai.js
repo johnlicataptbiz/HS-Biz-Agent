@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-const MODEL_NAME = 'gemini-1.5-flash-latest';
+const MODEL_NAME = 'gemini-1.5-flash';
 const GENERATION_CONFIG = {
     temperature: 0.2,
     topP: 0.95,
