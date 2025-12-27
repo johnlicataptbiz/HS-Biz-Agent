@@ -357,10 +357,10 @@ export class HubSpotService {
     try {
       console.log('🧩 Fetching all sequences for portal audit...');
       
-      // Try V4 broad fetch first
-      let response = await this.request('/automation/v4/sequences?limit=100');
+      // Try V4 broad fetch first - requesting common properties
+      let response = await this.request('/automation/v4/sequences?limit=100&properties=name,active,stepCount,replyRate,openRate,state');
       
-      // If V4 broad fails, try V3 which is often more permissive for list-all
+      // If V4 broad fails, try V3
       if (!response.ok) {
         console.log('🧩 V4 broad fetch failed, trying V3...');
         response = await this.request('/automation/v3/sequences?limit=100');
@@ -371,7 +371,7 @@ export class HubSpotService {
         const userId = await this.getCurrentUserId();
         if (userId) {
           console.log('🧩 Trying user-specific V4 sequences for:', userId);
-          response = await this.request(`/automation/v4/sequences?userId=${userId}`);
+          response = await this.request(`/automation/v4/sequences?userId=${userId}&properties=name,active,stepCount,replyRate,openRate,state`);
         }
       }
       
