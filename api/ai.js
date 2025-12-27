@@ -169,7 +169,7 @@ export default async function handler(req, res) {
     }
 
     // Hardcoded Pro Key
-    const apiKey = "AIzaSyBcJWDyLlU29EdVjNi0MRKJ7LBgn8lHrt4";
+    const apiKey = "AIzaSyDiAX85Rdk4aeTmw-8y6qNnDzmsZR0GK4k";
     const genAI = new GoogleGenerativeAI(apiKey);
 
     console.log(`🧠 AI [${MODEL_NAME}]: ${mode} - Context: ${contextType}`);
