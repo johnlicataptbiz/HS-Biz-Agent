@@ -1,0 +1,5 @@
+{
+  "runtime": "nodejs18.x",
+  "version": "1.0",
+  "secrets": ["PRIVATE_APP_ACCESS_TOKEN", "GEMINI_API_KEY"]
+}

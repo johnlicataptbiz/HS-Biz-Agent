@@ -10,7 +10,7 @@ export const getApiUrl = (path: string): string => {
   // If on Surge or Local, use the Vercel production backend for API calls.
   // This allows the static frontend to talk to the serverless backend.
   if (isSurge || isLocal) {
-    const apiBase = 'https://hubspot-ai-optimizer-murex.vercel.app';
+    const apiBase = 'https://web-production-249d7e.up.railway.app';
     return `${apiBase}${path}`;
   }
   

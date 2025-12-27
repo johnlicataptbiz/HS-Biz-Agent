@@ -1,0 +1,36 @@
+{
+  "appFunctions": {
+    "vibeCheck": {
+      "file": "vibe-check.js",
+      "secrets": ["PRIVATE_APP_ACCESS_TOKEN", "GEMINI_API_KEY"]
+    },
+    "breezeAgent": {
+      "file": "breeze-agent.js",
+      "secrets": []
+    },
+    "auditTool": {
+      "file": "audit-tool.js",
+      "secrets": []
+    },
+    "cleanup": {
+      "file": "cleanup.js",
+      "secrets": ["PRIVATE_APP_ACCESS_TOKEN"]
+    },
+    "remediate": {
+      "file": "remediate.js",
+      "secrets": ["PRIVATE_APP_ACCESS_TOKEN"]
+    },
+    "enrich": {
+      "file": "enrich.js",
+      "secrets": ["PRIVATE_APP_ACCESS_TOKEN", "GOOGLE_SEARCH_KEY", "GOOGLE_CX"]
+    },
+    "enrichApply": {
+      "file": "enrich-apply.js",
+      "secrets": ["PRIVATE_APP_ACCESS_TOKEN"]
+    },
+    "contactWorkflows": {
+      "file": "contact-workflows.js",
+      "secrets": ["PRIVATE_APP_ACCESS_TOKEN"]
+    }
+  }
+}

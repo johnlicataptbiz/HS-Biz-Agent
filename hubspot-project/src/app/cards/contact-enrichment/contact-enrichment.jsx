@@ -14,9 +14,7 @@ import {
   List
 } from '@hubspot/ui-extensions';
 
-const API_BASE = 'https://hubspot-ai-optimizer-murex.vercel.app';
-
-const EnrichmentCard = ({ context }) => {
+const EnrichmentCard = ({ context, runServerless }) => {
   const contactId = context?.crmObjectId;
   const portalId = context?.portalId;
   
@@ -40,13 +38,9 @@ const EnrichmentCard = ({ context }) => {
     setShowConfirm(false);
 
     try {
-      const resp = await fetch(`${API_BASE}/api/enrich`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contactId, portalId })
-      });
-      if (!resp.ok) throw new Error(await resp.text());
-      setResult(await resp.json());
+      const resp = await runServerless({ name: 'enrich', parameters: { contactId, portalId } });
+      if (resp.status !== 'SUCCESS') throw new Error(resp.message || 'Enrichment failed');
+      setResult(resp.response);
       setStatus('ready');
     } catch (e) {
       setStatus('error');
@@ -59,18 +53,17 @@ const EnrichmentCard = ({ context }) => {
     setStatus('applying');
     setError('');
     try {
-      const resp = await fetch(`${API_BASE}/api/enrich-apply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contactId: result.contactId,
-          companyId: result.companyId,
-          contactUpdates: result.contactUpdates || {},
-          companyUpdates: result.companyUpdates || {},
-          noteBody: result.noteBody
-        })
+      const resp = await runServerless({ 
+          name: 'enrich-apply', 
+          parameters: {
+              contactId: result.contactId,
+              companyId: result.companyId,
+              contactUpdates: result.contactUpdates || {},
+              companyUpdates: result.companyUpdates || {},
+              noteBody: result.noteBody
+          } 
       });
-      if (!resp.ok) throw new Error(await resp.text());
+      if (resp.status !== 'SUCCESS') throw new Error(resp.message || 'Apply failed');
       setStatus('applied');
       setShowConfirm(false);
     } catch (e) {
@@ -83,13 +76,10 @@ const EnrichmentCard = ({ context }) => {
   const loadWorkflows = async () => {
     setWfStatus('loading');
     try {
-      const resp = await fetch(`${API_BASE}/api/contact-workflows`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contactId })
-      });
-      if (!resp.ok) throw new Error(await resp.text());
-      const data = await resp.json();
+      const resp = await runServerless({ name: 'contact-workflows.js', parameters: { contactId } });
+      if (resp.status !== 'SUCCESS') throw new Error(resp.message || 'Workflow scan failed');
+      
+      const data = resp.response;
       setWorkflows(data.workflows || []);
       setWfStatus('success');
     } catch (e) {
@@ -216,4 +206,4 @@ const EnrichmentCard = ({ context }) => {
     </Box>
   );
 };
-hubspot.extend(({ context }) => <EnrichmentCard context={context} />);
+hubspot.extend(({ context, runServerlessFunction, actions }) => <EnrichmentCard context={context} runServerless={runServerlessFunction} />);

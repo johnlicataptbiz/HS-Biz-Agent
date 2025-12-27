@@ -4,10 +4,7 @@
   "label": "Run HubSpot AI Optimizer Audit",
   "description": "Trigger an AI Audit of the current object (Contact, Deal, or Company) to identify gaps and optimization opportunities.",
   "archive": false,
-  "function": {
-    "file": "audit-tool.js",
-    "function": "main"
-  },
+  "actionUrl": "https://<APP_DOMAIN>/_hc/api/hubspot-ai-optimizer/auditTool",
   "objectTypes": [
     "CONTACT",
     "DEAL",

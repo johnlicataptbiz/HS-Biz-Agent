@@ -19,7 +19,7 @@ const LeadVibeCheck = ({ context, runServerless, sendAlert }) => {
   useEffect(() => {
     // Initial fetch to the serverless function
     // We pass the contact ID or email to the backend
-    runServerless({ name: "vibeCheck", parameters: { contactId: context.crm.objectId } })
+    runServerless({ name: "vibe-check", parameters: { contactId: context.crm.objectId } })
       .then((resp) => {
         if (resp.status === 'SUCCESS') {
             setData(resp.response);

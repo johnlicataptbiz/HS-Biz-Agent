@@ -60,6 +60,8 @@ This document tracks upcoming features and enhancements for the AI Optimizer pla
   - Trigger workflows
   - Query CRM directly via natural language
 - Full MCP server implementation
+- [ ] Implement Tool Calling in `breeze-agent.js`
+- [ ] Connect `enrich.js` and Search Tools to Agent
 
 ---
 

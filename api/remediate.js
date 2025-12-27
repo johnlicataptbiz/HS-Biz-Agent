@@ -1,4 +1,19 @@
 export default async function handler(req, res) {
+  // --- CORS HANDSHAKE ---
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('surge.sh') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { action, hubspotToken, payload } = req.body;
@@ -26,13 +41,22 @@ export default async function handler(req, res) {
         }
     }
 
-    // 2. CONSOLIDATE LISTS (Placeholder for sequence of moves)
-    if (action === 'merge-lists') {
-        return res.status(501).json({ 
-            success: false, 
-            error: 'Consolidation logic (merge-lists) is not yet implemented for production. Please use HubSpot UI.' 
-        });
-    }
+    // 3. PAUSE GHOST WORKFLOWS (Batch) 
+    if (action === 'pause-ghosts') {
+        const { workflowIds } = payload;
+        if (!workflowIds || !Array.isArray(workflowIds)) return res.status(400).json({ error: 'Missing workflow IDs' });
+
+        const results = await Promise.all(workflowIds.map(async (id) => {
+            try {
+                const r = await fetch(`https://api.hubapi.com/automation/v3/workflows/${id}?action=pause`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${hubspotToken}` }
+                });
+                return { id, success: r.status === 204 || r.status === 200 };
+            } catch (e) {
+                return { id, success: false };
+            }
+        }));
 
         return res.status(200).json({ 
             success: true, 
