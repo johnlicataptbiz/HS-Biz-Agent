@@ -156,10 +156,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = req.body;
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch(e) { console.error("JSON Parse Error on body:", e); }
+    }
+    
     const { mode, prompt, hubspotToken, contextType } = body || {};
     
     if (!prompt) {
+      console.error("❌ Missing prompt in body:", body);
       return res.status(400).json({ error: 'Missing prompt in request body' });
     }
 
@@ -169,29 +174,21 @@ export default async function handler(req, res) {
 
     console.log(`🧠 AI [${MODEL_NAME}]: ${mode} - Context: ${contextType}`);
 
-    const AGENT_SYSTEM_INSTRUCTION = `
-${systemInstruction}
-
-**MODE**: Full Strategic Agent Intelligence.
-1. Use 'portal_health_audit' for all health queries (if available).
-2. Deliver high-impact strategic insights backed by portal metrics.
-3. Formulate 'spec.apiCalls' for all proposed architectural changes.
-`;
+    const AGENT_SYSTEM_INSTRUCTION = `${systemInstruction}\n\n**MODE**: Full Strategic Agent Intelligence.\n1. Deliver high-impact strategic insights.\n2. Formulate 'spec.apiCalls' for architectural changes.`;
 
     // Helper for Quota/Error resilience
     const safeGenerate = async (genOptions, input) => {
       let lastErr;
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 3; i++) {
         try {
           const model = genAI.getGenerativeModel(genOptions);
-          return await model.generateContent(input);
+          const result = await model.generateContent(input);
+          return result;
         } catch (err) {
           lastErr = err;
-          const errStr = String(err).toLowerCase();
-          if (errStr.includes('429') || errStr.includes('quota')) {
-            const delay = 2000 * Math.pow(1.5, i);
-            console.warn(`⚠️ Quota hit, retry ${i+1} in ${delay}ms...`);
-            await new Promise(r => setTimeout(r, delay));
+          console.error(`⚠️ AI Attempt ${i+1} failed:`, err.message);
+          if (String(err).toLowerCase().includes('429')) {
+            await new Promise(r => setTimeout(r, 2000 * (i + 1)));
             continue;
           }
           throw err;
@@ -201,6 +198,7 @@ ${systemInstruction}
     };
 
     if (mode === 'optimize' || mode === 'audit') {
+      console.log("🛠️ Starting Optimization/Audit...");
       const result = await safeGenerate({
         model: MODEL_NAME,
         systemInstruction: AGENT_SYSTEM_INSTRUCTION,
@@ -212,10 +210,19 @@ ${systemInstruction}
       }, prompt);
 
       const text = result.response.text();
-      return res.status(200).json(JSON.parse(text));
+      console.log("✅ AI Response received (Length:", text.length, ")");
+      
+      try {
+        const parsed = JSON.parse(text);
+        return res.status(200).json(parsed);
+      } catch (parseErr) {
+        console.error("❌ JSON Parse Error on AI response:", text);
+        return res.status(500).json({ error: "AI returned invalid JSON", details: parseErr.message, raw: text });
+      }
     }
 
     // Default Chat Mode
+    console.log("💬 Starting Chat...");
     const chatModel = genAI.getGenerativeModel({ 
       model: MODEL_NAME,
       systemInstruction: AGENT_SYSTEM_INSTRUCTION,
@@ -230,11 +237,11 @@ ${systemInstruction}
     return res.status(200).json(JSON.parse(result.response.text()));
 
   } catch (error) {
-    console.error("❌ CRITICAL API ERROR:", error);
+    console.error("❌ CRITICAL AI ERROR:", error);
     return res.status(500).json({ 
       error: "AI Generation Failed", 
-      details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: error.message,
+      stack: error.stack
     });
   }
 }
