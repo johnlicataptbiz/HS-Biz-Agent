@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { contact } = req.body;
-  const apiKey = "AIzaSyDfofU97_DajcmqjpsF3gZnGKS-0gSRe-A";
+  const apiKey = "AIzaSyBcJWDyLlU29EdVjNi0MRKJ7LBgn8lHrt4";
   
   if (!apiKey) return res.status(503).json({ error: 'Missing AI Key' });
   const genAI = new GoogleGenerativeAI(apiKey);
