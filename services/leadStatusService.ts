@@ -112,15 +112,64 @@ export class LeadStatusService {
         });
     }
 
+    // Map our classification labels to HubSpot API values (uppercase)
+    private readonly STATUS_TO_HUBSPOT: Record<LeadStatus, string> = {
+        'New': 'NEW',
+        'Hot': 'HOT',
+        'Nurture': 'NURTURE',
+        'Watch': 'WATCH',
+        'Unqualified': 'UNQUALIFIED',
+        'Active Client': 'ACTIVE_CLIENT',
+        'Past Client': 'PAST_CLIENT',
+        'Rejected': 'REJECTED',
+        'Trash': 'TRASH',
+        'Unclassified': 'NEW' // Fallback
+    };
+
+    // Ensure our custom options exist in HubSpot
+    public async ensureOptionsExist(): Promise<boolean> {
+        const newOptions = [
+            { label: 'Hot', value: 'HOT', displayOrder: 1 },
+            { label: 'Nurture', value: 'NURTURE', displayOrder: 2 },
+            { label: 'Watch', value: 'WATCH', displayOrder: 3 },
+            { label: 'Active Client', value: 'ACTIVE_CLIENT', displayOrder: 5 },
+            { label: 'Past Client', value: 'PAST_CLIENT', displayOrder: 6 },
+            { label: 'Rejected', value: 'REJECTED', displayOrder: 7 },
+            { label: 'Trash', value: 'TRASH', displayOrder: 8 }
+        ];
+
+        // Get current options
+        const getResp = await hubSpotService['request']('/crm/v3/properties/contacts/hs_lead_status');
+        if (!getResp.ok) return false;
+        
+        const current = await getResp.json();
+        const existingValues = new Set((current.options || []).map((o: any) => o.value));
+        
+        // Merge with new options (don't duplicate)
+        const allOptions = [...(current.options || [])];
+        for (const opt of newOptions) {
+            if (!existingValues.has(opt.value)) {
+                allOptions.push({ ...opt, hidden: false });
+            }
+        }
+
+        // Update the property
+        const updateResp = await hubSpotService['request']('/crm/v3/properties/contacts/hs_lead_status', {
+            method: 'PATCH',
+            body: JSON.stringify({ options: allOptions })
+        });
+
+        return updateResp.ok;
+    }
+
     public async syncStatusToHubSpot(contactId: string, status: LeadStatus): Promise<boolean> {
         try {
-            // First, ensure the property exists (this would ideally happen once on app start)
-            // For now, we'll try to update it directly.
+            const hubspotValue = this.STATUS_TO_HUBSPOT[status] || 'NEW';
             const response = await hubSpotService['request'](`/crm/v3/objects/contacts/${contactId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({
                     properties: {
-                        hs_lead_status: status === 'Active Client' ? 'In Progress' : status // Mapping to native field if possible
+                        hs_lead_status: hubspotValue
                     }
                 })
             });
@@ -135,6 +184,9 @@ export class LeadStatusService {
         let success = 0;
         let failed = 0;
         
+        // First, ensure our options exist in HubSpot
+        await this.ensureOptionsExist();
+        
         // HubSpot Batch Update API
         const batchSize = 100;
         for (let i = 0; i < updates.length; i += batchSize) {
@@ -145,7 +197,7 @@ export class LeadStatusService {
                     inputs: chunk.map(u => ({
                         id: u.id,
                         properties: {
-                            hs_lead_status: u.status === 'Active Client' ? 'In Progress' : u.status
+                            hs_lead_status: this.STATUS_TO_HUBSPOT[u.status] || 'NEW'
                         }
                     }))
                 })

@@ -248,7 +248,21 @@ const Contacts: React.FC = () => {
                            <tr key={contact.id} className="hover:bg-white/[0.02] transition-colors group">
                                <td className="px-6 py-4">
                                    <div>
-                                       <p className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">{contact.name}</p>
+                                       <p className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors flex items-center gap-2 flex-wrap">
+                                           {contact.name}
+                                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                               contact.status === 'Hot' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
+                                               contact.status === 'Active Client' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                                               contact.status === 'Nurture' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
+                                               contact.status === 'Watch' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                                               contact.status === 'New' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                                               contact.status === 'Unqualified' ? 'bg-slate-500/20 text-slate-400 border border-slate-500/30' :
+                                               contact.status === 'Past Client' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' :
+                                               contact.status === 'Rejected' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                                               contact.status === 'Trash' ? 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/30' :
+                                               'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                                           }`}>{contact.status}</span>
+                                       </p>
                                        <p className="text-xs text-slate-500 font-medium">{contact.email}</p>
                                    </div>
                                </td>
