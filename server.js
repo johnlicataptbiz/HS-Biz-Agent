@@ -42,12 +42,12 @@ app.all('/api/remediate', wrap(remediate));
 app.all('/api/cleanup', wrap(cleanup));
 app.all('/api/vibe-ai', wrap(vibeAi));
 
-// Proxy handler needs special path mapping
-app.all('/api/hubspot/*', async (req, res) => {
+// Proxy handler needs special path mapping (Express 5 regex syntax)
+app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   // Map /api/hubspot/contacts -> path=contacts
   const path = req.params[0] || req.url.replace('/api/hubspot/', '').split('?')[0];
   req.query.path = path;
-  await proxy(req, res);
+  await wrap(proxy)(req, res);
 });
 
 const port = process.env.PORT || 3001;
