@@ -42,12 +42,20 @@ app.all('/api/remediate', wrap(remediate));
 app.all('/api/cleanup', wrap(cleanup));
 app.all('/api/vibe-ai', wrap(vibeAi));
 
-// Proxy handler needs special path mapping (Express 5 regex syntax)
+// Native Express Proxy Handler (Bypassing wrapper for full control)
 app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
-  // Map /api/hubspot/contacts -> path=contacts
-  const path = req.params[0] || req.url.replace('/api/hubspot/', '').split('?')[0];
-  req.query.path = path;
-  await wrap(proxy)(req, res);
+  try {
+    const path = req.params[0] || req.url.replace('/api/hubspot/', '').split('?')[0];
+    
+    // Inject path into query for the shared handler logic
+    req.query.path = path;
+    
+    // Call proxy handler directly
+    await proxy(req, res);
+  } catch (err) {
+    console.error('Proxy Route Error:', err);
+    res.status(500).json({ error: 'Proxy Route Failed', details: err.message });
+  }
 });
 
 const port = process.env.PORT || 3001;
