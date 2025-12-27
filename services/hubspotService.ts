@@ -382,7 +382,22 @@ export class HubSpotService {
 
       const data = await response.json();
       console.log("🧩 Sequences Raw:", data);
-      const sequences = Array.isArray(data) ? data : (data.sequences || data.results || data.objects || []);
+      let sequences = Array.isArray(data) ? data : (data.sequences || data.results || data.objects || []);
+
+      // Optimization: If sequences have no stats/steps, attempt deep scan on top 10
+      if (sequences.length > 0 && !sequences[0].steps && !sequences[0].stats && !sequences[0].enrollmentStats) {
+        console.log("🧩 Data too thin, performing deep scan on top 10 sequences...");
+        const deepScanLimit = Math.min(sequences.length, 10);
+        const detailedSeqs = await Promise.all(
+          sequences.slice(0, deepScanLimit).map(async (s: any) => {
+            try {
+              const detailResp = await this.request(`/automation/v2/sequences/${s.id || s.hs_id || s.guid}`);
+              return detailResp.ok ? await detailResp.json() : s;
+            } catch (e) { return s; }
+          })
+        );
+        sequences = [...detailedSeqs, ...sequences.slice(deepScanLimit)];
+      }
 
       const normalizeRate = (value: any) => {
         const num = Number(value) || 0;

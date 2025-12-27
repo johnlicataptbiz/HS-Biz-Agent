@@ -179,16 +179,19 @@ export default async function handler(req, res) {
     // Helper for Quota/Error resilience
     const safeGenerate = async (genOptions, input) => {
       let lastErr;
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 6; i++) {
         try {
           const model = genAI.getGenerativeModel(genOptions);
           const result = await model.generateContent(input);
           return result;
         } catch (err) {
           lastErr = err;
+          const errStr = String(err).toLowerCase();
           console.error(`⚠️ AI Attempt ${i+1} failed:`, err.message);
-          if (String(err).toLowerCase().includes('429')) {
-            await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+          if (errStr.includes('429') || errStr.includes('quota')) {
+            const delay = 3500 * Math.pow(2, i); // Aggressive backoff for free quota
+            console.warn(`🕒 Retrying in ${Math.round(delay/1000)}s...`);
+            await new Promise(r => setTimeout(r, delay));
             continue;
           }
           throw err;
