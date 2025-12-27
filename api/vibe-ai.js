@@ -42,6 +42,7 @@ export default async function handler(req, res) {
   `;
 
   try {
+    
     const model = genAI.getGenerativeModel({ 
         model: MODEL_NAME,
         systemInstruction: "You are Antigravity, the Strategic Architectural Lead. You provide ruthless, ROI-driven sales intelligence.",
@@ -49,7 +50,7 @@ export default async function handler(req, res) {
             responseMimeType: "application/json",
             responseSchema: SCHEMA
         }
-    });
+    }, { apiVersion: 'v1' });
 
     const result = await model.generateContent(prompt);
     const data = JSON.parse(result.response.text());
