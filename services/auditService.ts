@@ -1,5 +1,6 @@
 import { Workflow, Sequence, DataProperty, LeadStatus } from '../types';
 import { hubSpotService } from './hubspotService';
+import { getApiUrl } from './config';
 
 export interface AuditIssue {
     id: string;
@@ -132,7 +133,7 @@ export class AuditService {
 
         try {
             const token = hubSpotService.getToken();
-            const response = await fetch('/api/cleanup', {
+            const response = await fetch(getApiUrl('/api/cleanup'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -1,5 +1,6 @@
 import { LeadStatus } from '../types';
 import { hubSpotService } from './hubspotService';
+import { getApiUrl } from './config';
 
 export interface ContactTag {
     label: string;
@@ -63,7 +64,7 @@ GUIDELINES:
 Analyze the notes and properties deeply. If notes contradict current status, prioritize the notes.`;
 
             // 3. Call AI
-            const response = await fetch('/api/ai', {
+            const response = await fetch(getApiUrl('/api/ai'), {
                 method: 'POST',
                 body: JSON.stringify({
                     mode: 'classify',

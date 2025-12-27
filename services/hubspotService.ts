@@ -1,9 +1,10 @@
 import { Workflow, Sequence, DataProperty, BreezeTool, Segment, Campaign, LeadStatus, Lead, Pipeline, PipelineStage } from '../types';
+import { getApiUrl } from './config';
 
 export class HubSpotService {
   private static instance: HubSpotService;
   private readonly CLIENT_ID = import.meta.env.VITE_HUBSPOT_CLIENT_ID || '7e3c1887-4c26-47a8-b750-9f215ed818f1';
-  private readonly BASE_API_URL = '/api/hubspot'; // Proxied via vercel.json
+  private readonly BASE_API_URL = getApiUrl('/api/hubspot'); // Dynamically resolved backend
   
   private readonly OAUTH_REQUEST_KEYS = {
     STATE: 'hubspot_oauth_state',
@@ -113,7 +114,7 @@ export class HubSpotService {
       this.isExchanging = true;
       const clientId = localStorage.getItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID) || this.CLIENT_ID;
       
-      const response = await fetch('/api/token', {
+      const response = await fetch(getApiUrl('/api/token'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,7 +151,7 @@ export class HubSpotService {
 
           const clientId = localStorage.getItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID) || this.CLIENT_ID;
 
-          const response = await fetch('/api/token', {
+          const response = await fetch(getApiUrl('/api/token'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

@@ -1,4 +1,5 @@
 import { AiResponse, ChatResponse } from '../types';
+import { getApiUrl } from './config';
 
 const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): Promise<Response> => {
     try {
@@ -29,7 +30,7 @@ export const generateOptimization = async (
   try {
     const accessToken = localStorage.getItem('hubspot_access_token');
 
-    const response = await fetchWithRetry('/api/ai', {
+    const response = await fetchWithRetry(getApiUrl('/api/ai'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -63,7 +64,7 @@ export const generateChatResponse = async (message: string): Promise<ChatRespons
   try {
     const accessToken = localStorage.getItem('hubspot_access_token');
     
-    const response = await fetchWithRetry('/api/ai', {
+    const response = await fetchWithRetry(getApiUrl('/api/ai'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

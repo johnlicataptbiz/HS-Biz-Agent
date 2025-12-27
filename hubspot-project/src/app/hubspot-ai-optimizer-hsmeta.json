@@ -5,6 +5,7 @@
       "redirectUrls": [
         "https://hubspot-ai-optimizer.vercel.app/",
         "https://hubspot-ai-optimizer-murex.vercel.app/",
+        "https://core-ui-ptbiz.surge.sh/",
         "http://localhost:3000/",
         "http://localhost:3002/"
       ],
@@ -41,7 +42,8 @@
       "img": [],
       "fetch": [
         "https://hubspot-ai-optimizer-murex.vercel.app",
-        "https://hubspot-ai-optimizer.vercel.app"
+        "https://hubspot-ai-optimizer.vercel.app",
+        "https://core-ui-ptbiz.surge.sh"
       ],
       "iframe": []
     }
