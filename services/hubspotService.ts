@@ -391,11 +391,16 @@ export class HubSpotService {
         return num;
       };
 
+      if (sequences.length > 0) {
+        console.log('🧩 [DEBUG] First sequence keys:', Object.keys(sequences[0]));
+        console.log('🧩 [DEBUG] First sequence stats:', sequences[0].stats || sequences[0].enrollmentStats || 'none');
+      }
+
       return sequences.map((seq: any) => {
         // Improved stats extraction - sequences stats can be found in several places
-        const stats = seq.stats || seq.enrollmentStats || seq.performance || {};
-        const replyRate = normalizeRate(stats.reply_rate || stats.replyRate || stats.replied || 0);
-        const openRate = normalizeRate(stats.open_rate || stats.openRate || stats.opened || 0);
+        const stats = seq.stats || seq.enrollmentStats || seq.performance || seq.enrollment_stats || {};
+        const replyRate = normalizeRate(stats.reply_rate || stats.replyRate || stats.replied || stats.replyCount / (stats.enrolledCount || 1) || 0);
+        const openRate = normalizeRate(stats.open_rate || stats.openRate || stats.opened || stats.openCount / (stats.enrolledCount || 1) || 0);
         
         // Fix: steps count can be an array or a numeric field
         let stepsCount = 0;
@@ -407,6 +412,8 @@ export class HubSpotService {
             stepsCount = seq.step_count;
         } else if (typeof seq.numSteps === 'number') {
             stepsCount = seq.numSteps;
+        } else if (seq.steps && typeof seq.steps === 'number') {
+            stepsCount = seq.steps;
         }
 
         let aiScore = 50;
