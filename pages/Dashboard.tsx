@@ -4,6 +4,7 @@ import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, T
 import { hubSpotService } from '../services/hubspotService';
 import AiModal from '../components/AiModal';
 import AuditReportModal from '../components/AuditReportModal';
+import { JourneyFunnel } from '../components/JourneyFunnel';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -20,7 +21,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     campaigns: [] as any[],
     forms: [] as any[],
     deals: [] as any[],
-    contactHealth: { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 },
+    contactHealth: { 
+      totalScanned: 0, 
+      unclassified: 0, 
+      unassigned: 0, 
+      inactive: 0, 
+      healthScore: 0,
+      lifecycleStageBreakdown: {} as Record<string, number>
+    },
   });
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
@@ -53,11 +61,36 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             hubSpotService.scanContactOrganization()
           ]);
           if (isMounted) {
-            setMetrics({ workflows: wf, sequences: seq, properties: prop, segments: seg, campaigns: camp, forms, deals, contactHealth });
+            setMetrics({ 
+              workflows: wf, 
+              sequences: seq, 
+              properties: prop, 
+              segments: seg, 
+              campaigns: camp, 
+              forms, 
+              deals, 
+              contactHealth: contactHealth 
+            });
           }
         } else {
           if (isMounted) {
-            setMetrics({ workflows: [], sequences: [], properties: [], segments: [], campaigns: [], forms: [], deals: [], contactHealth: { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 } });
+            setMetrics({ 
+              workflows: [], 
+              sequences: [], 
+              properties: [], 
+              segments: [], 
+              campaigns: [], 
+              forms: [], 
+              deals: [], 
+              contactHealth: { 
+                totalScanned: 0, 
+                unclassified: 0, 
+                unassigned: 0, 
+                inactive: 0, 
+                healthScore: 0,
+                lifecycleStageBreakdown: {}
+              } 
+            });
           }
         }
       } catch (e) {
@@ -395,6 +428,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </div>
             )}
           </div>
+
+          {/* Journey Funnel Visualization */}
+          {isConnected && !loading && metrics.contactHealth.lifecycleStageBreakdown && (
+            <JourneyFunnel data={metrics.contactHealth.lifecycleStageBreakdown} />
+          )}
           
           <button 
             className="w-full py-5 rounded-3xl premium-gradient text-white text-sm font-bold shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all" 

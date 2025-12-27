@@ -246,6 +246,16 @@ const Campaigns: React.FC = () => {
                             <span className="text-slate-400">Volume</span>
                             <span className="text-white">{camp.contacts || 0} Sent</span>
                         </div>
+                        <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
+                            <span className="text-slate-400">Revenue Influence</span>
+                            <span className="text-emerald-400 font-black">${(camp.revenue || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
+                            <span className="text-slate-400">Calculated ROI</span>
+                            <span className="text-white">
+                                {camp.revenue && camp.budget ? `${Math.round(((camp.revenue - camp.budget) / camp.budget) * 100)}%` : 'N/A'}
+                            </span>
+                        </div>
                     </div>
 
                     <div className="pt-6 border-t border-white/5 flex gap-2">

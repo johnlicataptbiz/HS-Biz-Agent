@@ -812,7 +812,22 @@ export class HubSpotService {
       });
       allCampaigns.push(...pageItems);
 
-      return allCampaigns;
+      // --- ROI ATTRIBUTION LAYER ---
+      // Fetch deals and map revenue back to campaigns
+      const deals = await this.fetchDeals();
+      const attributionMap: Record<string, number> = {};
+      
+      deals.forEach(deal => {
+          if (deal.campaignId && deal.amount) {
+              attributionMap[deal.campaignId] = (attributionMap[deal.campaignId] || 0) + deal.amount;
+          }
+      });
+
+      // Inject revenue into campaigns
+      return allCampaigns.map(camp => ({
+          ...camp,
+          revenue: attributionMap[camp.id] || 0
+      }));
 
     } catch (e) {
       console.error("Campaign fetch error:", e);
@@ -822,8 +837,8 @@ export class HubSpotService {
 
   public async fetchDeals(): Promise<any[]> {
     try {
-      // Fetch deals with amount, closedate, and dealstage
-      const response = await this.request('/crm/v3/objects/deals?properties=amount,dealstage,closedate,dealname,pipeline&limit=100');
+      // Fetch deals with amount, closedate, and hubspot_campaign_id
+      const response = await this.request('/crm/v3/objects/deals?properties=amount,dealstage,closedate,dealname,pipeline,hs_analytics_latest_source_data_2&limit=100');
       if (!response.ok) return [];
       
       const data = await response.json();
@@ -833,7 +848,8 @@ export class HubSpotService {
         amount: Number(d.properties.amount) || 0,
         stage: d.properties.dealstage,
         closeDate: d.properties.closedate,
-        pipeline: d.properties.pipeline
+        pipeline: d.properties.pipeline,
+        campaignId: d.properties.hs_analytics_latest_source_data_2 // Standard association field
       }));
     } catch (e) {
       console.error("Deal fetch error:", e);
@@ -1116,6 +1132,7 @@ export class HubSpotService {
 
   public async scanContactOrganization(): Promise<{
     statusBreakdown: Record<LeadStatus, number>;
+    lifecycleStageBreakdown: Record<string, number>;
     totalScanned: number;
     healthScore: number;
     unclassified: number; // Keep for backward compatibility
@@ -1136,6 +1153,7 @@ export class HubSpotService {
         console.error('Contact scan failed:', response.status);
         return { 
           statusBreakdown: { 'New': 0, 'Hot': 0, 'Nurture': 0, 'Watch': 0, 'Unqualified': 0, 'Past Client': 0, 'Active Client': 0, 'Rejected': 0, 'Trash': 0, 'Unclassified': 0 }, 
+          lifecycleStageBreakdown: {},
           totalScanned: 0, healthScore: 0, unclassified: 0, unassigned: 0, inactive: 0 
         };
       }
@@ -1149,6 +1167,8 @@ export class HubSpotService {
         'Past Client': 0, 'Active Client': 0, 'Rejected': 0, 'Trash': 0, 'Unclassified': 0
       };
 
+      const lifecycleBreakdown: Record<string, number> = {};
+
       let unassigned = 0;
       let inactive = 0;
       const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
@@ -1159,6 +1179,10 @@ export class HubSpotService {
         // Run Heuristic Engine
         const status = this.classifyContact(props);
         breakdown[status] = (breakdown[status] || 0) + 1;
+
+        // Lifecycle Stage Tracking
+        const lcs = props.lifecyclestage || 'other';
+        lifecycleBreakdown[lcs] = (lifecycleBreakdown[lcs] || 0) + 1;
 
         // Legacy Metrics
         if (!props.hubspot_owner_id) unassigned++;
@@ -1179,6 +1203,7 @@ export class HubSpotService {
       
       return {
         statusBreakdown: breakdown,
+        lifecycleStageBreakdown: lifecycleBreakdown,
         totalScanned: total,
         healthScore,
         unclassified: unclassifiedCount,
@@ -1189,6 +1214,7 @@ export class HubSpotService {
       console.error('Contact scan error:', e);
       return { 
           statusBreakdown: { 'New': 0, 'Hot': 0, 'Nurture': 0, 'Watch': 0, 'Unqualified': 0, 'Past Client': 0, 'Active Client': 0, 'Rejected': 0, 'Trash': 0, 'Unclassified': 0 }, 
+          lifecycleStageBreakdown: {},
           totalScanned: 0, healthScore: 0, unclassified: 0, unassigned: 0, inactive: 0 
       };
     }

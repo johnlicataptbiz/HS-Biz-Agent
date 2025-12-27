@@ -4,46 +4,41 @@ This document tracks upcoming features and enhancements for the AI Optimizer pla
 
 ---
 
-## 🚀 In Progress (Current Sprint)
+## 🚀 active Development (Strategic Intelligence Sprint)
 
-### ✅ Contact Organization Scanner
-- Scan contacts to identify unorganized, unassigned, and inactive records
-- Display Contact Health Score on Dashboard
+### 🏗️ Journey Visualization (The "Big Leap")
+- [ ] Map customer journey across workflows, sequences, and lifecycle stages
+- [ ] Visual funnel from Lead → Active Client
+- [ ] Conversion rate metrics between stages
 
-### ✅ Workflow Health Alerts
-- Ghost workflow detection (active but no enrollments)
-- Stale workflow detection (not updated in 6+ months)
-- Paused workflow warning (disabled but has contacts)
+### 💰 Direct ROI Attribution
+- [ ] Connect Campaigns → Deals → Revenue
+- [ ] Fiscal impact scoring for marketing assets
+- [ ] Cost per acquisition (CPA) proxy calculations
 
-### ✅ Sequence Performance Dashboard
-- Display reply rates & open rates on Sequences page
-- AI-generated improvement suggestions
-
-### 🏗️ HubSpot UI Extension (CRM Card)
-- [x] Card appears inside HubSpot on Contact records
-- [x] AI Verification & Enrichment (Google Search)
-- [x] Two-way HubSpot Property Sync (Review & Apply)
-- [ ] Displays related workflows they're enrolled in
-- [ ] Recommended next actions (General)
+### 🛠️ AI-Powered "Fix It" Logic
+- [ ] Wire `audit-tool.js` extension to `/api/remediate` endpoint
+- [ ] One-click workflow pausing/optimization from CRM cards
+- [ ] Real-time property consolidation execution
 
 ---
 
-## 📋 Medium Term (Next 2-4 Weeks)
+## ✅ Completed & Stabilized
 
-### AI-Powered "Fix It" Actions
-- Generate workflow YAML/JSON that fixes detected issues
-- Draft sequence email templates based on best performers
-- Propose list consolidation (merge redundant lists)
+### ✨ Strategic Rebrand (Core UI)
+- [x] Full visual and textual rebrand to "Core UI by PT Biz"
+- [x] Strategic Operations Platform positioning
+- [x] Outcome-based sidebar organization
 
-### AI-Powered "Fix It" Actions
-- Generate workflow YAML/JSON that fixes detected issues
-- Draft sequence email templates based on best performers
-- Propose list consolidation (merge redundant lists)
+### 🛡️ Data Integrity (Real Data Architecture)
+- [x] Eradication of all mock data and `Math.random()` heuristics
+- [x] Removal of hardcoded API keys; moved to environment variables
+- [x] Production-safe serverless handler hardening
 
-### Strategic Audit Engine
-- [x] Portal-wide Heuristic Deep Scan
-- [x] Interactive AI Action Plans (instead of static PDFs)
-- [x] Automated execution of audit tasks
+### 📊 Performance Dashboards
+- [x] Sequence reply/open rate tracking
+- [x] Contact health scoring (Real Heuristics)
+- [x] Hubspot UI Extension (Initial AI Verification)
 
 ---
 
