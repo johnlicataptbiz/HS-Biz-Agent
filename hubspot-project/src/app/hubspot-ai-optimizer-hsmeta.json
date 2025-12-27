@@ -4,7 +4,9 @@
       "type": "oauth",
       "redirectUrls": [
         "https://hubspot-ai-optimizer.vercel.app/",
-        "http://localhost:3000/"
+        "https://hubspot-ai-optimizer-murex.vercel.app/",
+        "http://localhost:3000/",
+        "http://localhost:3002/"
       ],
       "optionalScopes": [],
       "requiredScopes": [
@@ -19,7 +21,9 @@
         "automation",
         "automation.sequences.read",
         "content",
+        "forms",
         "marketing.campaigns.read",
+        "business-intelligence",
         "oauth"
       ],
       "conditionallyRequiredScopes": []
@@ -35,7 +39,10 @@
     "distribution": "MARKETPLACE",
     "permittedUrls": {
       "img": [],
-      "fetch": [],
+      "fetch": [
+        "https://hubspot-ai-optimizer-murex.vercel.app",
+        "https://hubspot-ai-optimizer.vercel.app"
+      ],
       "iframe": []
     }
   },

@@ -9,6 +9,8 @@ const Contacts = lazy(() => import('./pages/Contacts'));
 const DataModel = lazy(() => import('./pages/DataModel'));
 const BreezeTools = lazy(() => import('./pages/BreezeTools'));
 const CoPilot = lazy(() => import('./pages/CoPilot'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Pipelines = lazy(() => import('./pages/Pipelines'));
 
 import AiChat from './components/AiChat';
 import AiModal from './components/AiModal';
@@ -16,6 +18,7 @@ import SettingsModal from './components/SettingsModal';
 import { ChatResponse } from './types';
 import { hubSpotService } from './services/hubspotService';
 import { User, Bell, Search } from 'lucide-react';
+import AppTour from './components/AppTour';
 
 interface GlobalModalState {
   isOpen: boolean;
@@ -24,8 +27,27 @@ interface GlobalModalState {
 }
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('active_tab') || 'dashboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
+  
+  useEffect(() => {
+    localStorage.setItem('active_tab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+      // Check for first-time user tour
+      const hasSeenTour = localStorage.getItem('has_seen_app_tour_v1');
+      if (!hasSeenTour) {
+          // Slight delay to ensure DOM is ready
+          setTimeout(() => setIsTourOpen(true), 1500);
+      }
+  }, []);
+
+  const handleTourComplete = () => {
+      setIsTourOpen(false);
+      localStorage.setItem('has_seen_app_tour_v1', 'true');
+  };
   const [globalModal, setGlobalModal] = useState<GlobalModalState>({
     isOpen: false,
     contextType: 'workflow',
@@ -110,6 +132,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard onNavigate={setActiveTab} />;
+      case 'reports': return <Reports />;
       case 'copilot': return <CoPilot />;
       case 'workflows': return <Workflows />;
       case 'sequences': return <Sequences />;
@@ -117,6 +140,7 @@ const App: React.FC = () => {
       case 'contacts': return <Contacts />;
       case 'datamodel': return <DataModel />;
       case 'breezetools': return <BreezeTools />;
+      case 'journey': return <Pipelines />;
       default: return <Dashboard onNavigate={setActiveTab} />;
     }
   };
@@ -128,6 +152,7 @@ const App: React.FC = () => {
         activeTab={activeTab} 
         onTabChange={setActiveTab} 
         onSettingsClick={() => setIsSettingsOpen(true)}
+        onTourClick={() => setIsTourOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -194,6 +219,13 @@ const App: React.FC = () => {
       <SettingsModal 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      <AppTour 
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
+        onComplete={handleTourComplete}
+        onNavigate={setActiveTab}
       />
     </div>
   );

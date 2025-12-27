@@ -15,9 +15,16 @@ This document tracks upcoming features and enhancements for the AI Optimizer pla
 - Stale workflow detection (not updated in 6+ months)
 - Paused workflow warning (disabled but has contacts)
 
-### ⏳ Sequence Performance Dashboard
+### ✅ Sequence Performance Dashboard
 - Display reply rates & open rates on Sequences page
 - AI-generated improvement suggestions
+
+### 🏗️ HubSpot UI Extension (CRM Card)
+- [x] Card appears inside HubSpot on Contact records
+- [x] AI Verification & Enrichment (Google Search)
+- [x] Two-way HubSpot Property Sync (Review & Apply)
+- [ ] Displays related workflows they're enrolled in
+- [ ] Recommended next actions (General)
 
 ---
 
@@ -28,17 +35,15 @@ This document tracks upcoming features and enhancements for the AI Optimizer pla
 - Draft sequence email templates based on best performers
 - Propose list consolidation (merge redundant lists)
 
-### HubSpot UI Extension (CRM Card)
-- Card appears inside HubSpot on Contact/Deal records
-- Shows AI insights about this contact
-- Displays related workflows they're enrolled in
-- Recommended next actions
+### AI-Powered "Fix It" Actions
+- Generate workflow YAML/JSON that fixes detected issues
+- Draft sequence email templates based on best performers
+- Propose list consolidation (merge redundant lists)
 
-### Export/Report Generation
-- Generate PDF reports of:
-  - Portal Health Score
-  - Workflow Audit Summary
-  - Property Cleanup Recommendations
+### Strategic Audit Engine
+- [x] Portal-wide Heuristic Deep Scan
+- [x] Interactive AI Action Plans (instead of static PDFs)
+- [x] Automated execution of audit tasks
 
 ---
 

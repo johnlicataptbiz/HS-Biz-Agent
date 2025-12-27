@@ -3,13 +3,17 @@ import { hubSpotService } from '../services/hubspotService';
 import { Sequence } from '../types';
 import { Sparkles, AlertCircle, CheckCircle2, MoreHorizontal, RefreshCw, Send, Target, BarChart3, ShieldCheck } from 'lucide-react';
 import AiModal from '../components/AiModal';
+import Pagination from '../components/Pagination';
 
 const Sequences: React.FC = () => {
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [selectedSeq, setSelectedSeq] = useState<Sequence | null>(null);
+  const [sequencePrompt, setSequencePrompt] = useState('');
   const [showGeneralAi, setShowGeneralAi] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
 
   useEffect(() => {
     loadData();
@@ -26,6 +30,7 @@ const Sequences: React.FC = () => {
       try {
         const realData = await hubSpotService.fetchSequences();
         setSequences(realData);
+        setPage(1);
       } catch (e) {
         console.error("Sequence fetch error:", e);
         setSequences([]);
@@ -36,12 +41,22 @@ const Sequences: React.FC = () => {
     setIsLoading(false);
   };
 
+  const total = sequences.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedSequences = sequences.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   const getScoreColor = (score: number) => {
     if (score === 0) return 'text-slate-400 bg-white/5 border-white/10';
     if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
     if (score >= 60) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
     return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
   };
+
+  const avgOpenRate =
+    sequences.length > 0
+      ? sequences.reduce((acc, s) => acc + (s.openRate || 0), 0) / sequences.length
+      : 0;
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -70,7 +85,7 @@ const Sequences: React.FC = () => {
             <RefreshCw size={20} className={`${isLoading ? 'animate-spin text-emerald-400' : ''}`} />
           </button>
           <button 
-            id="draft-persona-btn"
+            id="optimize-sequence-btn"
             onClick={() => setShowGeneralAi(true)}
             aria-label="Draft new persona with AI"
             className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
@@ -119,23 +134,24 @@ const Sequences: React.FC = () => {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Active</p>
           </div>
           <div className="glass-card p-6 text-center">
+            <p className="text-3xl font-extrabold text-emerald-300">
+              {sequences.length > 0 ? `${(avgOpenRate * 100).toFixed(1)}%` : '0%'}
+            </p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Avg Open Rate</p>
+          </div>
+          <div className="glass-card p-6 text-center">
             <p className="text-3xl font-extrabold text-amber-400">
               {sequences.length > 0 ? Math.round(sequences.reduce((acc, s) => acc + s.aiScore, 0) / sequences.length) : 0}%
             </p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Avg Health</p>
           </div>
-          <div className="glass-card p-6 text-center">
-            <p className="text-3xl font-extrabold text-pink-400">
-              {sequences.filter(s => s.targetPersona === 'High Value Target').length}
-            </p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">High Performers</p>
-          </div>
         </div>
       )}
 
       {sequences.length > 0 && (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {sequences.map((seq) => (
+          {pagedSequences.map((seq) => (
             <div key={seq.id} className="glass-card p-8 group hover:-translate-y-1 transition-all duration-500 border-white/5 hover:border-emerald-500/20 active:scale-[0.98]">
                <div className="flex justify-between items-start mb-8">
                   <div className="flex items-center gap-3">
@@ -161,9 +177,9 @@ const Sequences: React.FC = () => {
                      <span className="text-slate-400">Flow Integrity</span>
                      <span className="text-white">{seq.stepsCount} Nodes</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                       <div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-[0.2em]">
-                        <span className="text-slate-400">Conversion Heuristic</span>
+                        <span className="text-slate-400">Reply Rate</span>
                         <span className="text-emerald-400">{seq.replyRate === 0 ? 'N/A' : `${(seq.replyRate * 100).toFixed(1)}%`}</span>
                       </div>
                       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
@@ -172,12 +188,32 @@ const Sequences: React.FC = () => {
                           style={{ width: `${Math.min(seq.replyRate * 100 * 5, 100)}%` }}
                         ></div>
                       </div>
+                      <div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-[0.2em]">
+                        <span className="text-slate-400">Open Rate</span>
+                        <span className="text-emerald-400">{seq.openRate === 0 ? 'N/A' : `${(seq.openRate * 100).toFixed(1)}%`}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-400 rounded-full transition-all duration-500" 
+                          style={{ width: `${Math.min(seq.openRate * 100, 100)}%` }}
+                        ></div>
+                      </div>
                   </div>
                </div>
 
                <div className="flex gap-4 pt-8 border-t border-white/5">
                   <button 
-                    onClick={() => setSelectedSeq(seq)}
+                    onClick={() => {
+                      const reply = seq.replyRate ? `${(seq.replyRate * 100).toFixed(1)}%` : 'N/A';
+                      const open = seq.openRate ? `${(seq.openRate * 100).toFixed(1)}%` : 'N/A';
+                      setSequencePrompt(
+                        `Analyze sequence "${seq.name}" (reply rate: ${reply}, open rate: ${open}). ` +
+                        `Provide 3 specific improvements to increase replies and 2 subject-line or timing changes to improve opens. ` +
+                        `Return a sequence_spec with draft email templates (subject + body) in spec.json and a YAML version in spec.yaml. ` +
+                        `If write actions are possible, include spec.apiCalls for HubSpot sequence updates.`
+                      );
+                      setSelectedSeq(seq);
+                    }}
                     className="flex-1 py-4 premium-gradient text-white text-[10px] font-extrabold uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-emerald-500/20 flex items-center justify-center gap-2"
                   >
                     <Sparkles size={14} />
@@ -190,6 +226,19 @@ const Sequences: React.FC = () => {
             </div>
           ))}
         </div>
+        <Pagination
+          page={currentPage}
+          pageSize={pageSize}
+          totalItems={total}
+          onPageChange={setPage}
+          onPageSizeChange={(n) => {
+            setPageSize(n);
+            setPage(1);
+          }}
+          pageSizeOptions={[6, 9, 12, 18]}
+          className="pt-2"
+        />
+        </>
       )}
 
       <AiModal 
@@ -198,6 +247,7 @@ const Sequences: React.FC = () => {
         contextType="sequence"
         contextId={selectedSeq?.id}
         contextName={selectedSeq?.name}
+        initialPrompt={sequencePrompt}
       />
       
       <AiModal 

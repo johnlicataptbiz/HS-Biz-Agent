@@ -3,6 +3,7 @@ import { hubSpotService } from '../services/hubspotService';
 import { DataProperty } from '../types';
 import { Sparkles, Database, AlertOctagon, RefreshCw, Layers, ShieldCheck, Search, Filter } from 'lucide-react';
 import AiModal from '../components/AiModal';
+import Pagination from '../components/Pagination';
 
 const DataModel: React.FC = () => {
   const [properties, setProperties] = useState<DataProperty[]>([]);
@@ -10,6 +11,9 @@ const DataModel: React.FC = () => {
   const [showAi, setShowAi] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [auditPrompt, setAuditPrompt] = useState('');
 
   useEffect(() => {
     loadData();
@@ -26,6 +30,7 @@ const DataModel: React.FC = () => {
       try {
         const realData = await hubSpotService.fetchProperties();
         setProperties(realData);
+        setPage(1);
       } catch (e) {
         console.error("Property fetch error:", e);
         setProperties([]);
@@ -39,6 +44,11 @@ const DataModel: React.FC = () => {
     p.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const total = filteredProperties.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedProperties = filteredProperties.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -65,9 +75,24 @@ const DataModel: React.FC = () => {
           >
             <RefreshCw size={20} className={`${isLoading ? 'animate-spin text-amber-400' : ''}`} />
           </button>
-          <button 
+           <button 
             id="run-audit-btn"
-            onClick={() => setShowAi(true)}
+            onClick={() => {
+                const redundant = properties.filter(p => p.redundant);
+                const sample = redundant.slice(0, 5).map(p => p.name).join(', ');
+                setAuditPrompt(
+                    `Perform a Root Cause Analysis on this CRM Data Model.\n\n` +
+                    `METRICS:\n` +
+                    `- Total Properties: ${properties.length}\n` +
+                    `- Detected Redundancies: ${redundant.length}\n` +
+                    `- Deprecated Fields (Sample): ${sample}\n\n` +
+                    `INSTRUCTIONS:\n` +
+                    `1. Evaluate the impact of these redundant fields on CRM performance.\n` +
+                    `2. Propose a specific property merging or archiving strategy.\n` +
+                    `3. Identify potential "technical debt" risks in the Contact schema.`
+                );
+                setShowAi(true);
+            }}
             aria-label="Run architectural audit with AI"
             className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
           >
@@ -139,7 +164,10 @@ const DataModel: React.FC = () => {
                         type="text" 
                         placeholder="Filter schema..." 
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setPage(1);
+                        }}
                         aria-label="Filter schema properties"
                         className="bg-transparent border-none outline-none text-xs text-white placeholder:text-slate-400 font-bold uppercase tracking-widest w-40" 
                       />
@@ -166,7 +194,7 @@ const DataModel: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                    {filteredProperties.map((prop) => (
+                    {pagedProperties.map((prop) => (
                         <tr key={prop.name} className="hover:bg-white/5 transition-all group">
                             <td className="px-8 py-6">
                                 <div className="font-bold text-white group-hover:text-amber-400 transition-colors text-base tracking-tight">{prop.label}</div>
@@ -207,6 +235,18 @@ const DataModel: React.FC = () => {
                 </tbody>
             </table>
           </div>
+          <Pagination
+            page={currentPage}
+            pageSize={pageSize}
+            totalItems={total}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
+            pageSizeOptions={[10, 25, 50, 100]}
+            className="pt-2"
+          />
         </div>
       )}
 
@@ -215,6 +255,7 @@ const DataModel: React.FC = () => {
         onClose={() => setShowAi(false)} 
         contextType="data"
         contextName="Contact Schema Architecture"
+        initialPrompt={auditPrompt}
       />
     </div>
   );

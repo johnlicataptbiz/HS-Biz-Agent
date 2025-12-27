@@ -9,6 +9,7 @@ const BreezeTools: React.FC = () => {
   const [showAi, setShowAi] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [auditPrompt, setAuditPrompt] = useState('');
 
   useEffect(() => {
     loadData();
@@ -30,10 +31,24 @@ const BreezeTools: React.FC = () => {
     setIsLoading(false);
   };
 
+  const handleOpenDraft = () => {
+      setAuditPrompt(
+          `I need to build a new Breeze Extension (HubSpot App).\n\n` +
+          `GOAL: Create a serverless function that [DESCRIBE GOAL].\n\n` +
+          `REQUIREMENTS:\n` +
+          `- Must use the HubSpot UI Extension React + Node.js runtime.\n` +
+          `- Define the app.json configuration.\n` +
+          `- Provide the serverless function code (app.functions.js).\n` +
+          `- Provide the React frontend code (extensions/example.jsx).`
+      );
+      setShowAi(true);
+  };
+
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
+          {/* ... header content ... */}
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-purple-500 shadow-[0_0_8px_rgba(167,139,250,0.5)]' : 'bg-slate-500'}`}></div>
             <span className="text-[10px] font-bold text-purple-400 uppercase tracking-[0.3em]">Edge Computing</span>
@@ -57,8 +72,8 @@ const BreezeTools: React.FC = () => {
             <RefreshCw size={20} className={`${isLoading ? 'animate-spin text-purple-400' : ''}`} />
           </button>
           <button 
-            id="draft-edge-tool-btn"
-            onClick={() => setShowAi(true)}
+            id="draft-tool-btn"
+            onClick={handleOpenDraft}
             aria-label="Draft new edge tool with AI"
             className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
           >
@@ -68,6 +83,7 @@ const BreezeTools: React.FC = () => {
         </div>
       </div>
 
+      {/* ... (sync required warning) ... */}
       {!isConnected && (
          <div className="glass-card p-12 text-center space-y-6">
             <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto border border-purple-500/20">
@@ -144,7 +160,7 @@ const BreezeTools: React.FC = () => {
         ))}
 
         <button 
-            onClick={() => setShowAi(true)}
+            onClick={handleOpenDraft}
             className="group glass-card p-12 flex flex-col items-center justify-center text-center space-y-6 hover:border-purple-500/30 hover:bg-purple-500/5 transition-all h-[400px]"
         >
             <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:bg-purple-500/20 transition-all border border-white/10 group-hover:border-purple-500/30">
@@ -164,6 +180,7 @@ const BreezeTools: React.FC = () => {
         onClose={() => setShowAi(false)} 
         contextType="breeze_tool"
         contextName="Heuristic Extension Registry"
+        initialPrompt={auditPrompt}
       />
     </div>
   );

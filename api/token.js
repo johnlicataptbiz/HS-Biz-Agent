@@ -17,17 +17,17 @@ export default async function handler(req, res) {
 
   // Determine which client ID to use (Default to Standard App if not provided)
   const defaultClientId = process.env.HUBSPOT_CLIENT_ID || process.env.VITE_HUBSPOT_CLIENT_ID || '7e3c1887-4c26-47a8-b750-9f215ed818f1';
-  const clientId = client_id || defaultClientId;
+  let clientId = (client_id || defaultClientId).trim();
   
   // Select the correct secret based on the client ID
-  let clientSecret = process.env.HUBSPOT_CLIENT_SECRET;
+  let clientSecret = process.env.HUBSPOT_CLIENT_SECRET ? process.env.HUBSPOT_CLIENT_SECRET.trim() : "";
   let secretSource = "Standard";
 
   // If this is the MCP App Client ID, we should ideally use the MCP Secret
   if (clientId === '9d7c3c51-862a-4604-9668-cad9bf5aed93') {
       console.log("Detected MCP Client ID.");
       if (process.env.HUBSPOT_MCP_CLIENT_SECRET) {
-          clientSecret = process.env.HUBSPOT_MCP_CLIENT_SECRET;
+          clientSecret = process.env.HUBSPOT_MCP_CLIENT_SECRET.trim();
           secretSource = "MCP_Env_Var";
       } else {
           console.error("CRITICAL: MCP Client ID used but HUBSPOT_MCP_CLIENT_SECRET is missing!");
@@ -38,6 +38,8 @@ export default async function handler(req, res) {
   console.log(`Using Client ID: ${clientId}`);
   console.log(`Secret Source: ${secretSource}`);
   console.log(`Secret Length: ${clientSecret ? clientSecret.length : 0}`);
+  // Log first 3 chars of secret for debugging (safe)
+  console.log(`Secret Preview: ${clientSecret ? clientSecret.substring(0, 3) + '...' : 'NONE'}`);
 
   if (!clientId || !clientSecret) {
     return res.status(500).json({ error: 'HubSpot credentials not configured on server' });

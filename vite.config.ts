@@ -8,6 +8,21 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/api/hubspot': {
+            target: 'https://api.hubapi.com',
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/api\/hubspot/, ''),
+            configure: (proxy, options) => {
+              proxy.on('proxyReq', (proxyReq, req) => {
+                // Forward Authorization header
+                if (req.headers.authorization) {
+                  proxyReq.setHeader('Authorization', req.headers.authorization);
+                }
+              });
+            }
+          }
+        }
       },
       plugins: [react()],
       define: {
@@ -17,6 +32,21 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
+        }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks(id) {
+              if (!id.includes('node_modules')) return;
+              if (id.includes('/recharts/') || id.includes('\\recharts\\')) return 'recharts';
+              if (id.includes('/react-dom/') || id.includes('\\react-dom\\')) return 'react-dom';
+              if (id.includes('/react/') || id.includes('\\react\\')) return 'react';
+              if (id.includes('/lucide-react/') || id.includes('\\lucide-react\\')) return 'icons';
+              if (id.includes('/@google/generative-ai/') || id.includes('\\@google\\generative-ai\\')) return 'genai';
+              return 'vendor';
+            }
+          }
         }
       }
     };

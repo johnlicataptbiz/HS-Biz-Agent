@@ -3,6 +3,7 @@ import { hubSpotService } from '../services/hubspotService';
 import { Workflow } from '../types';
 import { Sparkles, AlertCircle, CheckCircle2, MoreHorizontal, RefreshCw, GitFork, Zap, Activity, ShieldCheck, Database } from 'lucide-react';
 import AiModal from '../components/AiModal';
+import Pagination from '../components/Pagination';
 
 const Workflows: React.FC = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -10,12 +11,27 @@ const Workflows: React.FC = () => {
   const [showGeneralAi, setShowGeneralAi] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [fixPrompt, setFixPrompt] = useState<string>('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
     loadData();
     window.addEventListener('hubspot_connection_changed', loadData);
     return () => window.removeEventListener('hubspot_connection_changed', loadData);
   }, []);
+
+  const openFixModal = (wf: Workflow) => {
+    const issueText = wf.issues && wf.issues.length > 0 ? wf.issues.join(', ') : 'this workflow';
+    console.log("Opening fix for:", issueText);
+    setFixPrompt(
+      `Help me fix ${issueText} in the workflow "${wf.name}". ` +
+      `Provide a concise analysis and return a workflow_spec with both YAML and JSON definitions for the updated workflow. ` +
+      `Include a short diff list of the most important changes. ` +
+      `If write actions are possible, include spec.apiCalls for HubSpot workflow updates.`
+    );
+    setSelectedWf(wf);
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -26,6 +42,7 @@ const Workflows: React.FC = () => {
       try {
         const realData = await hubSpotService.fetchWorkflows();
         setWorkflows(realData);
+        setPage(1);
       } catch (e) {
         console.error("Workflow fetch error:", e);
         setWorkflows([]);
@@ -35,6 +52,11 @@ const Workflows: React.FC = () => {
     }
     setIsLoading(false);
   };
+
+  const total = workflows.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedWorkflows = workflows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
@@ -70,7 +92,7 @@ const Workflows: React.FC = () => {
             <RefreshCw size={20} className={`${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
           </button>
           <button 
-            id="architect-flow-btn"
+            id="draft-workflow-btn"
             onClick={() => setShowGeneralAi(true)}
             aria-label="Architect new flow with AI"
             className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
@@ -110,9 +132,9 @@ const Workflows: React.FC = () => {
         </div>
       )}
 
-      {workflows.length > 0 && (
-        <div className="glass-card overflow-hidden border-white/5 shadow-2xl">
-          <table className="w-full text-left border-collapse">
+	      {workflows.length > 0 && (
+	        <div className="glass-card overflow-hidden border-white/5 shadow-2xl">
+	          <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/5 border-b border-white/5 text-[10px] uppercase text-slate-400 font-extrabold tracking-[0.2em]">
                 <th className="px-8 py-6">Architectural Node</th>
@@ -122,13 +144,25 @@ const Workflows: React.FC = () => {
                 <th className="px-8 py-6">Operational Status</th>
                 <th className="px-8 py-6 text-right">Optimization</th>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {workflows.map((wf) => (
-                <tr key={wf.id} className="hover:bg-white/5 transition-all group">
+	            </thead>
+	            <tbody className="divide-y divide-white/5">
+	              {pagedWorkflows.map((wf) => (
+	                <tr key={wf.id} className="hover:bg-white/5 transition-all group">
                   <td className="px-8 py-6">
                     <div className="font-bold text-white group-hover:text-indigo-400 transition-colors text-base tracking-tight">{wf.name}</div>
-                    <div className="text-[10px] text-slate-400 mt-1 font-bold tracking-widest uppercase">Node ID: {wf.id}</div>
+                    <div className="flex flex-col gap-1 mt-1">
+                        <div className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Node ID: {wf.id}</div>
+                        {wf.issues && wf.issues.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {wf.issues.map((issue, idx) => (
+                                    <span key={idx} className="px-1.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <AlertCircle size={8} />
+                                        {issue}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                   </td>
                   <td className="px-8 py-6">
                       <div className="flex items-center gap-2 py-1.5 px-3 bg-white/5 rounded-xl border border-white/5 w-fit">
@@ -162,24 +196,50 @@ const Workflows: React.FC = () => {
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      <button 
-                          onClick={() => setSelectedWf(wf)}
-                          className="px-4 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white rounded-xl transition-all text-[10px] font-extrabold uppercase tracking-widest border border-indigo-500/20 active:scale-95 flex items-center gap-2 shadow-lg hover:shadow-indigo-500/20"
-                      >
-                          <Sparkles size={14} />
-                          Analyze
-                      </button>
+                      {wf.issues && wf.issues.length > 0 ? (
+                           <button 
+                             onClick={() => openFixModal(wf)}
+                             className="px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-xl transition-all text-[10px] font-extrabold uppercase tracking-widest shadow-lg shadow-rose-500/20 active:scale-95 flex items-center gap-2 animate-pulse"
+                           >
+                               <Sparkles size={14} />
+                               Fix Issue
+                           </button>
+                      ) : (
+                          <button 
+                              onClick={() => {
+                                  setFixPrompt('');
+                                  setSelectedWf(wf);
+                              }}
+                              className="px-4 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white rounded-xl transition-all text-[10px] font-extrabold uppercase tracking-widest border border-indigo-500/20 active:scale-95 flex items-center gap-2 shadow-lg hover:shadow-indigo-500/20"
+                          >
+                              <Sparkles size={14} />
+                              Analyze
+                          </button>
+                      )}
+                      
                       <button className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors" title="More Options">
                           <MoreHorizontal size={18} />
                       </button>
                     </div>
                   </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+	                </tr>
+	              ))}
+	            </tbody>
+	          </table>
+              <div className="p-6 border-t border-white/5">
+                <Pagination
+                  page={currentPage}
+                  pageSize={pageSize}
+                  totalItems={total}
+                  onPageChange={setPage}
+                  onPageSizeChange={(n) => {
+                    setPageSize(n);
+                    setPage(1);
+                  }}
+                />
+              </div>
+	        </div>
+	      )}
 
       <AiModal 
         isOpen={!!selectedWf} 
@@ -187,6 +247,7 @@ const Workflows: React.FC = () => {
         contextType="workflow"
         contextId={selectedWf?.id}
         contextName={selectedWf?.name}
+        initialPrompt={fixPrompt}
       />
       
       <AiModal 

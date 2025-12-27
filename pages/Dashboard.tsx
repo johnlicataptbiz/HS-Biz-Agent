@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot, Users } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
+import AiModal from '../components/AiModal';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -16,8 +17,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     properties: [] as any[],
     segments: [] as any[],
     campaigns: [] as any[],
+    forms: [] as any[],
+    deals: [] as any[],
     contactHealth: { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 },
   });
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [auditPrompt, setAuditPrompt] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -30,23 +35,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         setIsConnected(validation.success);
         
-        const isMcp = localStorage.getItem('hubspot_client_id') === '9d7c3c51-862a-4604-9668-cad9bf5aed93';
-
         if (validation.success) {
-          const [wf, seq, prop, seg, camp, contactHealth] = await Promise.all([
+          const [wf, seq, prop, seg, camp, forms, deals, contactHealth] = await Promise.all([
             hubSpotService.fetchWorkflows(),
             hubSpotService.fetchSequences(),
             hubSpotService.fetchProperties(),
             hubSpotService.fetchSegments(),
             hubSpotService.fetchCampaigns(),
+            hubSpotService.fetchForms(),
+            hubSpotService.fetchDeals(),
             hubSpotService.scanContactOrganization()
           ]);
           if (isMounted) {
-            setMetrics({ workflows: wf, sequences: seq, properties: prop, segments: seg, campaigns: camp, contactHealth });
+            setMetrics({ workflows: wf, sequences: seq, properties: prop, segments: seg, campaigns: camp, forms, deals, contactHealth });
           }
         } else {
           if (isMounted) {
-            setMetrics({ workflows: [], sequences: [], properties: [], segments: [], campaigns: [], contactHealth: { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 } });
+            setMetrics({ workflows: [], sequences: [], properties: [], segments: [], campaigns: [], forms: [], deals: [], contactHealth: { totalScanned: 0, unclassified: 0, unassigned: 0, inactive: 0, healthScore: 0 } });
           }
         }
       } catch (e) {
@@ -69,6 +74,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const activeWorkflows = metrics.workflows.filter((w: any) => w.enabled).length;
   const criticalWorkflows = metrics.workflows.filter((w: any) => !w.enabled && w.enrolledCount > 0).length;
   const redundantProps = metrics.properties.filter((p: any) => p.redundant).length;
+  const leadMagnets = metrics.forms.filter((f: any) => f.leadMagnet).length;
   
   const healthData = React.useMemo(() => [
     { 
@@ -86,19 +92,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       color: '#34d399' 
     },
     { 
+      name: 'Database',
       score: metrics.properties.length > 0 
         ? Math.max(0, 100 - Math.min(Math.round((redundantProps / metrics.properties.length) * 100), 100))
         : 0, 
       color: '#fbbf24' 
     },
     {
-      name: 'Organization',
-      score: metrics.segments.length > 0
-        ? Math.round(metrics.segments.reduce((acc: number, s: any) => acc + (s.aiScore || 0), 0) / metrics.segments.length)
+      name: 'Marketing',
+      score: metrics.forms.length > 0
+        ? Math.round(metrics.forms.reduce((acc: number, f: any) => acc + (f.aiScore || 0), 0) / metrics.forms.length)
         : 0,
-      color: '#c084fc'
+      color: '#f43f5e'
     }
-  ], [metrics.workflows, metrics.sequences, metrics.properties, metrics.segments, redundantProps]);
+  ], [metrics.workflows, metrics.sequences, metrics.properties, metrics.forms, redundantProps]);
 
   const overallScore = React.useMemo(() => 
     healthData.length > 0 ? Math.round(healthData.reduce((acc: number, d: any) => acc + d.score, 0) / healthData.length) : 0
@@ -181,7 +188,30 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               onClick={() => {
                 console.log("🧩 Dashboard: Deep audit requested.");
                 hubSpotService.validateConnection().then(v => {
-                  if (v.success) window.dispatchEvent(new Event('hubspot_connection_changed'));
+                  if (v.success) {
+                    setAuditPrompt(
+                      `Perform a Deep Heuristic Audit of this HubSpot Portal based on the following scan data:\n\n` +
+                      `-- PORTAL HEALTH --\n` +
+                      `Overall Score: ${overallScore}%\n` +
+                      `Revenue At Risk: $${(metrics.deals.reduce((acc: number, d: any) => acc + d.amount, 0) / 1000).toFixed(1)}k (${metrics.deals.length} stalled deals)\n` +
+                      `Contact Health: ${metrics.contactHealth.healthScore}% (${metrics.contactHealth.unclassified} unclassified, ${metrics.contactHealth.inactive} inactive)\n\n` +
+                      `-- AUTOMATION --\n` +
+                      `Active Workflows: ${activeWorkflows}\n` +
+                      `Critical Issues: ${criticalWorkflows} stalled/ghost workflows\n\n` +
+                      `-- DATA MODEL --\n` +
+                      `Redundant Properties: ${redundantProps}\n\n` +
+                      `INSTRUCTIONS:\n` +
+                      `1. Identify the top 3 critical bottlenecks reducing revenue or efficiency.\n` +
+                      `2. For each, propose a specific "Fix It" plan.\n` +
+                      `3. Return a 'task_list' spec that I can check off.`
+                    );
+                    setShowAuditModal(true);
+                  } else {
+                    alert("Please connect your HubSpot portal to generate an audit.");
+                  }
+                }).catch(err => {
+                   console.error("Audit launch failed:", err);
+                   alert("Failed to validate connection. See console.");
                 });
               }}
             >
@@ -202,6 +232,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           gradient="bg-indigo-500"
         />
         <StatCard 
+          title="Revenue at Risk" 
+          value={isConnected && !loading ? `$${(metrics.deals.reduce((acc: number, d: any) => acc + d.amount, 0) / 1000).toFixed(1)}k` : "$0"} 
+          sub={isConnected && !loading ? `${metrics.deals.length} Stalled Opportunities` : "Pipeline Scan Inactive"} 
+          icon={TrendingUp} 
+          colorClass="bg-rose-400" 
+          gradient="bg-rose-500"
+        />
+        <StatCard 
           title="Active Automations" 
           value={isConnected && !loading ? activeWorkflows : "0"} 
           sub={isConnected && !loading ? `${criticalWorkflows} Stall Alerts` : "Limited Access"} 
@@ -209,15 +247,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           colorClass="bg-emerald-400" 
           gradient="bg-emerald-500"
           onClick={() => onNavigate?.('workflows')}
-        />
-        <StatCard 
-          title="Market Sequences" 
-          value={isConnected && !loading ? metrics.sequences.length : "0"} 
-          sub={isConnected && !loading ? "Live Vol Track" : "Inactive"} 
-          icon={Target} 
-          colorClass="bg-pink-400" 
-          gradient="bg-pink-500"
-          onClick={() => onNavigate?.('sequences')}
         />
         <StatCard 
           title="Contact Health" 
@@ -312,10 +341,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <div className="space-y-4">
             {isConnected && !loading ? (
               [
-                { label: `Fix ${criticalWorkflows} broken workflows`, impact: 'Critical', type: 'Architecture', color: 'text-indigo-400' },
+                { label: `Fix ${criticalWorkflows} stalled workflows`, impact: 'Critical', type: 'Architecture', color: 'text-indigo-400' },
+                { label: `Optimize ${leadMagnets} lead magnets`, impact: 'High', type: 'Marketing', color: 'text-rose-400' },
                 { label: `Refactor ${redundantProps} legacy properties`, impact: 'High', type: 'Database', color: 'text-amber-400' },
-                { label: 'Optimize sequence outreach', impact: 'Medium', type: 'Sales', color: 'text-emerald-400' },
-                { label: 'Scan for ghost list segments', impact: 'Medium', type: 'Cleanup', color: 'text-rose-400' },
+                { label: 'Analyze sequence health', impact: 'Medium', type: 'Sales', color: 'text-emerald-400' },
               ].map((item, i) => (
                 <div key={i} className="group flex items-center justify-between p-5 rounded-3xl border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all cursor-pointer">
                   <div className="flex items-center gap-4">
@@ -374,6 +403,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
         </div>
       )}
+
+      <AiModal 
+        isOpen={showAuditModal} 
+        onClose={() => setShowAuditModal(false)}
+        contextType="workflow" /* Using workflow context as a catch-all for broad portal changes */
+        contextName="Global Portal Audit"
+        initialPrompt={auditPrompt}
+      />
     </div>
   );
 };

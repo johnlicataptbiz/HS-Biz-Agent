@@ -1,0 +1,11 @@
+{
+  "type": "crm-card",
+  "name": "contact-enrichment",
+  "label": "AI Enrichment",
+  "description": "Enrich contact data with Google Custom Search and apply updates with review.",
+  "objectTypes": ["CONTACT"],
+  "location": "crm.record.sidebar",
+  "module": {
+    "file": "contact-enrichment.jsx"
+  }
+}

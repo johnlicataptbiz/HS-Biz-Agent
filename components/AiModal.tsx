@@ -15,8 +15,94 @@ interface AiModalProps {
 
 const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, contextId, contextName, initialPrompt }) => {
   const [prompt, setPrompt] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<AiResponse | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [isQuotaError, setIsQuotaError] = useState(false);
+
+  const parsedSpecJson = useMemo(() => {
+    if (!result?.spec || typeof result.spec !== 'object') return null;
+    const maybeJson = result.spec.json;
+    if (!maybeJson) return null;
+    if (typeof maybeJson === 'string') {
+      try {
+        return JSON.parse(maybeJson);
+      } catch {
+        return maybeJson;
+      }
+    }
+    return maybeJson;
+  }, [result]);
+
+  const apiCalls = useMemo(() => {
+    if (parsedSpecJson && typeof parsedSpecJson === 'object' && Array.isArray(parsedSpecJson.apiCalls)) {
+      return parsedSpecJson.apiCalls;
+    }
+    if (result?.spec && typeof result.spec === 'object' && Array.isArray(result.spec.apiCalls)) {
+      return result.spec.apiCalls;
+    }
+    return [];
+  }, [parsedSpecJson, result]);
+
+  const applySpec = async () => {
+    if (!result) return;
+    if (!apiCalls || apiCalls.length === 0) {
+      alert("No write actions were provided. Ask for a spec with apiCalls.");
+      return;
+    }
+
+    const summaryLines = apiCalls.map((call: any, idx: number) => {
+      const method = (call.method || 'POST').toUpperCase();
+      const path = call.path || '';
+      const desc = call.description ? ` - ${call.description}` : '';
+      return `${idx + 1}) ${method} ${path}${desc}`;
+    });
+
+    const confirmed = window.confirm(
+      `You are about to perform ${apiCalls.length} HubSpot write action(s):\n` +
+      summaryLines.join('\n') +
+      `\n\nProceed?`
+    );
+    if (!confirmed) return;
+
+    setIsProcessing(true);
+    try {
+      for (const call of apiCalls) {
+        const method = (call.method || 'POST').toUpperCase();
+        const rawPath = String(call.path || '');
+        const normalizedPath = rawPath.startsWith('/') ? rawPath.slice(1) : rawPath;
+
+        const resp = await fetch(`/api/hubspot/${normalizedPath}`, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: call.body ? JSON.stringify(call.body) : undefined
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(`Apply failed: ${method} ${rawPath} (${resp.status}) ${text}`);
+        }
+      }
+      alert("Apply completed successfully.");
+      onClose();
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || "Apply failed.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Manage Countdown for Quota
+  useEffect(() => {
+    let timer: any;
+    if (countdown > 0) {
+      timer = setInterval(() => setCountdown(c => c - 1), 1000);
+    } else if (countdown === 0 && isQuotaError) {
+      setIsQuotaError(false);
+    }
+    return () => clearInterval(timer);
+  }, [countdown, isQuotaError]);
 
   // Context-aware dynamic suggestions
   const currentSuggestions = useMemo(() => {
@@ -71,17 +157,24 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
       setPrompt(initialPrompt || '');
       setResult(null);
       setIsProcessing(false);
+      setIsQuotaError(false);
+      setCountdown(0);
     }
   }, [isOpen, initialPrompt]);
 
   if (!isOpen) return null;
 
   const handleOptimize = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || countdown > 0) return;
     setIsProcessing(true);
     try {
       const res = await generateOptimization(prompt, contextType, contextId);
       setResult(res);
+      
+      if (res.analysis.includes("QUOTA_EXCEEDED")) {
+        setIsQuotaError(true);
+        setCountdown(60);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -159,9 +252,9 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
               <div className="flex justify-end pt-4 border-t border-slate-100 mt-2">
                 <button
                   onClick={handleOptimize}
-                  disabled={!prompt.trim() || isProcessing}
+                  disabled={!prompt.trim() || isProcessing || countdown > 0}
                   className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-medium transition-all ${
-                    !prompt.trim() || isProcessing
+                    !prompt.trim() || isProcessing || countdown > 0
                       ? 'bg-indigo-300 cursor-not-allowed'
                       : 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200'
                   }`}
@@ -170,6 +263,11 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Analyzing...
+                    </>
+                  ) : countdown > 0 ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                      Cooldown ({countdown}s)
                     </>
                   ) : (
                     <>
@@ -195,22 +293,54 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
               <div>
                 <h4 className="text-sm font-semibold text-slate-900 mb-3">Proposed Changes</h4>
                 <div className="space-y-2">
-                  {result.diff.map((change, idx) => (
-                    <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-100 rounded-md">
-                      <CheckCircle2 size={18} className="text-emerald-500 mt-0.5" />
-                      <span className="text-sm text-slate-700">{change}</span>
-                    </div>
-                  ))}
+                  {(result.diff && result.diff.length > 0) ? (
+                    result.diff.map((change, idx) => (
+                      <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-100 rounded-md">
+                        <CheckCircle2 size={18} className="text-emerald-500 mt-0.5" />
+                        <span className="text-sm text-slate-700">{change}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-slate-500">No explicit diff provided.</div>
+                  )}
                 </div>
               </div>
 
-              {/* Preview for Breeze Tool Spec */}
-              {result.specType === 'breeze_tool_spec' && (
+              {/* Preview for Structured Specs */}
+              {['breeze_tool_spec', 'workflow_spec', 'sequence_spec', 'property_migration_spec'].includes(result.specType) && (
                 <div>
-                   <h4 className="text-sm font-semibold text-slate-900 mb-3">Tool Definition (JSON)</h4>
-                   <pre className="bg-slate-900 text-indigo-200 p-4 rounded-lg text-xs overflow-x-auto">
-                     {JSON.stringify(result.spec, null, 2)}
-                   </pre>
+                   <h4 className="text-sm font-semibold text-slate-900 mb-3">Spec Output</h4>
+                   {result.spec?.title && (
+                     <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                       {result.spec.title}
+                     </div>
+                   )}
+                   {result.spec?.yaml && (
+                     <div className="mb-3">
+                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">YAML</div>
+                       <pre className="bg-slate-900 text-indigo-200 p-4 rounded-lg text-xs overflow-x-auto">
+                         {result.spec.yaml}
+                       </pre>
+                     </div>
+                   )}
+                   {parsedSpecJson && (
+                     <div>
+                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">JSON</div>
+                       <pre className="bg-slate-900 text-indigo-200 p-4 rounded-lg text-xs overflow-x-auto">
+                         {typeof parsedSpecJson === 'string' ? parsedSpecJson : JSON.stringify(parsedSpecJson, null, 2)}
+                       </pre>
+                     </div>
+                   )}
+                   {Array.isArray(result.spec?.steps) && result.spec.steps.length > 0 && (
+                     <div className="mt-3">
+                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Steps</div>
+                       <ul className="text-xs text-slate-600 list-disc pl-4 space-y-1">
+                         {result.spec.steps.map((step: string, idx: number) => (
+                           <li key={idx}>{step}</li>
+                         ))}
+                       </ul>
+                     </div>
+                   )}
                 </div>
               )}
             </div>
@@ -234,11 +364,8 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
                     Cancel
                 </button>
                 <button 
-                    onClick={() => {
-                        // Mock apply
-                        onClose();
-                        alert("Optimization applied successfully! (Mock)");
-                    }}
+                    onClick={applySpec}
+                    disabled={isProcessing}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
                 >
                     Apply Changes

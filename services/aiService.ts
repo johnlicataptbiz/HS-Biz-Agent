@@ -1,237 +1,89 @@
-
-import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AiResponse, ChatResponse } from '../types';
 
-const MODEL_NAME = 'gemini-2.0-flash';
-
-// Helper to get authenticated client
-const getAiClient = () => {
-  // STRICT COMPLIANCE: API Key must come from process.env.API_KEY
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
-};
-
-// --- MCP TOOL DEFINITIONS ---
-// These mimic the tools that would exist on a backend MCP server.
-const MCP_TOOLS_DEF = [
-  {
-    name: "list_workflows",
-    description: "Fetch a summary of all automation workflows in the portal.",
-    parameters: { type: Type.OBJECT, properties: {} }
-  },
-  {
-    name: "audit_data_schema",
-    description: "Scan CRM properties for redundancy.",
-    parameters: { type: Type.OBJECT, properties: {} }
-  },
-  {
-    name: "list_sequences",
-    description: "Retrieve sales email sequences.",
-    parameters: { type: Type.OBJECT, properties: {} }
-  },
-  {
-    name: "get_breeze_tools",
-    description: "List custom Breeze Agent Tools.",
-    parameters: { type: Type.OBJECT, properties: {} }
-  },
-  {
-    name: "list_newest_contacts",
-    description: "Retrieve the 5 most recently created contacts from HubSpot.",
-    parameters: { type: Type.OBJECT, properties: {} }
-  },
-  {
-    name: "search_contacts",
-    description: "Search for contacts by email query.",
-    parameters: { type: Type.OBJECT, properties: { query: { type: Type.STRING } } }
-  },
-  {
-    name: "get_contact",
-    description: "Retrieve details for a specific contact by ID.",
-    parameters: { type: Type.OBJECT, properties: { id: { type: Type.STRING } } }
-  }
-];
-
-const PT_BIZ_SYSTEM_INSTRUCTION = `
-You are the "HubSpot AI Optimizer" for PT Biz.
-Your goal is to optimize HubSpot portals for Physical Therapy clinics.
-
-**ARCHITECTURE: MODEL CONTEXT PROTOCOL (MCP)**
-You have access to "Tools" to fetch real HubSpot data.
-- **Tools Available:**
-  1. \`list_workflows\`, \`audit_data_schema\`, \`list_sequences\`, \`get_breeze_tools\`
-  2. \`list_newest_contacts\`: Use this when the user asks for "newest contacts".
-  3. \`search_contacts\`: Use this to find specific people by email.
-  4. \`get_contact\`: Use this for deep dives into a specific ID.
-`;
-
-const OPTIMIZATION_SCHEMA: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    specType: {
-      type: Type.STRING,
-      enum: ['workflow_spec', 'sequence_spec', 'property_migration_spec', 'breeze_tool_spec'],
-      description: "The type of specification being generated."
-    },
-    spec: {
-      type: Type.OBJECT,
-      description: "The technical specification object.",
-      properties: {
-        name: { type: Type.STRING },
-        focus: { type: Type.STRING },
-        // For Workflows/Sequences
-        steps: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, config: { type: Type.OBJECT } } } },
-        actions: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, config: { type: Type.OBJECT } } } },
-        // For Data Model
-        merge: { type: Type.ARRAY, items: { type: Type.STRING } },
-        // For Breeze Tools
-        actionUrl: { type: Type.STRING },
-        labels: { type: Type.OBJECT, nullable: true },
-        inputFields: { 
-          type: Type.ARRAY, 
-          items: { 
-            type: Type.OBJECT, 
-            properties: { 
-              key: { type: Type.STRING }, 
-              label: { type: Type.STRING }, 
-              type: { type: Type.STRING },
-              required: { type: Type.BOOLEAN }
-            } 
-          } 
-        }
-      }
-    },
-    analysis: {
-      type: Type.STRING,
-      description: "A strategic explanation of WHY this optimization helps a PT business."
-    },
-    diff: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
-      description: "A list of specific changes made (e.g., 'Added delay', 'Merged property', 'Defined Input Fields')."
-    }
-  },
-  required: ["specType", "spec", "analysis", "diff"]
-};
-
-const CHAT_SCHEMA: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    text: {
-      type: Type.STRING,
-      description: "The conversational response to the user. Keep it brief if calling a tool."
-    },
-    suggestions: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
-      description: "3 to 4 short, relevant follow-up options."
-    },
-    toolCalls: {
-      type: Type.ARRAY,
-      description: "A list of tools to execute to fulfill the user's request.",
-      items: {
-        type: Type.OBJECT,
-        properties: {
-            name: { type: Type.STRING, enum: MCP_TOOLS_DEF.map(t => t.name) },
-            arguments: { type: Type.OBJECT }
-        },
-        required: ["name", "arguments"]
-      }
-    },
-    action: {
-      type: Type.OBJECT,
-      description: "Optional UI action to open a modal builder.",
-      properties: {
-        type: { type: Type.STRING, enum: ["OPEN_MODAL"] },
-        payload: {
-          type: Type.OBJECT,
-          properties: {
-            contextType: { type: Type.STRING, enum: ["workflow", "sequence", "data", "breeze_tool"] },
-            initialPrompt: { type: Type.STRING, description: "The prompt to pre-fill in the modal." }
-          }
-        }
-      }
-    }
-  },
-  required: ["text", "suggestions"]
-};
-
+/**
+ * Calls the backend API to generate an optimization plan.
+ */
 export const generateOptimization = async (
   prompt: string,
   contextType: 'workflow' | 'sequence' | 'data' | 'breeze_tool',
   contextId?: string
 ): Promise<AiResponse> => {
   try {
-    const ai = getAiClient();
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: `
-        Context Type: ${contextType}
-        Context ID: ${contextId || 'New/General'}
-        User Request: ${prompt}
-        
-        Generate a specific optimization or creation plan for this request based on PT Biz best practices.
-        If contextType is 'breeze_tool', generate a JSON definition suitable for a HubSpot App 'workflow-action-tool'.
-      `,
-      config: {
-        systemInstruction: PT_BIZ_SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: OPTIMIZATION_SCHEMA,
-        temperature: 0.7,
-      },
+    const accessToken = localStorage.getItem('hubspot_access_token');
+
+    const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            mode: 'optimize',
+            prompt,
+            contextType,
+            contextId,
+            hubspotToken: accessToken
+        })
     });
 
-    const text = response.text;
-    if (!text) throw new Error("No response from AI");
-    
-    // Sanitize markdown code blocks if present
-    const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    return JSON.parse(cleanJson) as AiResponse;
+    if (!response.ok) {
+        const errText = await response.text();
+        console.error(`AI Optimization Error (${response.status}):`, errText);
+        throw new Error(`Server Error: ${response.status} - ${errText}`);
+    }
 
-  } catch (error) {
+    const data = await response.json();
+    return data as AiResponse;
+
+  } catch (error: any) {
     console.error("AI Generation Error:", error);
+    
+    const isQuota = error.message?.includes("429") || error.message?.includes("quota");
+    
     return {
       specType: 'workflow_spec',
       spec: { name: 'Error Fallback' },
-      analysis: "I encountered an error while processing your request. Please ensure the environment is configured correctly.",
-      diff: ["Retry Request"]
+      analysis: isQuota 
+        ? "QUOTA_EXCEEDED: The AI is taking a quick breath. Please wait about 60 seconds for the free tier limit to reset."
+        : "I encountered an error while processing your request. Please ensure the environment is configured correctly.",
+      diff: [isQuota ? "Wait 60 seconds" : "Retry Request"]
     };
   }
 };
 
+/**
+ * Calls the backend API to generate a chat response.
+ */
 export const generateChatResponse = async (message: string): Promise<ChatResponse> => {
   try {
-    const ai = getAiClient();
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: message,
-      config: {
-        systemInstruction: PT_BIZ_SYSTEM_INSTRUCTION + `
-        \n\n**AVAILABLE TOOLS:**
-        ${JSON.stringify(MCP_TOOLS_DEF, null, 2)}
-        
-        **Instructions:**
-        - If the user asks for data that lives in the portal (workflows, properties, sequences), **USE A TOOL CALL**.
-        - Do not act like you know the data unless you have called the tool.
-        - If the user asks to "Create" or "Draft" something new, use the 'action' field to open the modal (not a tool call).
-        `,
-        responseMimeType: "application/json",
-        responseSchema: CHAT_SCHEMA,
-        temperature: 0.7,
-      },
+    const accessToken = localStorage.getItem('hubspot_access_token');
+    
+    const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            mode: 'chat',
+            prompt: message,
+            hubspotToken: accessToken
+        })
     });
 
-    const text = response.text;
-    if (!text) throw new Error("No response text");
-    
-    // Sanitize markdown code blocks if present
-    const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    if (!response.ok) {
+        const errText = await response.text();
+        console.error(`Chat Error (${response.status}):`, errText);
+        throw new Error(`Server Error: ${response.status} - ${errText}`);
+    }
 
-    return JSON.parse(cleanJson) as ChatResponse;
+    const data = await response.json();
+    return data as ChatResponse;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Chat Error:", error);
+    if (error.message.includes("429")) {
+        return {
+            text: "QUOTA_EXCEEDED: The AI is taking a quick breath. Please wait about 60 seconds for the free tier limit to reset.",
+            suggestions: ["Retry in 1 minute"]
+        };
+    }
     return {
-        text: "I'm having trouble connecting to the network right now. Please check your internet connection.",
+        text: "I'm having trouble connecting right now. Please check your connection or HubSpot token.",
         suggestions: ["Retry"]
     };
   }

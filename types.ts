@@ -1,6 +1,18 @@
 
 export type SpecType = 'workflow_spec' | 'sequence_spec' | 'property_migration_spec' | 'breeze_tool_spec';
 
+export type LeadStatus = 
+  | 'New'
+  | 'Hot'
+  | 'Nurture'
+  | 'Watch'
+  | 'Unqualified'
+  | 'Past Client'
+  | 'Active Client'
+  | 'Rejected'
+  | 'Trash'
+  | 'Unclassified';
+
 export interface Workflow {
   id: string;
   name: string;
@@ -18,6 +30,7 @@ export interface Sequence {
   active: boolean;
   stepsCount: number;
   replyRate: number;
+  openRate: number;
   aiScore: number;
   targetPersona: string;
 }
@@ -48,9 +61,9 @@ export interface BreezeTool {
 export interface Segment {
   id: string;
   name: string;
-  count: number;
-  type: 'DYNAMIC' | 'STATIC';
-  filters: string[];
+  contactCount: number;
+  isDynamic: boolean;
+  filters: any[];
   lastUpdated: string;
   aiScore: number;
 }
@@ -63,6 +76,17 @@ export interface Campaign {
   revenue: number | null;
   contacts: number;
   aiScore: number;
+  type?: 'MARKETING_CONTAINER' | 'EMAIL_BLAST' | 'LANDING_PAGE' | 'SITE_PAGE';
+}
+
+export interface Form {
+  id: string;
+  name: string;
+  submissions: number;
+  aiScore?: number;
+  leadMagnet: boolean;
+  createdAt: number | string;
+  guid: string;
 }
 
 export interface Metric {
@@ -96,4 +120,28 @@ export interface ChatResponse {
       initialPrompt: string;
     };
   };
+}
+
+export interface Lead {
+  id: string;
+  name: string;
+  stage: string;
+  ownerId: string;
+  companyName?: string;
+  lastActivity: string;
+  aiScore: number;
+}
+
+export interface PipelineStage {
+  id: string;
+  label: string;
+  displayOrder: number;
+  metadata: any;
+}
+
+export interface Pipeline {
+  id: string;
+  label: string;
+  stages: PipelineStage[];
+  displayOrder: number;
 }
