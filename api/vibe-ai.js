@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-const MODEL_NAME = 'gemini-1.5-flash';
+const MODEL_NAME = 'gemini-flash-latest';
 
 const SCHEMA = {
   type: "OBJECT",
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
             responseMimeType: "application/json",
             responseSchema: SCHEMA
         }
-    }, { apiVersion: 'v1' });
+    });
 
     const result = await model.generateContent(prompt);
     const data = JSON.parse(result.response.text());

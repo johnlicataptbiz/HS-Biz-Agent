@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-const MODEL_NAME = 'gemini-1.5-flash';
+const MODEL_NAME = 'gemini-flash-latest';
 const GENERATION_CONFIG = {
     temperature: 0.2,
     topP: 0.95,
@@ -181,7 +181,7 @@ export default async function handler(req, res) {
       let lastErr;
       for (let i = 0; i < 2; i++) {
         try {
-          const model = genAI.getGenerativeModel(genOptions, { apiVersion: 'v1' });
+          const model = genAI.getGenerativeModel(genOptions);
           // Set a timeout for the actual fetch if possible, though SDK handles it
           const result = await model.generateContent(input);
           return result;
@@ -234,7 +234,7 @@ export default async function handler(req, res) {
         responseMimeType: "application/json",
         responseSchema: CHAT_SCHEMA
       }
-    }, { apiVersion: 'v1' });
+    });
 
     const result = await chatModel.generateContent(prompt);
     return res.status(200).json(JSON.parse(result.response.text()));
