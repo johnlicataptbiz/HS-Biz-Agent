@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { hubSpotService } from '../services/hubspotService';
 import { leadStatusService, IntelligenceContact } from '../services/leadStatusService';
 import { Segment, LeadStatus } from '../types';
-import { Users, RefreshCw, Sparkles, ShieldCheck, List, UserCheck, UserX, Clock, Filter, AlertCircle, ArrowRight, Trash2, Trophy, Tag, Eye, Layers, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Users, RefreshCw, Sparkles, ShieldCheck, List, UserCheck, UserX, Clock, Filter, AlertCircle, ArrowRight, Trash2, Trophy, Tag, Eye, Layers, ChevronRight, CheckCircle2, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import AiModal from '../components/AiModal';
 import Pagination from '../components/Pagination';
 
@@ -29,9 +29,20 @@ const Contacts: React.FC = () => {
   const [showListAi, setShowListAi] = useState(false);
   const [listPrompt, setListPrompt] = useState('');
   
-  // Intelligence Pagination
+  // Intelligence Sorting & Pagination
   const [intelPage, setIntelPage] = useState(1);
   const [intelPageSize, setIntelPageSize] = useState(10);
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ 
+    key: 'createdate', 
+    direction: 'desc' 
+  });
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+        key,
+        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
 
   useEffect(() => {
     loadData();
@@ -78,9 +89,56 @@ const Contacts: React.FC = () => {
   };
 
   const filteredIntel = useMemo(() => {
-      // Future: Add filtering by status here
-      return intelContacts;
-  }, [intelContacts]);
+      let sorted = [...intelContacts];
+      
+      if (sortConfig.key) {
+          sorted.sort((a, b) => {
+              let aValue: any;
+              let bValue: any;
+
+              switch (sortConfig.key) {
+                  case 'name':
+                      aValue = a.name.toLowerCase();
+                      bValue = b.name.toLowerCase();
+                      break;
+                  case 'status':
+                      aValue = a.status;
+                      bValue = b.status;
+                      break;
+                  case 'strategic_score':
+                      aValue = a.rawProperties.strategic_score || 0;
+                      bValue = b.rawProperties.strategic_score || 0;
+                      break;
+                  case 'risk_level':
+                      const riskMap = { 'High': 3, 'Medium': 2, 'Low': 1 };
+                      aValue = riskMap[a.rawProperties.risk_level as keyof typeof riskMap] || 0;
+                      bValue = riskMap[b.rawProperties.risk_level as keyof typeof riskMap] || 0;
+                      break;
+                  case 'lastActivityDays':
+                      aValue = a.lastActivityDays;
+                      bValue = b.lastActivityDays;
+                      break;
+                  case 'associatedDeals':
+                      aValue = a.associatedDeals;
+                      bValue = b.associatedDeals;
+                      break;
+                  case 'createdate':
+                      aValue = new Date(a.rawProperties.createdate || 0).getTime();
+                      bValue = new Date(b.rawProperties.createdate || 0).getTime();
+                      break;
+                  default:
+                      aValue = a.name;
+                      bValue = b.name;
+              }
+
+              if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+              if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+              return 0;
+          });
+      }
+
+      return sorted;
+  }, [intelContacts, sortConfig]);
 
   const pagedIntel = filteredIntel.slice((intelPage - 1) * intelPageSize, intelPage * intelPageSize);
 
@@ -234,14 +292,62 @@ const Contacts: React.FC = () => {
            <div className="glass-card overflow-hidden">
                <table className="w-full text-left">
                    <thead className="bg-white/5 border-b border-white/10">
-                       <tr>
-                           <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Contact</th>
-                           <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Heuristic Status</th>
-                           <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Strategic Score</th>
-                           <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Risk Level</th>
-                           <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Activity</th>
-                           <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Context</th>
-                       </tr>
+                        <tr>
+                            <th 
+                                className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('name')}
+                            >
+                                <div className="flex items-center gap-2">
+                                    Contact
+                                    {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ArrowUpDown size={10} className="opacity-30" />}
+                                </div>
+                            </th>
+                            <th 
+                                className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('status')}
+                            >
+                                <div className="flex items-center gap-2">
+                                    Heuristic Status
+                                    {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ArrowUpDown size={10} className="opacity-30" />}
+                                </div>
+                            </th>
+                            <th 
+                                className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('strategic_score')}
+                            >
+                                <div className="flex items-center gap-2">
+                                    Strategic Score
+                                    {sortConfig.key === 'strategic_score' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ArrowUpDown size={10} className="opacity-30" />}
+                                </div>
+                            </th>
+                            <th 
+                                className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('risk_level')}
+                            >
+                                <div className="flex items-center gap-2">
+                                    Risk Level
+                                    {sortConfig.key === 'risk_level' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ArrowUpDown size={10} className="opacity-30" />}
+                                </div>
+                            </th>
+                            <th 
+                                className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('lastActivityDays')}
+                            >
+                                <div className="flex items-center gap-2">
+                                    Activity
+                                    {sortConfig.key === 'lastActivityDays' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ArrowUpDown size={10} className="opacity-30" />}
+                                </div>
+                            </th>
+                            <th 
+                                className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('associatedDeals')}
+                            >
+                                <div className="flex items-center justify-end gap-2">
+                                    Context
+                                    {sortConfig.key === 'associatedDeals' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ArrowUpDown size={10} className="opacity-30" />}
+                                </div>
+                            </th>
+                        </tr>
                    </thead>
                    <tbody className="divide-y divide-white/5">
                        {pagedIntel.map(contact => (
