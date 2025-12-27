@@ -3,14 +3,14 @@ import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 const MODEL_NAME = 'gemini-1.5-flash';
 
 const SCHEMA = {
-  type: SchemaType.OBJECT,
+  type: "OBJECT",
   properties: {
-    vibeScore: { type: SchemaType.NUMBER, description: "Strategic fit score (0-100)" },
-    persona: { type: SchemaType.STRING, description: "A catchy, strategic persona name (e.g. 'The Visionary Founder', 'The Tactical Gatekeeper')" },
-    summary: { type: SchemaType.STRING, description: "A concise 2-sentence executive summary of the lead's fit." },
-    strategicAdvice: { type: SchemaType.STRING, description: "One specific, high-leverage closing tactic or engagement strategy." },
-    riskFactors: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-    conversationStarters: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+    vibeScore: { type: "NUMBER", description: "Strategic fit score (0-100)" },
+    persona: { type: "STRING", description: "A catchy, strategic persona name (e.g. 'The Visionary Founder', 'The Tactical Gatekeeper')" },
+    summary: { type: "STRING", description: "A concise 2-sentence executive summary of the lead's fit." },
+    strategicAdvice: { type: "STRING", description: "One specific, high-leverage closing tactic or engagement strategy." },
+    riskFactors: { type: "ARRAY", items: { type: "STRING" } },
+    conversationStarters: { type: "ARRAY", items: { type: "STRING" } }
   },
   required: ["vibeScore", "persona", "summary", "strategicAdvice", "riskFactors", "conversationStarters"]
 };

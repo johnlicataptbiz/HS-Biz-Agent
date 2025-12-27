@@ -55,24 +55,24 @@ const MCP_TOOLS_CONFIG = [
       {
         name: "list_newest_contacts",
         description: "Fetch the 5 most recently created contacts from HubSpot.",
-        parameters: { type: SchemaType.OBJECT, properties: {} }
+        parameters: { type: "OBJECT", properties: {} }
       },
       {
         name: "list_workflows",
         description: "Retrieve all automation workflows in the portal.",
-        parameters: { type: SchemaType.OBJECT, properties: {} }
+        parameters: { type: "OBJECT", properties: {} }
       },
       {
         name: "list_sequences",
         description: "Retrieve sales email sequences.",
-        parameters: { type: SchemaType.OBJECT, properties: {} }
+        parameters: { type: "OBJECT", properties: {} }
       },
       {
         name: "get_contact",
         description: "Retrieve details for a specific contact by ID.",
         parameters: { 
-            type: SchemaType.OBJECT, 
-            properties: { id: { type: SchemaType.STRING, description: "The contact ID" } },
+            type: "OBJECT", 
+            properties: { id: { type: "STRING", description: "The contact ID" } },
             required: ["id"]
         }
       }
@@ -96,46 +96,47 @@ INTELLIGENCE LAYER:
 - If a user asks for a 'Deep Audit', focus on 'Architectural Fragility'—where is the system likely to break?`;
 
 const CHAT_SCHEMA = {
-  type: SchemaType.OBJECT,
+  type: "OBJECT",
   properties: {
-    text: { type: SchemaType.STRING, description: "Conversational response." },
-    suggestions: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+    text: { type: "STRING", description: "Conversational response." },
+    suggestions: { type: "ARRAY", items: { type: "STRING" } }
   },
   required: ["text", "suggestions"]
 };
 
 const OPTIMIZE_SCHEMA = {
-  type: SchemaType.OBJECT,
+  type: "OBJECT",
   properties: {
     specType: {
-      type: SchemaType.STRING,
+      type: "STRING",
       description: "One of: workflow_spec, sequence_spec, property_migration_spec, breeze_tool_spec."
     },
     spec: {
-      type: SchemaType.OBJECT,
+      type: "OBJECT",
       properties: {
-        title: { type: SchemaType.STRING },
-        yaml: { type: SchemaType.STRING },
-        json: { type: SchemaType.STRING },
+        title: { type: "STRING" },
+        yaml: { type: "STRING" },
+        json: { type: "STRING" },
         apiCalls: {
-          type: SchemaType.ARRAY,
+          type: "ARRAY",
           items: {
-            type: SchemaType.OBJECT,
+            type: "OBJECT",
             properties: {
-              method: { type: SchemaType.STRING },
-              path: { type: SchemaType.STRING },
-              body: { type: SchemaType.STRING, description: "Stringified JSON object of the request body" },
-              description: { type: SchemaType.STRING }
+              method: { type: "STRING" },
+              path: { type: "STRING" },
+              body: { type: "STRING", description: "Stringified JSON object of the request body" },
+              description: { type: "STRING" }
             },
             required: ["method", "path"]
           }
         },
-        steps: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-        notes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
-      }
+        steps: { type: "ARRAY", items: { type: "STRING" } },
+        notes: { type: "ARRAY", items: { type: "STRING" } }
+      },
+      required: ["title"]
     },
-    analysis: { type: SchemaType.STRING },
-    diff: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+    analysis: { type: "STRING" },
+    diff: { type: "ARRAY", items: { type: "STRING" } }
   },
   required: ["specType", "spec", "analysis", "diff"]
 };
