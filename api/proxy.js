@@ -15,10 +15,15 @@ export default async function handler(req, res) {
   }
 
   // Get the path from query parameter
-  const { path, ...otherParams } = req.query;
+  let { path, ...otherParams } = req.query;
   
   if (!path) {
     return res.status(400).json({ error: 'Missing path parameter' });
+  }
+  
+  // Clean leading slash to avoid double slashes in hubspotUrl
+  if (path.startsWith('/')) {
+      path = path.substring(1);
   }
   
   // Get the authorization header from the request
