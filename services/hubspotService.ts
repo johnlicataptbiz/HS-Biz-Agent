@@ -1212,12 +1212,79 @@ export class HubSpotService {
         inactive
       };
     } catch (e) {
-      console.error('Contact scan error:', e);
+      console.error("Scan Error:", e);
       return { 
           statusBreakdown: { 'New': 0, 'Hot': 0, 'Nurture': 0, 'Watch': 0, 'Unqualified': 0, 'Past Client': 0, 'Active Client': 0, 'Rejected': 0, 'Trash': 0, 'Unclassified': 0 }, 
           lifecycleStageBreakdown: {},
           totalScanned: 0, healthScore: 0, unclassified: 0, unassigned: 0, inactive: 0 
       };
+    }
+  }
+
+  public async fetchJourneyData(): Promise<any> {
+    try {
+      const [workflows, sequences, deals, contactScan] = await Promise.all([
+        this.fetchWorkflows(),
+        this.fetchSequences(),
+        this.fetchDeals(),
+        this.scanContactOrganization()
+      ]);
+
+      const breakdown = contactScan.statusBreakdown || {};
+      
+      return {
+        stages: [
+          {
+            id: 'discovery',
+            title: 'Discovery',
+            subTitle: 'Marketing',
+            count: breakdown['New'] || 0,
+            workflows: workflows.filter(w => w.name.toLowerCase().includes('marketing') || w.name.toLowerCase().includes('top')).length,
+            sequences: sequences.filter(s => s.name.toLowerCase().includes('cold') || s.name.toLowerCase().includes('discovery')).length,
+            dropOff: 0
+          },
+          {
+            id: 'engagement',
+            title: 'Engagement',
+            subTitle: 'Leads',
+            count: breakdown['Nurture'] || 0,
+            workflows: workflows.filter(w => w.name.toLowerCase().includes('nurture') || w.name.toLowerCase().includes('lead')).length,
+            sequences: sequences.filter(s => s.name.toLowerCase().includes('nurture') || s.name.toLowerCase().includes('engagement')).length,
+            dropOff: 15
+          },
+          {
+            id: 'qualification',
+            title: 'Qualification',
+            subTitle: 'Prospecting',
+            count: breakdown['Hot'] || 0,
+            workflows: workflows.filter(w => w.name.toLowerCase().includes('qualification') || w.name.toLowerCase().includes('hot')).length,
+            sequences: sequences.filter(s => s.name.toLowerCase().includes('qualification') || s.name.toLowerCase().includes('vetting')).length,
+            dropOff: 25
+          },
+          {
+            id: 'opportunity',
+            title: 'Opportunity',
+            subTitle: 'Deals',
+            count: deals.length,
+            workflows: workflows.filter(w => w.name.toLowerCase().includes('deal') || w.name.toLowerCase().includes('sales')).length,
+            sequences: sequences.filter(s => s.name.toLowerCase().includes('closing') || s.name.toLowerCase().includes('proposal')).length,
+            dropOff: 40
+          },
+          {
+            id: 'retention',
+            title: 'Retention',
+            subTitle: 'Customers',
+            count: breakdown['Active Client'] || 0,
+            workflows: workflows.filter(w => w.name.toLowerCase().includes('customer') || w.name.toLowerCase().includes('retention') || w.name.toLowerCase().includes('onboarding')).length,
+            sequences: sequences.filter(s => s.name.toLowerCase().includes('upsell') || s.name.toLowerCase().includes('referral')).length,
+            dropOff: 5
+          }
+        ],
+        totalContacts: contactScan.totalScanned
+      };
+    } catch (e) {
+      console.error("Journey Data Fetch Error:", e);
+      throw e;
     }
   }
 }
