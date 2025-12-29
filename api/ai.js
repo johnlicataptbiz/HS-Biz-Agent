@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-const MODEL_NAME = 'gemini-2.5-flash';
+const MODEL_NAME = 'gemini-2.0-flash';
 const GENERATION_CONFIG = {
     temperature: 0.2,
     topP: 0.95,
@@ -210,6 +210,16 @@ const OPTIMIZE_SCHEMA = {
     diff: { type: "ARRAY", items: { type: "STRING" } }
   },
   required: ["specType", "spec", "analysis", "diff"]
+};
+
+const ENRICH_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    intent: { type: "STRING" },
+    summary: { type: "STRING" },
+    recommendation: { type: "STRING" }
+  },
+  required: ["intent", "summary", "recommendation"]
 };
 
 const CLASSIFY_SCHEMA = {
