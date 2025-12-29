@@ -34,6 +34,24 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   
+  // CRITICAL: Handle OAuth Popup Early (before any app logic)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const savedState = localStorage.getItem('hubspot_oauth_state');
+    
+    // If we're in a popup window with an OAuth code, close immediately
+    if (window.opener && code && state && savedState && state === savedState) {
+      console.log('🪟 OAuth popup detected - sending code to opener and closing...');
+      window.opener.postMessage({ type: 'HUBSPOT_OAUTH_CODE', code, state }, window.location.origin);
+      setTimeout(() => {
+        window.close();
+      }, 100);
+      return; // Stop the rest of the app from loading
+    }
+  }, []);
+
   useEffect(() => {
     console.log("🚀 HS-Biz-Agent: Sprint 6 RevOps - Version 1.0.1 Loaded");
     localStorage.setItem('active_tab', activeTab);
