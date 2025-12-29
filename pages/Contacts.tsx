@@ -218,7 +218,50 @@ const Contacts: React.FC = () => {
                 isBulkScanning ? 'bg-slate-700 text-slate-400 border-slate-600' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20'
             }`}
           >
-              {isBulkScanning ? <RefreshCw className="animate-spin" size={14} /> : <Brain size={14} />}
+            {isBulkScanning ? <RefreshCw className="animate-spin" size={14} /> : <Brain size={14} />}
+            Scan Intelligence
+          </button>
++          <button
++            onClick={async () => {
++              if (!isConnected) return alert('Not connected to HubSpot.');
++              if (!window.confirm('Run a dry-run to identify lead status changes?')) return;
++              try {
++                setIsExecuting(true);
++                const resp = await fetch('/api/lead-status-sync', {
++                  method: 'POST',
++                  headers: { 'Content-Type': 'application/json' },
++                  body: JSON.stringify({ dryRun: true })
++                });
++                const data = await resp.json();
++                if (!data.success) throw new Error(data.error || 'Dry run failed');
++                const summary = data.result;
++                const proceed = window.confirm(`Dry run scanned ${summary.scanned} contacts and found ${summary.proposedCount} changes. Apply changes now?`);
++                if (proceed) {
++                  const applyResp = await fetch('/api/lead-status-sync', {
++                    method: 'POST',
++                    headers: { 'Content-Type': 'application/json' },
++                    body: JSON.stringify({ dryRun: false })
++                  });
++                  const applyData = await applyResp.json();
++                  if (!applyData.success) throw new Error(applyData.error || 'Apply failed');
++                  alert(`Applied updates: ${applyData.result.applied.success} succeeded, ${applyData.result.applied.failed} failed.`);
++                  await loadData();
++                }
++              } catch (e: any) {
++                console.error('Sync failed', e);
++                alert('Lead status sync failed: ' + (e?.message || e));
++              } finally {
++                setIsExecuting(false);
++              }
++            }}
++            disabled={isExecuting || !isConnected}
++            className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 border-2 ${
++              isExecuting ? 'bg-slate-700 text-slate-400 border-slate-600' : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
++            }`}
++          >
++            Sync Lead Status
++          </button>
+*** End Replace              {isBulkScanning ? <RefreshCw className="animate-spin" size={14} /> : <Brain size={14} />}
               Scan Intelligence
           </button>
           

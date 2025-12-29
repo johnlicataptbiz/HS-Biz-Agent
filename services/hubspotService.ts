@@ -29,14 +29,13 @@ export class HubSpotService {
 
   // --- OAUTH FLOW ---
 
-  public async initiateOAuth(useMcp: boolean = false): Promise<Window | null> {
+  public async initiateOAuth(useMcp: boolean = false, onPopupError?: (msg: string) => void): Promise<Window | null> {
     const redirectUri = window.location.origin.endsWith('/') ? window.location.origin : `${window.location.origin}/`;
     const clientId = useMcp ? '9d7c3c51-862a-4604-9668-cad9bf5aed93' : this.CLIENT_ID;
-    
     if (!clientId) {
+      if (onPopupError) onPopupError("HubSpot client ID missing.");
       throw new Error("HubSpot client ID missing.");
     }
-
     // Create a unique state for this request to force fresh interaction
     const stateBytes = new Uint8Array(16);
     crypto.getRandomValues(stateBytes);
@@ -45,17 +44,14 @@ export class HubSpotService {
       .join('');
     localStorage.setItem(this.OAUTH_REQUEST_KEYS.STATE, state);
     localStorage.setItem(this.OAUTH_REQUEST_KEYS.STARTED_AT, Date.now().toString());
-
     // Persist which client we are trying to authorize
     localStorage.setItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID, clientId);
-    
     const width = 600;
     const height = 700;
     const screenWidth = (window.screen?.width || 1024);
     const screenHeight = (window.screen?.height || 768);
     const left = (screenWidth / 2) - (width / 2);
     const top = (screenHeight / 2) - (height / 2);
-
     const scopes = useMcp 
       ? [
           'crm.objects.contacts.read',
@@ -80,25 +76,36 @@ export class HubSpotService {
           'business-intelligence',
           'oauth'
         ];
-
     const authUrl = `https://app.hubspot.com/oauth/authorize?` +
       `response_type=code&` +
       `client_id=${encodeURIComponent(clientId)}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `scope=${encodeURIComponent(scopes.join(' '))}&` +
       `state=${encodeURIComponent(state)}`;
-
-    const popupName = `HubSpot OAuth ${clientId} ${Date.now()}`;
-    const popup = window.open(
-      authUrl, 
-      popupName,
-      `width=${width},height=${height},top=${top},left=${left}`
-    );
-
-    if (!popup) {
+    let popup: Window | null = null;
+    try {
+      popup = window.open(
+        authUrl, 
+        `HubSpot OAuth ${clientId} ${Date.now()}`,
+        `width=${width},height=${height},top=${top},left=${left}`
+      );
+      if (!popup) {
+        if (onPopupError) onPopupError("Popup blocked! Please allow popups and try again.");
         throw new Error("Popup blocked! Access denied.");
+      }
+      // Focus popup if possible
+      popup.focus?.();
+      // Timeout: If code not received in 60s, show error
+      setTimeout(() => {
+        if (!popup?.closed) {
+          if (onPopupError) onPopupError("OAuth popup timed out. Please try again.");
+          try { popup.close(); } catch {}
+        }
+      }, 60000);
+    } catch (err: any) {
+      if (onPopupError) onPopupError("Popup failed to open: " + (err?.message || err));
+      throw err;
     }
-
     return popup;
   }
 
@@ -207,6 +214,27 @@ export class HubSpotService {
   }
 
   // --- TOKEN MANAGEMENT ---
+
+  // --- BATCH HELPERS ---
+
+  public async patchContactsBatch(updates: Array<{ id: string; properties: Record<string, any> }>): Promise<boolean> {
+    try {
+      const body = { inputs: updates.map(u => ({ id: u.id, properties: u.properties })) };
+      const response = await this.request('/crm/v3/objects/contacts/batch/update', {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) {
+        console.error('Batch update failed:', response.status);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Batch update error:', e);
+      return false;
+    }
+  }
+
 
   public saveToken(accessToken: string, refreshToken?: string, expiresIn?: number): void {
     localStorage.setItem(this.STORAGE_KEYS.ACCESS_TOKEN, accessToken);
@@ -1196,6 +1224,7 @@ export class HubSpotService {
 
     // 2. ACTIVE CLIENT
     if (isActiveClient) {
+      // If customer, never return 'Hot' or other lead status
       return 'Active Client';
     }
 
@@ -1227,7 +1256,8 @@ export class HubSpotService {
     // ENGAGED LEADS - Classify by sales velocity/timeline
     // 7. HOT - Will buy in 0-1 month (weekly follow up needed)
     // Recent engagement (within 30 days) OR has open deals
-    if (daysSinceEngagement < 30 || (Number(props.num_associated_deals) > 0)) {
+    // Only if NOT an active client/customer
+    if (!isActiveClient && (daysSinceEngagement < 30 || (Number(props.num_associated_deals) > 0))) {
       return 'Hot';
     }
 
@@ -1259,28 +1289,43 @@ export class HubSpotService {
     inactive: number;
   }> {
     try {
-      // Extended properties for 9-point classification
-      const response = await this.request(
-        '/crm/v3/objects/contacts?limit=100&properties=' + 
-        'lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status,' + 
-        'hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated,' + 
+      // Paginated fetch to gather a representative sample (up to MAX_RECORDS)
+      const MAX_RECORDS = 5000; // Limit to avoid runaway requests
+      const PAGE_LIMIT = 100; // HubSpot page size
+      const props = 'lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status,' +
+        'hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated,' +
         'associatedcompanyid,firstname,email,hs_email_last_open_date,membership_type,membership_status,' +
-        'num_conversion_events,hs_analytics_num_page_views,hs_latest_source_data_1'
-      );
-      
-      if (!response.ok) {
-        console.error('Contact scan failed:', response.status);
-        return { 
-          statusBreakdown: { 'New': 0, 'Hot': 0, 'Nurture': 0, 'Watch': 0, 'Unqualified': 0, 'Past Client': 0, 'Active Client': 0, 'Rejected': 0, 'Trash': 0, 'Unclassified': 0 }, 
-          lifecycleStageBreakdown: {},
-          totalScanned: 0, healthScore: 0, unclassified: 0, unassigned: 0, inactive: 0 
-        };
+        'num_conversion_events,hs_analytics_num_page_views,hs_latest_source_data_1';
+
+      let after: string | null = null;
+      let contacts: any[] = [];
+      let page = 0;
+
+      while (contacts.length < MAX_RECORDS) {
+        page++;
+        const url = `/crm/v3/objects/contacts?limit=${PAGE_LIMIT}&properties=${props}` + (after ? `&after=${encodeURIComponent(after)}` : '');
+        const response = await this.request(url);
+        if (!response.ok) {
+          console.error('Contact scan failed at page', page, 'status:', response.status);
+          break; // Exit paging, we'll use whatever we have
+        }
+
+        const data = await response.json();
+        const pageResults = data.results || [];
+        contacts = contacts.concat(pageResults);
+
+        // Paging token
+        if (data.paging && data.paging.next && data.paging.next.after) {
+          after = data.paging.next.after;
+        } else {
+          break; // No more pages
+        }
+
+        if (pageResults.length === 0) break;
       }
-      
-      const data = await response.json();
-      const contacts = data.results || [];
+
       const total = contacts.length;
-      
+
       const breakdown: Record<LeadStatus, number> = {
         'New': 0, 'Hot': 0, 'Nurture': 0, 'Watch': 0, 'Unqualified': 0, 
         'Past Client': 0, 'Active Client': 0, 'Rejected': 0, 'Trash': 0, 'Unclassified': 0
@@ -1293,33 +1338,26 @@ export class HubSpotService {
       const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
 
       contacts.forEach((contact: any) => {
-        const props = contact.properties || {};
-        
-        // Run Heuristic Engine
-        const status = this.classifyContact(props);
+        const p = contact.properties || {};
+        const status = this.classifyContact(p);
         breakdown[status] = (breakdown[status] || 0) + 1;
 
-        // Lifecycle Stage Tracking
-        const lcs = props.lifecyclestage || 'other';
+        const lcs = p.lifecyclestage || 'other';
         lifecycleBreakdown[lcs] = (lifecycleBreakdown[lcs] || 0) + 1;
 
-        // Legacy Metrics
-        if (!props.hubspot_owner_id) unassigned++;
-        if (new Date(props.lastmodifieddate).getTime() < sixMonthsAgo) inactive++;
+        if (!p.hubspot_owner_id) unassigned++;
+        if (p.lastmodifieddate && new Date(p.lastmodifieddate).getTime() < sixMonthsAgo) inactive++;
       });
-      
+
       // Calculate Health Score based on "Classified" ratio vs "Unclassified/Trash"
       const unclassifiedCount = breakdown['Unclassified'];
       const trashCount = breakdown['Trash'];
-      const classifiedRatio = (total - unclassifiedCount - trashCount) / total;
-      
-      // Bonus points for 'Hot' leads being identified
-      const hotBonus = (breakdown['Hot'] / total) * 20;
-
+      const classifiedRatio = total === 0 ? 1 : (total - unclassifiedCount - trashCount) / total;
+      const hotBonus = total === 0 ? 0 : (breakdown['Hot'] / total) * 20;
       const healthScore = total === 0 ? 100 : Math.min(100, Math.round((classifiedRatio * 80) + hotBonus));
-      
-      console.log(`🧩 9-Point Audit:`, breakdown);
-      
+
+      console.log(`🧩 9-Point Audit: scanned ${total} contacts across ${page} pages`, breakdown);
+
       return {
         statusBreakdown: breakdown,
         lifecycleStageBreakdown: lifecycleBreakdown,

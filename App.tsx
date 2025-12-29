@@ -40,14 +40,13 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('active_tab') || 'dashboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
-  
+  const [oauthError, setOauthError] = useState<string | null>(null);
   // CRITICAL: Handle OAuth Popup Early (before any app logic)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const state = params.get('state');
     const savedState = localStorage.getItem('hubspot_oauth_state');
-    
     // If we're in a popup window with an OAuth code, close immediately
     if (window.opener && code && state && savedState && state === savedState) {
       console.log('🪟 OAuth popup detected - sending code to opener and closing...');
@@ -58,6 +57,11 @@ const App: React.FC = () => {
       return; // Stop the rest of the app from loading
     }
   }, []);
+
+  // Example: How to use improved initiateOAuth (call this from your login/connect button)
+  // const handleConnect = () => {
+  //   hubSpotService.initiateOAuth(false, setOauthError);
+  // };
 
   useEffect(() => {
     console.log("🚀 HS-Biz-Agent: Sprint 6 RevOps - Version 1.0.1 Loaded");
@@ -239,35 +243,40 @@ const App: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Admin Console</span>
               </div>
             </div>
-        </header>
-
-        <main id="main-content" className="p-10 flex-1 overflow-x-hidden" aria-labelledby="active-tab-heading" role="main">
-          <Suspense fallback={
-            <div className="h-full w-full flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-            </div>
-          }>
-            {renderContent()}
-          </Suspense>
-        </main>
-
-        <footer className="p-10 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.5em]">Jack Licata Design Co • Practice Intelligence</p>
-        </footer>
-      </div>
-
-      <AiChat onTriggerAction={handleAiAction} />
-      
-      <AiModal 
-        isOpen={globalModal.isOpen}
-        onClose={() => setGlobalModal(prev => ({ ...prev, isOpen: false }))}
-        contextType={globalModal.contextType}
-        initialPrompt={globalModal.initialPrompt}
-      />
-
-      <SettingsModal 
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+        return (
+          <div className="flex h-screen bg-black">
+            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onSettingsClick={() => setIsSettingsOpen(true)} onTourClick={() => setIsTourOpen(true)} />
+            <main className="flex-1 overflow-y-auto">
+              {oauthError && (
+                <div className="bg-red-700 text-white px-4 py-2 text-center font-bold z-50">
+                  OAuth Error: {oauthError}
+                </div>
+              )}
+              {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
+              {activeTab === 'workflows' && <Suspense fallback={<div>Loading...</div>}><Workflows /></Suspense>}
+              {activeTab === 'sequences' && <Suspense fallback={<div>Loading...</div>}><Sequences /></Suspense>}
+              {activeTab === 'campaigns' && <Suspense fallback={<div>Loading...</div>}><Campaigns /></Suspense>}
+              {activeTab === 'contacts' && <Suspense fallback={<div>Loading...</div>}><ContactsExplorer /></Suspense>}
+              {activeTab === 'datamodel' && <Suspense fallback={<div>Loading...</div>}><DataModel /></Suspense>}
+              {activeTab === 'breezetools' && <Suspense fallback={<div>Loading...</div>}><BreezeTools /></Suspense>}
+              {activeTab === 'copilot' && <Suspense fallback={<div>Loading...</div>}><CoPilot /></Suspense>}
+              {activeTab === 'reports' && <Suspense fallback={<div>Loading...</div>}><Reports /></Suspense>}
+              {activeTab === 'journey' && <Suspense fallback={<div>Loading...</div>}><JourneyMap /></Suspense>}
+              {activeTab === 'organization' && <Suspense fallback={<div>Loading...</div>}><Organization /></Suspense>}
+              {activeTab === 'revops' && <Suspense fallback={<div>Loading...</div>}><RevOps /></Suspense>}
+              {activeTab === 'database' && <Suspense fallback={<div>Loading...</div>}><DatabaseExplorer /></Suspense>}
+              {activeTab === 'data-quality' && <Suspense fallback={<div>Loading...</div>}><DataQuality /></Suspense>}
+              {activeTab === 'attribution' && <Suspense fallback={<div>Loading...</div>}><Attribution /></Suspense>}
+              {activeTab === 'segments' && <Suspense fallback={<div>Loading...</div>}><Segments /></Suspense>}
+              {activeTab === 'assets' && <Suspense fallback={<div>Loading...</div>}><AssetIntelligence /></Suspense>}
+              {activeTab === 'win-loss' && <Suspense fallback={<div>Loading...</div>}><WinLoss /></Suspense>}
+              {activeTab === 'velocity' && <Suspense fallback={<div>Loading...</div>}><PipelineVelocity /></Suspense>}
+              <AiChat onTriggerAction={handleAiAction} />
+              <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+              <AppTour isOpen={isTourOpen} onClose={handleTourDismiss} />
+            </main>
+          </div>
+        );
       />
 
       <AppTour 

@@ -300,9 +300,64 @@ Analyze the notes and properties deeply. If notes contradict current status, pri
             
             if (response.ok) success += chunk.length;
             else failed += chunk.length;
+
+            // Be a good citizen - small pause between batches
+            await new Promise(r => setTimeout(r, 300));
         }
         
         return { success, failed };
+    }
+
+    public async syncAllContacts(options: { dryRun?: boolean, maxRecords?: number } = {}): Promise<any> {
+        const dryRun = options.dryRun !== undefined ? options.dryRun : true;
+        const maxRecords = options.maxRecords || 5000;
+        const PAGE_LIMIT = 100;
+        const props = 'lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status,' +
+            'hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated,' +
+            'associatedcompanyid,firstname,lastname,email,hs_email_open_count,membership_type,membership_status,' +
+            'num_conversion_events,hs_email_last_open_date,hs_analytics_num_page_views';
+
+        let after: string | null = null;
+        let scanned = 0;
+        const proposed: Array<{ id: string, email?: string, old?: string, proposed?: string }> = [];
+        let page = 0;
+
+        while (scanned < maxRecords) {
+            page++;
+            const url = `/crm/v3/objects/contacts?limit=${PAGE_LIMIT}&properties=${props}` + (after ? `&after=${encodeURIComponent(after)}` : '');
+            const response = await hubSpotService['request'](url);
+            if (!response.ok) {
+                console.error('Sync scan failed at page', page, 'status:', response.status);
+                break;
+            }
+            const data = await response.json();
+            const results = data.results || [];
+            for (const c of results) {
+                if (scanned >= maxRecords) break;
+                scanned++;
+                const p = c.properties || {};
+                const current = (p.hs_lead_status || '').toString().toUpperCase() || null;
+                const classified = hubSpotService['classifyContact'](p);
+                const proposedValue = this.STATUS_TO_HUBSPOT[classified] || 'NEW';
+                if (current !== proposedValue) {
+                    proposed.push({ id: c.id, email: p.email, old: current, proposed: proposedValue });
+                }
+            }
+
+            if (data.paging && data.paging.next && data.paging.next.after) {
+                after = data.paging.next.after;
+            } else break;
+        }
+
+        const summary: any = { scanned, proposedCount: proposed.length, sample: proposed.slice(0, 10) };
+
+        if (dryRun) return summary;
+
+        // Execute updates in batches
+        const updates = proposed.map(p => ({ id: p.id, status: (Object.keys(this.STATUS_TO_HUBSPOT).find(k => this.STATUS_TO_HUBSPOT[k as LeadStatus] === p.proposed) || 'New') as LeadStatus }));
+        const result = await this.batchSync(updates);
+        summary.applied = result;
+        return summary;
     }
 }
 
