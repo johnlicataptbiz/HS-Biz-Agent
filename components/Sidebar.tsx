@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard as DashboardIcon, GitFork as WorkflowsIcon, Mail as SequencesIcon, Database as DataIcon, Bot as CopilotIcon, Hammer as ToolsIcon, Settings as SettingsIcon, BrainCircuit as AppIcon, Megaphone as CampaignsIcon, Users as ContactsIcon, BarChart3 as ReportsIcon, Map as JourneyIcon } from 'lucide-react';
+import { LayoutDashboard as DashboardIcon, GitFork as WorkflowsIcon, Mail as SequencesIcon, Database as DataIcon, Bot as CopilotIcon, Hammer as ToolsIcon, Settings as SettingsIcon, BrainCircuit as AppIcon, Megaphone as CampaignsIcon, Users as ContactsIcon, BarChart3 as ReportsIcon, Map as JourneyIcon, Table as TableIcon } from 'lucide-react';
+import SyncStatus from './SyncStatus';
 import { hubSpotService } from '../services/hubspotService';
 
 interface SidebarProps {
@@ -28,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
       items: [
         { id: 'dashboard', label: 'Overview', icon: DashboardIcon },
         { id: 'organization', label: 'CRM Organization', icon: DataIcon },
+        { id: 'database', label: 'Database Explorer', icon: TableIcon },
         { id: 'contacts', label: 'Database Brain', icon: ContactsIcon },
         { id: 'reports', label: 'Health Reports', icon: ReportsIcon },
       ]
@@ -128,6 +130,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
         </div>
         
       <div className="p-6 border-t border-white/5 space-y-4">
+        <SyncStatus />
         <div className="flex gap-2">
            <button 
              className="flex-1 py-3 px-4 glass-button rounded-2xl flex items-center justify-center gap-2 group transition-all hover:bg-white/5 text-slate-400 hover:text-white border-white/5" 

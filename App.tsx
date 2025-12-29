@@ -13,6 +13,7 @@ const Reports = lazy(() => import('./pages/Reports'));
 const JourneyMap = lazy(() => import('./pages/JourneyMap'));
 const Organization = lazy(() => import('./pages/Organization'));
 const RevOps = lazy(() => import('./pages/RevOps'));
+const DatabaseExplorer = lazy(() => import('./pages/DatabaseExplorer'));
 
 import AiChat from './components/AiChat';
 import AiModal from './components/AiModal';
@@ -45,7 +46,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // Handle deep linking on initial load
     const path = window.location.pathname.substring(1);
-    const validTabs = ['dashboard', 'reports', 'copilot', 'workflows', 'sequences', 'campaigns', 'contacts', 'datamodel', 'breezetools', 'journey', 'organization', 'revops'];
+    const validTabs = ['dashboard', 'reports', 'copilot', 'workflows', 'sequences', 'campaigns', 'contacts', 'datamodel', 'breezetools', 'journey', 'organization', 'revops', 'database'];
     if (path && validTabs.includes(path)) {
         setActiveTab(path);
     }
@@ -157,6 +158,7 @@ const App: React.FC = () => {
       case 'journey': return <JourneyMap />;
       case 'organization': return <Organization />;
       case 'revops': return <RevOps />;
+      case 'database': return <DatabaseExplorer />;
       default: return <Dashboard onNavigate={setActiveTab} />;
     }
   };

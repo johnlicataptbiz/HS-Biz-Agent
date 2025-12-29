@@ -6,6 +6,8 @@ import proxy from './api/proxy.js';
 import remediate from './api/remediate.js';
 import cleanup from './api/cleanup.js';
 import vibeAi from './api/vibe-ai.js';
+import { initDb, getSyncProgress } from './api/dataService.js';
+import { startBackgroundSync } from './api/syncService.js';
 
 const app = express();
 
@@ -53,6 +55,24 @@ app.all('/api/remediate', wrap(remediate));
 app.all('/api/cleanup', wrap(cleanup));
 app.all('/api/vibe-ai', wrap(vibeAi));
 
+// CRM Mirror & Sync Endpoints
+app.post('/api/sync/start', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Missing Authorization header' });
+    const token = authHeader.replace('Bearer ', '');
+    const result = await startBackgroundSync(token);
+    res.json(result);
+});
+
+app.get('/api/sync/status', async (req, res) => {
+    try {
+        const progress = await getSyncProgress();
+        res.json(progress);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Native Express Proxy Handler (Bypassing wrapper for full control)
 app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   try {
@@ -70,6 +90,7 @@ app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
 });
 
 const port = process.env.PORT || 3001;
-app.listen(port, '0.0.0.0', () => {
+app.listen(port, '0.0.0.0', async () => {
   console.log(`🚀 Railway Failover Server live on port ${port}`);
+  await initDb();
 });
