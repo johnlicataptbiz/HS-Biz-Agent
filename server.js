@@ -57,7 +57,9 @@ app.all('/api/vibe-ai', wrap(vibeAi));
 
 // Contacts API (from local database)
 import contacts from './api/contacts.js';
+import aggregates from './api/aggregates.js';
 app.all('/api/contacts', wrap(contacts));
+app.all('/api/contacts/aggregates', wrap(aggregates));
 
 // CRM Mirror & Sync Endpoints
 app.post('/api/sync/start', async (req, res) => {
