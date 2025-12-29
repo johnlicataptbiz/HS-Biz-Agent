@@ -281,7 +281,9 @@ export class OrganizationService {
     public detectGhostDeals(deals: any[]): any[] {
         const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
         return deals.filter(d => {
-            const lastMod = new Date(d.properties.hs_lastmodifieddate).getTime();
+            const lastModStr = d.properties?.hs_lastmodifieddate;
+            if (!lastModStr) return false;
+            const lastMod = new Date(lastModStr).getTime();
             return lastMod < thirtyDaysAgo;
         });
     }

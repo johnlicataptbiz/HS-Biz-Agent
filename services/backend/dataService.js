@@ -64,11 +64,11 @@ export const saveContacts = async (contacts) => {
             `;
             const values = [
                 contact.id,
-                contact.properties.email,
-                contact.properties.firstname,
-                contact.properties.lastname,
-                contact.properties.lifecyclestage,
-                contact.properties.hubspot_owner_id,
+                contact.properties?.email || null,
+                contact.properties?.firstname || null,
+                contact.properties?.lastname || null,
+                contact.properties?.lifecyclestage || null,
+                contact.properties?.hubspot_owner_id || null,
                 contact.updatedAt || new Date().toISOString(),
                 contact
             ];

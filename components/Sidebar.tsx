@@ -25,30 +25,29 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
 
   const navGroups = [
     {
-      title: 'Intelligence',
+      title: 'Command',
       items: [
-        { id: 'dashboard', label: 'Overview', icon: DashboardIcon },
-        { id: 'organization', label: 'CRM Organization', icon: DataIcon },
-        { id: 'database', label: 'Database Explorer', icon: TableIcon },
-        { id: 'contacts', label: 'Database Brain', icon: ContactsIcon },
+        { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon },
+      ]
+    },
+    {
+      title: 'CRM',
+      items: [
+        { id: 'contacts', label: 'Contacts', icon: ContactsIcon },
         { id: 'reports', label: 'Health Reports', icon: ReportsIcon },
       ]
     },
     {
       title: 'Strategy',
       items: [
-        { id: 'copilot', label: 'AI Strategist', icon: CopilotIcon },
-        { id: 'revops', label: 'RevOps Control', icon: SettingsIcon },
+        { id: 'copilot', label: 'AI Copilot', icon: CopilotIcon },
         { id: 'journey', label: 'Journey Map', icon: JourneyIcon },
-        { id: 'campaigns', label: 'Campaigns', icon: CampaignsIcon },
       ]
     },
     {
-      title: 'Operation',
+      title: 'Operations',
       items: [
-        { id: 'workflows', label: 'Workflows', icon: WorkflowsIcon },
-        { id: 'sequences', label: 'Sequences', icon: SequencesIcon },
-        { id: 'breezetools', label: 'Advanced Tools', icon: ToolsIcon },
+        { id: 'workflows', label: 'Automations', icon: WorkflowsIcon },
       ]
     }
   ];

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCw, CheckCircle2, AlertTriangle, Database } from 'lucide-react';
+import { getApiUrl } from '../services/config';
 
 const SyncStatus: React.FC = () => {
     const [status, setStatus] = useState<{ count: number, status: string }>({ count: 0, status: 'idle' });
@@ -7,7 +8,7 @@ const SyncStatus: React.FC = () => {
 
     const checkStatus = async () => {
         try {
-            const resp = await fetch('/api/sync');
+            const resp = await fetch(getApiUrl('/api/sync/status'));
             if (resp.ok) {
                 const data = await resp.json();
                 setStatus(data);
@@ -23,7 +24,7 @@ const SyncStatus: React.FC = () => {
         if (!token) return;
 
         try {
-            await fetch('/api/sync', {
+            await fetch(getApiUrl('/api/sync/start'), {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
