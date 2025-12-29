@@ -76,10 +76,18 @@ app.get('/api/sync/status', async (req, res) => {
 // Native Express Proxy Handler (Bypassing wrapper for full control)
 app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   try {
-    const path = req.params[0] || req.url.replace('/api/hubspot/', '').split('?')[0];
+    // Extract path from URL - everything after /api/hubspot/
+    const fullUrl = req.url.replace('/api/hubspot/', '');
+    const [pathPart] = fullUrl.split('?');
+    
+    console.log('🔍 Proxy route:', {
+      originalUrl: req.url,
+      extractedPath: pathPart,
+      existingQuery: req.query
+    });
     
     // Inject path into query for the shared handler logic
-    req.query.path = path;
+    req.query.path = pathPart;
     
     // Call proxy handler directly
     await proxy(req, res);
