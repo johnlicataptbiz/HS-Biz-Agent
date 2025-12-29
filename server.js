@@ -178,7 +178,9 @@ app.use(express.static(join(__dirname, 'dist')));
 
 // SPA Catch-all Handler
 // Redirects all non-API requests to index.html so React Router can handle them
-app.get('*', (req, res) => {
+app.get('/:path*', (req, res) => {
+  // Don't intercept API calls (redundant given order, but safe)
+  if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not Found' });
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
