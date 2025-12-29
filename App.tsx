@@ -243,7 +243,8 @@ const App: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Admin Console</span>
               </div>
             </div>
-        <main className="flex-1 overflow-y-auto">
+          </header>
+          <main className="flex-1 overflow-y-auto">
           {oauthError && (
             <div className="bg-red-700 text-white px-4 py-2 text-center font-bold z-50">
               OAuth Error: {oauthError}
@@ -257,6 +258,7 @@ const App: React.FC = () => {
           <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
           <AppTour isOpen={isTourOpen} onClose={handleTourDismiss} onComplete={handleTourDismiss} onNavigate={setActiveTab} />
         </main>
+      </div>
     </div>
   );
 };
