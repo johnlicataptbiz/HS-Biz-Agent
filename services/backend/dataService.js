@@ -98,4 +98,17 @@ export const updateSyncStatus = async (status) => {
         VALUES ('sync_status', $1, CURRENT_TIMESTAMP)
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
     `, [status]);
+    
+    if (status === 'completed') {
+        await pool.query(`
+            INSERT INTO sync_state (key, value, updated_at) 
+            VALUES ('last_sync_time', $1, CURRENT_TIMESTAMP)
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+        `, [new Date().toISOString()]);
+    }
+};
+
+export const getLastSyncTime = async () => {
+    const res = await pool.query('SELECT value FROM sync_state WHERE key = $1', ['last_sync_time']);
+    return res.rows[0]?.value || null;
 };
