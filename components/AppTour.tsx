@@ -154,6 +154,19 @@ const AppTour: React.FC<AppTourProps> = ({ isOpen, onClose, onComplete, onNaviga
     }
   };
 
+  // Scroll to element when step changes
+  useEffect(() => {
+    if (isOpen && currentStep >= 0) {
+        const step = TOUR_STEPS[currentStep];
+        if (step && step.targetId) {
+            const el = document.getElementById(step.targetId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        }
+    }
+  }, [currentStep, isOpen]);
+
   if (!isOpen) return null;
 
   const step = TOUR_STEPS[currentStep];
@@ -245,16 +258,7 @@ const AppTour: React.FC<AppTourProps> = ({ isOpen, onClose, onComplete, onNaviga
     };
   };
 
-  // Scroll to element when step changes
-  useEffect(() => {
-    if (isOpen && currentStep >= 0) {
-        const step = TOUR_STEPS[currentStep];
-        const el = document.querySelector(step.target);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-        }
-    }
-  }, [currentStep, isOpen]);
+
 
   return (
     <div className="fixed inset-0 z-[100] animate-in fade-in duration-500 font-['Outfit']">

@@ -7,7 +7,8 @@
         "https://hubspot-ai-optimizer-murex.vercel.app/",
         "https://core-ui-ptbiz.surge.sh/",
         "http://localhost:3000/",
-        "http://localhost:3002/"
+        "http://localhost:3002/",
+        "https://web-production-249d7e.up.railway.app/"
       ],
       "optionalScopes": [],
       "requiredScopes": [
@@ -43,7 +44,8 @@
       "fetch": [
         "https://hubspot-ai-optimizer-murex.vercel.app",
         "https://hubspot-ai-optimizer.vercel.app",
-        "https://core-ui-ptbiz.surge.sh"
+        "https://core-ui-ptbiz.surge.sh",
+        "https://web-production-249d7e.up.railway.app"
       ],
       "iframe": []
     }
