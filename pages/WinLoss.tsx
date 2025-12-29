@@ -75,14 +75,14 @@ const WinLoss: React.FC = () => {
           <div className="flex items-center gap-2">
              <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.3em]">
-               Revenue Operations
+               Business Insights
              </span>
           </div>
-          <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
-            Win/Loss <span className="gradient-text">Lab.</span>
-          </h1>
+           <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+             Win/Loss <span className="gradient-text">Trends.</span>
+           </h1>
           <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
-            Comparative analysis of your sales performance. Understand why you win, where you lose, and how to accelerate velocity.
+            See why you win and lose deals. Learn how to close deals faster.
           </p>
         </div>
       </div>
@@ -178,7 +178,7 @@ const WinLoss: React.FC = () => {
                      <PieChart size={20} />
                   </div>
                   <div>
-                     <h3 className="text-lg font-bold text-white">Source Efficiency Matrix</h3>
+                     <h3 className="text-lg font-bold text-white">Lead Sources</h3>
                      <p className="text-xs text-slate-400 uppercase tracking-wider">Which lead sources actually close?</p>
                   </div>
                </div>

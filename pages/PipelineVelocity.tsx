@@ -79,14 +79,14 @@ const PipelineVelocity: React.FC = () => {
           <div className="flex items-center gap-2">
              <div className="w-2 h-2 rounded-full bg-violet-500"></div>
              <span className="text-[10px] font-bold text-violet-400 uppercase tracking-[0.3em]">
-               Strategic Forecast
+               Revenue Forecast
              </span>
           </div>
           <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
-            Pipeline <span className="gradient-text">Velocity.</span>
+            Pipeline <span className="gradient-text">Speed.</span>
           </h1>
           <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
-            The speed at which qualified leads convert to revenue. Optimized for identifying stagnation.
+            The speed at which qualified leads convert to revenue. Find out where deals are getting stuck.
           </p>
         </div>
       </div>
@@ -146,7 +146,7 @@ const PipelineVelocity: React.FC = () => {
 
                {/* 2. Formula Explanation / Insight */}
                <div className="glass-card p-10 flex flex-col justify-center border-white/10">
-                  <h3 className="text-lg font-bold text-white mb-6">Velocity Equation</h3>
+                  <h3 className="text-lg font-bold text-white mb-6">Speed Calculation</h3>
                   <div className="space-y-6 font-mono text-sm">
                      <div className="p-4 rounded-xl bg-white/5 border border-white/5">
                         <div className="flex justify-between text-slate-400 mb-2">
@@ -182,8 +182,8 @@ const PipelineVelocity: React.FC = () => {
                         <Clock size={20} />
                      </div>
                      <div>
-                        <h3 className="text-lg font-bold text-white">Deal Aging Analysis</h3>
-                        <p className="text-xs text-slate-400 uppercase tracking-wider">Pipeline Stagflation</p>
+                        <h3 className="text-lg font-bold text-white">Deal Age Analysis</h3>
+                        <p className="text-xs text-slate-400 uppercase tracking-wider">Stalled Deals</p>
                      </div>
                   </div>
                </div>
