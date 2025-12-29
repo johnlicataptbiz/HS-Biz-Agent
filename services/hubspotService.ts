@@ -55,7 +55,7 @@ export class HubSpotService {
       throw err;
     }
 
-    const authUrl = serverResp?.authUrl;
+    let authUrl = serverResp?.authUrl;
     const serverState = serverResp?.state;
     if (!authUrl) {
       if (onPopupError) onPopupError('Server did not return an auth URL.');
@@ -96,12 +96,12 @@ export class HubSpotService {
           'business-intelligence',
           'oauth'
         ];
-    const authUrl = `https://app.hubspot.com/oauth/authorize?` +
+    authUrl = `https://app.hubspot.com/oauth/authorize?` +
       `response_type=code&` +
       `client_id=${encodeURIComponent(clientId)}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `scope=${encodeURIComponent(scopes.join(' '))}&` +
-      `state=${encodeURIComponent(state)}` +
+      `state=${encodeURIComponent(serverState)}` +
       `&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256`;
     let popup: Window | null = null;
     try {
@@ -110,12 +110,47 @@ export class HubSpotService {
         `HubSpot OAuth ${clientId} ${Date.now()}`,
         `width=${width},height=${height},top=${top},left=${left}`
       );
+
+      // If popup is blocked, fall back to a hidden iframe and provide a manual link
       if (!popup) {
-        if (onPopupError) onPopupError("Popup blocked! Please allow popups and try again.");
-        throw new Error("Popup blocked! Access denied.");
+        if (onPopupError) onPopupError("Popup blocked — attempting silent iframe fallback.");
+        try {
+          // Create a hidden iframe to try a same-origin redirect back with the code
+          const iframe = document.createElement('iframe');
+          iframe.style.position = 'fixed';
+          iframe.style.width = '1px';
+          iframe.style.height = '1px';
+          iframe.style.left = '-10000px';
+          iframe.style.top = '-10000px';
+          iframe.id = 'hubspot-oauth-iframe';
+          iframe.src = authUrl;
+          document.body.appendChild(iframe);
+
+          // Persist the auth URL so UI can show a manual link if needed
+          localStorage.setItem('hubspot_oauth_auth_url', authUrl);
+
+          // Timeout and cleanup
+          const tidy = () => {
+            try { document.body.removeChild(iframe); } catch {}
+            localStorage.removeItem('hubspot_oauth_auth_url');
+          };
+          setTimeout(() => {
+            tidy();
+            if (onPopupError) onPopupError("OAuth fallback timed out. Please open the provided link manually.");
+          }, 60000);
+
+          return null;
+        } catch (iframeErr) {
+          if (onPopupError) onPopupError("Popup blocked and iframe fallback failed. Open link manually.");
+          // Persist a manual link for the UI
+          localStorage.setItem('hubspot_oauth_auth_url', authUrl);
+          return null;
+        }
       }
+
       // Focus popup if possible
       popup.focus?.();
+
       // Timeout: If code not received in 60s, show error
       setTimeout(() => {
         if (!popup?.closed) {
@@ -125,7 +160,28 @@ export class HubSpotService {
       }, 60000);
     } catch (err: any) {
       if (onPopupError) onPopupError("Popup failed to open: " + (err?.message || err));
-      throw err;
+      // Attempt iframe fallback if popup throws
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.width = '1px';
+        iframe.style.height = '1px';
+        iframe.style.left = '-10000px';
+        iframe.style.top = '-10000px';
+        iframe.id = 'hubspot-oauth-iframe';
+        iframe.src = authUrl;
+        document.body.appendChild(iframe);
+        localStorage.setItem('hubspot_oauth_auth_url', authUrl);
+        setTimeout(() => {
+          try { document.body.removeChild(iframe); } catch {}
+          localStorage.removeItem('hubspot_oauth_auth_url');
+          if (onPopupError) onPopupError("OAuth fallback timed out. Please open the provided link manually.");
+        }, 60000);
+        return null;
+      } catch (e) {
+        localStorage.setItem('hubspot_oauth_auth_url', authUrl);
+        throw err;
+      }
     }
     return popup;
   }

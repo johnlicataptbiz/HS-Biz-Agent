@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
+  const [oauthFallbackUrl, setOauthFallbackUrl] = useState<string | null>(localStorage.getItem('hubspot_oauth_auth_url') || null);
   // CRITICAL: Handle OAuth Popup Early (before any app logic)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -59,9 +60,19 @@ const App: React.FC = () => {
   }, []);
 
   // Example: How to use improved initiateOAuth (call this from your login/connect button)
-  // const handleConnect = () => {
-  //   hubSpotService.initiateOAuth(false, setOauthError);
-  // };
+  const handleConnect = async (useMcp = false) => {
+    setOauthError(null);
+    try {
+      await hubSpotService.initiateOAuth(!!useMcp, setOauthError);
+      // Check for manual auth url (set by fallback)
+      const url = localStorage.getItem('hubspot_oauth_auth_url');
+      setOauthFallbackUrl(url);
+    } catch (e: any) {
+      // Errors are surfaced via setOauthError callback
+      const url = localStorage.getItem('hubspot_oauth_auth_url');
+      setOauthFallbackUrl(url);
+    }
+  };
 
   useEffect(() => {
     console.log("🚀 HS-Biz-Agent: Sprint 6 RevOps - Version 1.0.1 Loaded");
@@ -242,12 +253,30 @@ const App: React.FC = () => {
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Admin Console</span>
               </div>
+
+              <div className="ml-3">
+                <button onClick={() => handleConnect(false)} className="glass-button px-3 py-2 text-xs font-bold">Connect HubSpot</button>
+              </div>
             </div>
           </header>
           <main className="flex-1 overflow-y-auto">
           {oauthError && (
             <div className="bg-red-700 text-white px-4 py-2 text-center font-bold z-50">
               OAuth Error: {oauthError}
+            </div>
+          )}
+
+          {oauthFallbackUrl && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+              <div className="bg-[#0b1220] rounded-lg p-6 w-full max-w-lg border border-white/5">
+                <h3 className="text-lg font-bold mb-2">OAuth Fallback</h3>
+                <p className="text-sm text-slate-300 mb-4">Your browser blocked the popup. You can open the OAuth link manually or retry connecting.</p>
+                <div className="flex gap-3">
+                  <a href={oauthFallbackUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-indigo-600 text-white rounded">Open OAuth Link</a>
+                  <button onClick={() => { localStorage.removeItem('hubspot_oauth_auth_url'); setOauthFallbackUrl(null); handleConnect(false); }} className="px-4 py-2 bg-green-600 text-white rounded">Retry</button>
+                  <button onClick={() => { localStorage.removeItem('hubspot_oauth_auth_url'); setOauthFallbackUrl(null); setOauthError(null); }} className="px-4 py-2 bg-gray-700 text-white rounded">Dismiss</button>
+                </div>
+              </div>
             </div>
           )}
 
