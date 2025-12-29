@@ -35,10 +35,21 @@ const App: React.FC = () => {
   
   useEffect(() => {
     localStorage.setItem('active_tab', activeTab);
+    const url = new URL(window.location.href);
+    if (url.pathname !== `/${activeTab}` && activeTab !== 'dashboard') {
+        window.history.pushState({}, '', `/${activeTab}`);
+    }
   }, [activeTab]);
 
   useEffect(() => {
-      // Check for first-time user tour (Intelligence Engine version)
+    // Handle deep linking on initial load
+    const path = window.location.pathname.substring(1);
+    const validTabs = ['dashboard', 'reports', 'copilot', 'workflows', 'sequences', 'campaigns', 'contacts', 'datamodel', 'breezetools', 'journey', 'organization', 'revops'];
+    if (path && validTabs.includes(path)) {
+        setActiveTab(path);
+    }
+    
+    // Check for first-time user tour (Intelligence Engine version)
       const hasSeenTour = localStorage.getItem('has_seen_tour_intel_v2');
       if (!hasSeenTour) {
           // Slight delay to ensure DOM is ready and page-state is stable
@@ -144,6 +155,7 @@ const App: React.FC = () => {
       case 'breezetools': return <BreezeTools />;
       case 'journey': return <JourneyMap />;
       case 'organization': return <Organization />;
+      case 'revops': return <RevOps />;
       default: return <Dashboard onNavigate={setActiveTab} />;
     }
   };
