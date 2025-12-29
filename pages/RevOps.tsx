@@ -68,7 +68,7 @@ const RevOps: React.FC = () => {
             <div className="w-24 h-24 rounded-full border-t-2 border-indigo-500 animate-spin"></div>
             <Brain className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-400" size={32} />
         </div>
-        <p className="text-slate-500 font-black uppercase tracking-[0.4em] animate-pulse">Initializing Revenue Scan</p>
+        <p className="text-slate-500 font-black uppercase tracking-[0.4em] animate-pulse">Loading Data...</p>
       </div>
     );
   }
@@ -110,7 +110,7 @@ const RevOps: React.FC = () => {
             <ShieldAlert size={64} className="text-slate-800 mx-auto" />
             <div className="space-y-2">
                 <h3 className="text-2xl font-black text-white uppercase tracking-widest">Authentication Required</h3>
-                <p className="text-slate-500 font-medium">Link your HubSpot portal to deploy the Revenue Architecture engine.</p>
+                <p className="text-slate-500 font-medium">Link your HubSpot portal to start managing your business operations.</p>
             </div>
         </div>
       ) : (
@@ -168,7 +168,7 @@ const RevOps: React.FC = () => {
                     </div>
                     <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
                         <div>
-                            <p className="text-[10px] font-black text-white uppercase tracking-tighter">Pipeline Heatmap</p>
+                            <p className="text-[10px] font-black text-white uppercase tracking-tighter">Pipeline Activity</p>
                             <p className="text-[9px] text-slate-500 font-bold">5 HOURS AGO</p>
                         </div>
                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
