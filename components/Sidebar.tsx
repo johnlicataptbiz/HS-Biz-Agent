@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard as DashboardIcon, GitFork as WorkflowsIcon, Mail as SequencesIcon, Database as DataIcon, Bot as CopilotIcon, Hammer as ToolsIcon, Settings as SettingsIcon, BrainCircuit as AppIcon, Megaphone as CampaignsIcon, Users as ContactsIcon, BarChart3 as ReportsIcon, Map as JourneyIcon, Table as TableIcon } from 'lucide-react';
+import { LayoutDashboard as DashboardIcon, GitFork as WorkflowsIcon, Mail as SequencesIcon, Database as DataIcon, Bot as CopilotIcon, Hammer as ToolsIcon, Settings as SettingsIcon, BrainCircuit as AppIcon, Megaphone as CampaignsIcon, Users as ContactsIcon, BarChart3 as ReportsIcon, Map as JourneyIcon, Table as TableIcon, ShieldCheck, Zap, TrendingUp,  Search,
+  Layers, FileText, Trophy
+} from 'lucide-react';
 import SyncStatus from './SyncStatus';
 import { hubSpotService } from '../services/hubspotService';
 
@@ -31,23 +33,32 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
       ]
     },
     {
-      title: 'CRM',
+      title: 'Commercial Ops',
       items: [
-        { id: 'contacts', label: 'Contacts', icon: ContactsIcon },
-        { id: 'reports', label: 'Health Reports', icon: ReportsIcon },
+        { id: 'contacts', label: 'Contacts Directory', icon: ContactsIcon },
+        { id: 'assets', label: 'Asset Intelligence', icon: FileText },
+        { id: 'win-loss', label: 'Win/Loss Lab', icon: Trophy },
+        { id: 'velocity', label: 'Pipeline Velocity', icon: Zap },
+        { id: 'reports', label: 'Revenue Intelligence', icon: ReportsIcon },
+        { id: 'attribution', label: 'Journey Attribution', icon: TrendingUp },
+        { id: 'workflows', label: 'High-Velocity Automation', icon: WorkflowsIcon },
       ]
     },
     {
-      title: 'Strategy',
+      title: 'Data Intelligence',
       items: [
-        { id: 'copilot', label: 'AI Copilot', icon: CopilotIcon },
-        { id: 'journey', label: 'Journey Map', icon: JourneyIcon },
+        { id: 'data-model', label: 'Data Model Optimizer', icon: ShieldCheck },
+        { id: 'data-quality', label: 'Data Quality', icon: ShieldCheck },
+        { id: 'segments', label: 'Smart Segments', icon: Layers },
+        { id: 'journey', label: 'Behavioral Journey', icon: JourneyIcon },
+        { id: 'lead-scoring', label: 'Predictive Scoring', icon: TrendingUp },
       ]
     },
     {
-      title: 'Operations',
+      title: 'Strategy Hub',
       items: [
-        { id: 'workflows', label: 'Automations', icon: WorkflowsIcon },
+        { id: 'copilot', label: 'Core Strategist', icon: CopilotIcon },
+        { id: 'strategic-audit', label: 'Neural Audit', icon: Zap },
       ]
     }
   ];

@@ -138,16 +138,68 @@ export const startBackgroundSync = async (token) => {
             }
 
             console.log(`✅ ========================================`);
-            console.log(`✅ SYNC COMPLETED: ${totalSynced} records reconciled in ${batchCount} batches`);
+            console.log(`✅ CONTACT SYNC COMPLETED: ${totalSynced} records reconciled`);
             console.log(`✅ ========================================`);
+
+            // --- DEAL SYNC PHASE ---
+            console.log('💰 STARTING DEAL SYNC...');
+            let totalDealsSynced = 0;
+            let dealBatchCount = 0;
+            let dealAfter = null;
+
+            while (true) {
+                dealBatchCount++;
+                // Fetch deals with contact associations and attribution fields
+                const dealUrl = `https://api.hubapi.com/crm/v3/objects/deals?limit=100&associations=contacts&properties=dealname,amount,dealstage,pipeline,closedate,createdate,hs_analytics_source,hs_analytics_source_data_1,hs_analytics_source_data_2,dealtype,description,hs_lastmodifieddate`;
+                const url = dealAfter ? `${dealUrl}&after=${dealAfter}` : dealUrl;
+
+                console.log(`📡 Deal Batch ${dealBatchCount}: Fetching deals...`);
+                
+                const response = await axios.get(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = response.data;
+                const deals = (data.results || []).map(d => {
+                    // Extract primary associated contact ID
+                    const contactId = d.associations?.contacts?.results?.[0]?.id || null;
+                    return {
+                        id: d.id,
+                        dealname: d.properties.dealname,
+                        amount: d.properties.amount,
+                        dealstage: d.properties.dealstage,
+                        pipeline: d.properties.pipeline,
+                        closedate: d.properties.closedate,
+                        last_modified: d.properties.hs_lastmodifieddate, // Mapped for ghost detection
+                        contactId: contactId, // Direct ID for saveDeals
+                        // Fallback fields if no contact association
+                        leadSource: d.properties.hs_analytics_source,
+                        firstForm: d.properties.hs_analytics_source_data_2,
+                        properties: d.properties
+                    };
+                });
+
+                if (deals.length > 0) {
+                    const { saveDeals } = await import('./dataService.js');
+                    await saveDeals(deals);
+                    totalDealsSynced += deals.length;
+                    console.log(`💰 Saved ${deals.length} deals (Total: ${totalDealsSynced})`);
+                }
+
+                if (!data.paging || !data.paging.next || !data.paging.next.after) {
+                    break;
+                }
+                dealAfter = data.paging.next.after;
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            console.log(`✅ DEAL SYNC COMPLETED: ${totalDealsSynced} deals synced`);
             updateSyncStatus('completed');
         } catch (e) {
             console.error('❌ ========================================');
             console.error('❌ SYNC FAILED:');
             console.error('❌ Error:', e.message);
             console.error('❌ Response:', e.response?.data);
-            console.error('❌ Stack:', e.stack);
-            console.error('❌ ========================================');
             updateSyncStatus('failed');
         } finally {
             console.log(`🏁 Sync process ended. Setting isSyncing = false`);

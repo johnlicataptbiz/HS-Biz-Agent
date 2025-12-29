@@ -26,6 +26,7 @@ export default async function handler(req, res) {
         search = '',
         lifecyclestage = '',
         owner = '',
+        classification = '',
         sort = 'last_modified',
         order = 'desc'
       } = req.query;
@@ -61,8 +62,68 @@ export default async function handler(req, res) {
         paramIndex++;
       }
 
+      // Classification filter
+      if (classification) {
+        whereClause += ` AND classification = $${paramIndex}`;
+        params.push(classification);
+        paramIndex++;
+      }
+
+      // Min Health Score filter
+      // Note: minScore needs to be pulled from req.query logic below (add it to destructuring)
+      if (req.query.minScore) {
+          whereClause += ` AND health_score >= $${paramIndex}`;
+          params.push(parseInt(req.query.minScore));
+          paramIndex++;
+      }
+
+      // Has Owner filter (explicit 'false' check for unassigned)
+      if (req.query.hasOwner === 'false') {
+          whereClause += ` AND (hubspot_owner_id IS NULL OR hubspot_owner_id = '')`;
+      }
+
+      // Deal Type filter (requires subquery)
+      if (req.query.dealType) {
+          whereClause += ` AND EXISTS (SELECT 1 FROM deals d WHERE d.contact_id = contacts.id AND d.deal_type = $${paramIndex})`;
+          params.push(req.query.dealType);
+          paramIndex++;
+      }
+
+      // Days Inactive filter (Dual mode: Contact Stale vs Ghosted Opps)
+      if (req.query.daysInactive) {
+          const days = parseInt(req.query.daysInactive);
+          if (req.query.hasDeal === 'true') {
+             // Ghosted Opportunity Mode: Deal is inactive
+             whereClause += ` AND EXISTS (SELECT 1 FROM deals d WHERE d.contact_id = contacts.id AND d.last_modified < NOW() - INTERVAL '${days} days' AND lower(d.dealstage) NOT IN ('closedwon', 'closedlost', 'closed won', 'closed lost'))`;
+          } else {
+             // Stale Contact Mode
+             whereClause += ` AND last_modified < NOW() - INTERVAL '${days} days'`;
+          }
+      }
+
+      // Lead Source filter (supports comma-separated)
+      if (req.query.leadSource) {
+          const sources = req.query.leadSource.split(',').map(s => s.trim());
+          if (sources.length > 1) {
+              whereClause += ` AND raw_data->'properties'->>'hs_analytics_source' = ANY($${paramIndex})`;
+              params.push(sources);
+              paramIndex++;
+          } else {
+              whereClause += ` AND raw_data->'properties'->>'hs_analytics_source' = $${paramIndex}`;
+              params.push(sources[0]);
+              paramIndex++;
+          }
+      }
+
+      // Form ID filter (checking both first_form and raw property)
+      if (req.query.formId) {
+          whereClause += ` AND (raw_data->'properties'->>'hs_analytics_source_data_2' = $${paramIndex} OR first_form = $${paramIndex})`;
+          params.push(req.query.formId);
+          paramIndex++;
+      }
+
       // Validate sort column to prevent SQL injection
-      const validSortColumns = ['last_modified', 'email', 'firstname', 'lastname', 'lifecyclestage', 'created_at', 'health_score'];
+      const validSortColumns = ['last_modified', 'email', 'firstname', 'lastname', 'lifecyclestage', 'created_at', 'health_score', 'classification'];
       const sortColumn = validSortColumns.includes(sort) ? sort : 'last_modified';
       const sortOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
@@ -81,6 +142,7 @@ export default async function handler(req, res) {
           lifecyclestage,
           hubspot_owner_id,
           health_score,
+          classification,
           last_modified,
           raw_data->>'phone' as phone,
           raw_data->>'company' as company,
@@ -140,6 +202,7 @@ export default async function handler(req, res) {
           lastname,
           lifecyclestage,
           health_score,
+          classification,
           raw_data->>'company' as company,
           raw_data->>'url' as hubspot_url
         FROM contacts

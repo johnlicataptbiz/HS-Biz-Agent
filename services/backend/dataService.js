@@ -24,8 +24,40 @@ export const initDb = async () => {
                 lifecyclestage TEXT,
                 hubspot_owner_id TEXT,
                 health_score INTEGER,
+                classification TEXT,
                 last_modified TIMESTAMP,
                 raw_data JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS deals (
+                id TEXT PRIMARY KEY,
+                dealname TEXT,
+                amount NUMERIC,
+                dealstage TEXT,
+                pipeline TEXT,
+                closedate TIMESTAMP,
+                last_modified TIMESTAMP,
+                deal_type TEXT,
+                contact_id TEXT,
+                lead_source TEXT,
+                first_form TEXT,
+                raw_data JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            // Ensure last_modified exists for existing tables
+            try {
+                await client.query('ALTER TABLE deals ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP');
+            } catch (e) { /* ignore */ }
+
+            CREATE TABLE IF NOT EXISTS segments (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                query_config JSONB NOT NULL,
+                is_system BOOLEAN DEFAULT FALSE,
+                icon TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -37,7 +69,7 @@ export const initDb = async () => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
-        console.log('✅ PostgreSQL Schema Initialized');
+        console.log('✅ PostgreSQL Schema Initialized (with deals table)');
         return true;
     } catch (e) {
         console.error('❌ Database Initialization Failed:', e.message);
@@ -46,15 +78,17 @@ export const initDb = async () => {
 };
 
 export const saveContacts = async (contacts) => {
-    const { calculateHealthScore } = await import('./healthScoreService.js');
+    const { calculateHealthScore, classifyLead } = await import('./healthScoreService.js');
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
         for (const contact of contacts) {
             const { score } = calculateHealthScore(contact);
+            const classification = classifyLead(contact);
+            contact.classification = classification;
             const query = `
-                INSERT INTO contacts (id, email, firstname, lastname, lifecyclestage, hubspot_owner_id, health_score, last_modified, raw_data)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                INSERT INTO contacts (id, email, firstname, lastname, lifecyclestage, hubspot_owner_id, health_score, classification, last_modified, raw_data)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT (id) DO UPDATE SET
                     email = EXCLUDED.email,
                     firstname = EXCLUDED.firstname,
@@ -62,6 +96,7 @@ export const saveContacts = async (contacts) => {
                     lifecyclestage = EXCLUDED.lifecyclestage,
                     hubspot_owner_id = EXCLUDED.hubspot_owner_id,
                     health_score = EXCLUDED.health_score,
+                    classification = EXCLUDED.classification,
                     last_modified = EXCLUDED.last_modified,
                     raw_data = EXCLUDED.raw_data;
             `;
@@ -73,6 +108,7 @@ export const saveContacts = async (contacts) => {
                 contact.properties?.lifecyclestage || null,
                 contact.properties?.hubspot_owner_id || null,
                 score,
+                contact.classification || null,
                 contact.updatedAt || new Date().toISOString(),
                 contact
             ];
@@ -130,4 +166,54 @@ export const updateContactHealthScore = async (id, score, rawData) => {
         'UPDATE contacts SET health_score = $1, raw_data = $2, last_modified = CURRENT_TIMESTAMP WHERE id = $3',
         [score, rawData, id]
     );
+};
+
+/**
+ * Save deals with contact attribution data
+ * Extracts deal type from dealname and links to contact's lead source/form
+ */
+export const saveDeals = async (deals, contactMap = {}) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        for (const deal of deals) {
+            // Infer deal type from name (Mastermind, Clinical Rainmaker, etc.)
+            const dealName = (deal.dealname || deal.name || '').toLowerCase();
+            let dealType = 'Other';
+            if (dealName.includes('mastermind')) dealType = 'Mastermind';
+            else if (dealName.includes('rainmaker') || dealName.includes('clinical')) dealType = 'Clinical Rainmaker';
+            else if (dealName.includes('coaching')) dealType = 'Coaching';
+            else if (dealName.includes('consulting')) dealType = 'Consulting';
+            
+            // Get contact attribution from contactMap if available
+            const name = (deal.dealname || '').toLowerCase();
+            if (name.includes('mastermind') || name.includes('mm')) dealType = 'Mastermind';
+            else if (name.includes('rainmaker') || name.includes('clinical')) dealType = 'Clinical Rainmaker';
+            else if (name.includes('coaching')) dealType = 'Coaching';
+            else if (name.includes('consulting')) dealType = 'Consulting';
+
+            await client.query(query, [
+                deal.id,
+                deal.dealname,
+                deal.amount,
+                deal.dealstage,
+                deal.pipeline,
+                deal.closedate,
+                deal.last_modified || new Date().toISOString(), // New field
+                dealType,
+                deal.contactId,
+                deal.leadSource,
+                deal.firstForm,
+                JSON.stringify(deal.properties)
+            ]);
+        }
+        await client.query('COMMIT');
+        console.log(`✅ Saved ${deals.length} deals to database`);
+    } catch (e) {
+        await client.query('ROLLBACK');
+        console.error('Deal save error:', e);
+        throw e;
+    } finally {
+        client.release();
+    }
 };

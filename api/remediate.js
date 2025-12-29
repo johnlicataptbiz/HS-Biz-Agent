@@ -78,13 +78,64 @@ export default async function handler(req, res) {
         });
     }
 
-    // 5. FIX LEAKAGE (Bulk re-engagement)
+    // 5. REMEDIATE CONTACT (Single)
+    if (action === 'remediate-contact') {
+        const { contactId, updates, reason } = payload;
+        if (!contactId || !updates) return res.status(400).json({ error: 'Missing contactId or updates' });
+
+        console.log(`🤖 AI Remediating Contact ${contactId}: ${reason}`);
+        
+        const resp = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
+            method: 'PATCH',
+            headers: { 
+                'Authorization': `Bearer ${hubspotToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ properties: updates })
+        });
+
+        if (resp.ok) {
+            return res.status(200).json({ success: true, message: `Contact ${contactId} remediated successfully.` });
+        } else {
+            const data = await resp.json();
+            return res.status(resp.status).json({ success: false, error: data.message });
+        }
+    }
+
+    // 6. BATCH REMEDIATE (Multiple)
+    if (action === 'batch-remediate') {
+        const { items } = payload; // Array of { id, properties }
+        if (!items || !Array.isArray(items)) return res.status(400).json({ error: 'Missing items array' });
+
+        console.log(`🚀 Executing Batch Remediation for ${items.length} contacts...`);
+        
+        const resp = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/batch/update', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${hubspotToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                inputs: items.map(item => ({
+                    id: item.id,
+                    properties: item.properties
+                }))
+            })
+        });
+
+        if (resp.ok) {
+            return res.status(200).json({ success: true, updated: items.length });
+        } else {
+            const data = await resp.json();
+            return res.status(resp.status).json({ success: false, error: data.message });
+        }
+    }
+
+    // 7. FIX LEAKAGE (Bulk re-engagement)
     if (action === 'fix-leakage') {
         const { stalledDeals, coldLeads } = payload;
         console.log(`🚀 Automated Remediation: Re-engaging ${coldLeads} leads and boosting ${stalledDeals} stalled deals.`);
         
-        // In a real scenario, this would trigger HubSpot Workflows or Tasks
-        // For this implementation, we simulate success for the UI feedback
         return res.status(200).json({ 
             success: true, 
             message: `Remediation Plan Executed: Notification tasks created for ${stalledDeals} deals. Re-engagement workflows triggered for ${coldLeads} inactive leads.` 

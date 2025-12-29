@@ -14,14 +14,21 @@ const JourneyMap = lazy(() => import('./pages/JourneyMap'));
 const Organization = lazy(() => import('./pages/Organization'));
 const RevOps = lazy(() => import('./pages/RevOps'));
 const DatabaseExplorer = lazy(() => import('./pages/DatabaseExplorer'));
+const DataQuality = lazy(() => import('./pages/DataQuality'));
+const Attribution = lazy(() => import('./pages/Attribution'));
+const PipelineVelocity = lazy(() => import('./pages/PipelineVelocity'));
 
-import AiChat from './components/AiChat';
-import AiModal from './components/AiModal';
-import SettingsModal from './components/SettingsModal';
+const WinLoss = lazy(() => import('./pages/WinLoss'));
+const AssetIntelligence = lazy(() => import('./pages/AssetIntelligence'));
+const Segments = lazy(() => import('./pages/Segments'));
+const AiChat = lazy(() => import('./components/AiChat'));
+const AiModal = lazy(() => import('./components/AiModal'));
 import { ChatResponse } from './types';
 import { hubSpotService } from './services/hubspotService';
 import { User, Bell, Search } from 'lucide-react';
 import AppTour from './components/AppTour';
+import SettingsModal from './components/SettingsModal';
+
 
 interface GlobalModalState {
   isOpen: boolean;
@@ -57,14 +64,14 @@ const App: React.FC = () => {
     localStorage.setItem('active_tab', activeTab);
     const url = new URL(window.location.href);
     if (url.pathname !== `/${activeTab}` && activeTab !== 'dashboard') {
-        window.history.pushState({}, '', `/${activeTab}`);
+        window.history.pushState({}, '', `/${activeTab}${url.search}`);
     }
   }, [activeTab]);
 
   useEffect(() => {
     // Handle deep linking on initial load
     const path = window.location.pathname.substring(1);
-    const validTabs = ['dashboard', 'reports', 'copilot', 'workflows', 'sequences', 'campaigns', 'contacts', 'datamodel', 'breezetools', 'journey', 'organization', 'revops', 'database'];
+    const validTabs = ['dashboard', 'reports', 'copilot', 'workflows', 'sequences', 'campaigns', 'contacts', 'datamodel', 'breezetools', 'journey', 'organization', 'revops', 'database', 'data-quality', 'attribution', 'segments', 'assets', 'win-loss', 'velocity'];
     if (path && validTabs.includes(path)) {
         setActiveTab(path);
     }
@@ -177,6 +184,12 @@ const App: React.FC = () => {
       case 'organization': return <Organization />;
       case 'revops': return <RevOps />;
       case 'database': return <DatabaseExplorer />;
+      case 'data-quality': return <DataQuality />;
+      case 'attribution': return <Attribution />;
+      case 'segments': return <Segments onNavigate={setActiveTab} />;
+      case 'assets': return <AssetIntelligence onNavigate={setActiveTab} />;
+      case 'win-loss': return <WinLoss />;
+      case 'velocity': return <PipelineVelocity />;
       default: return <Dashboard onNavigate={setActiveTab} />;
     }
   };

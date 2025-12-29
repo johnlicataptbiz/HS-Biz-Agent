@@ -46,6 +46,7 @@ body {
 
 .glass-panel {
   background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
@@ -55,6 +56,7 @@ body {
 
 .glass-card {
   background: var(--glass-highlight);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border: 1px solid var(--glass-border);
   border-radius: 16px;

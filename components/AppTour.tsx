@@ -30,16 +30,16 @@ const TOUR_STEPS: TourStep[] = [
     position: 'right'
   },
   {
-    targetId: 'launch-audit-btn', 
-    title: 'Strategic Audit',
-    description: 'Run deep heuristics on your portal to identify ghost enrollments, architectural debt, and data decay instantly.',
-    position: 'bottom',
+    targetId: 'nav-link-strategic-audit', 
+    title: 'Neural Audit',
+    description: 'Run deep architectural heuristics on your portal to identify schema debt, ghost enrollments, and data decay.',
+    position: 'right',
     route: 'dashboard'
   },
   {
     targetId: 'stat-revenue-risk',
-    title: 'Growth Leakage',
-    description: 'We track potential revenue stalled in your journey stages. Our target is zero leakage and maximum practice scale.',
+    title: 'Commercial Velocity',
+    description: 'We track potential revenue stalled in your synchronization nodes. Our target is maximum practice scale through model alignment.',
     position: 'bottom',
     route: 'dashboard'
   },
@@ -52,10 +52,37 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     targetId: 'nav-link-contacts',
-    title: 'Database Brain',
-    description: 'Our AI classification engine organizes your lead database into actionable cohorts: New, Active Member, and Nurture.',
+    title: 'Strategic Directory',
+    description: 'AI-classified leads organized into actionable cohorts: Hot 🔥, Nurture ⏳, Watch 👁️, and Ghost Opportunities 👻.',
     position: 'right',
     route: 'contacts'
+  },
+  {
+    targetId: 'contacts-segment-sidebar',
+    title: 'Smart Segments',
+    description: 'Instantly pivot between high-priority cohorts. Filter by classification, health score, and lifecycle stage.',
+    position: 'right',
+    route: 'contacts'
+  },
+  {
+    targetId: 'contacts-ai-rank-header',
+    title: 'AI Health Score',
+    description: 'Every record is indexed for "Propensity to Close" using engagement signals, deal activity, and recency metrics.',
+    position: 'bottom',
+    route: 'contacts'
+  },
+  {
+    targetId: 'nav-link-data-quality',
+    title: 'Data Quality Engine',
+    description: 'Scan for missing emails, orphan records, stale contacts, and ghost opportunities. Maintain CRM hygiene at scale.',
+    position: 'right',
+    route: 'data-quality'
+  },
+  {
+    targetId: 'nav-link-data-model',
+    title: 'Model Optimizer',
+    description: 'Maintain a pristine CRM data model. This tool detects and repairs architectural flaws to keep your reporting and synchronization flawless.',
+    position: 'right'
   },
   {
     targetId: 'nav-link-copilot',

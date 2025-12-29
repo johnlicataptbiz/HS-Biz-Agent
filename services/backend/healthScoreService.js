@@ -11,7 +11,66 @@
  * 7. Penalties: Email bounce (-50), Stale (>90 days) (-20)
  */
 
+export const classifyLead = (contact) => {
+    const props = contact.properties || {};
+    const now = new Date();
+    
+    // 1. TRASH/REJECTED
+    if (props.hs_email_bounce > 0 || 
+        (props.firstname || "").toLowerCase().includes("test") || 
+        (props.email || "").includes("example.com") ||
+        props.hs_lead_status === 'Rejected') {
+        return 'Trash';
+    }
+
+    // 2. CUSTOMER
+    const stage = (props.lifecyclestage || "").toLowerCase();
+    if (['customer', 'evangelist', 'subscriber'].includes(stage)) {
+        return 'Customer';
+    }
+
+    // 3. NEW
+    const createDate = props.createdate ? new Date(props.createdate) : null;
+    const daysSinceCreate = createDate ? (now.getTime() - createDate.getTime()) / (1000 * 60 * 60 * 24) : 999;
+    
+    // 4. ENGAGEMENT RECENCY
+    const lastVisit = props.hs_analytics_last_visit_timestamp ? new Date(parseInt(props.hs_analytics_last_visit_timestamp)) : null;
+    const lastEmail = props.hs_email_last_open_date ? new Date(props.hs_email_last_open_date) : null;
+    const lastInteraction = lastVisit && lastEmail ? (lastVisit > lastEmail ? lastVisit : lastEmail) : (lastVisit || lastEmail);
+    const daysSinceInteraction = lastInteraction ? (now.getTime() - lastInteraction.getTime()) / (1000 * 60 * 60 * 24) : 999;
+
+    if (daysSinceCreate <= 7 && daysSinceInteraction > 30) return 'New';
+
+    // 5. UNQUALIFIED / BAD TIMING
+    if (props.hs_lead_status === 'Unqualified' || 
+        props.hs_lead_status === 'Bad Timing' || 
+        (daysSinceCreate > 10 && daysSinceInteraction > 180) || 
+        daysSinceInteraction >= 365) {
+        return 'Unqualified';
+    }
+
+    // 6. HOT
+    const deals = parseInt(props.num_associated_deals || 0);
+    // Note: Health score calculation happens before this, but we can use the same logic
+    if (daysSinceInteraction < 14 || deals > 0 || ['opportunity'].includes(stage)) {
+        return 'Hot';
+    }
+
+    // 7. NURTURE
+    if (daysSinceInteraction >= 14 && daysSinceInteraction < 90) {
+        return 'Nurture';
+    }
+
+    // 8. WATCH
+    if (daysSinceInteraction >= 90 && daysSinceInteraction < 365) {
+        return 'Watch';
+    }
+
+    return 'Nurture'; // Default fallback
+};
+
 export const calculateHealthScore = (contact) => {
+    const now = new Date();
     let score = 50;
     const breakdown = [];
     const props = contact.properties || {};
@@ -55,7 +114,6 @@ export const calculateHealthScore = (contact) => {
     }
     
     // 3. Create Date Recency (Up to +20)
-    // New leads are extremely hot.
     const createDate = props.createdate ? new Date(props.createdate) : null;
     if (createDate && (now.getTime() - createDate.getTime()) < 7 * 24 * 60 * 60 * 1000) {
         score += 20;
@@ -66,8 +124,7 @@ export const calculateHealthScore = (contact) => {
     }
 
     // 3. Activity Recency (Up to +20)
-    const now = new Date();
-    const lastVisit = props.hs_analytics_last_visit_timestamp ? new Date(props.hs_analytics_last_visit_timestamp) : null;
+    const lastVisit = props.hs_analytics_last_visit_timestamp ? new Date(parseInt(props.hs_analytics_last_visit_timestamp)) : null;
     const lastEmailOpen = props.hs_email_last_open_date ? new Date(props.hs_email_last_open_date) : null;
 
     if (lastVisit && (now.getTime() - lastVisit.getTime()) < 7 * 24 * 60 * 60 * 1000) {
@@ -91,22 +148,20 @@ export const calculateHealthScore = (contact) => {
     }
 
     // 5. Penalties
-    if (props.hs_email_bounce) {
+    if (props.hs_email_bounce > 0) {
         score -= 50;
         breakdown.push('-50: Hard bounce detected');
     }
 
-    const lastModified = contact.updatedAt ? new Date(contact.updatedAt) : null;
+    const lastModified = props.lastmodifieddate ? new Date(props.lastmodifieddate) : null;
     if (lastModified && (now.getTime() - lastModified.getTime()) > 90 * 24 * 60 * 60 * 1000) {
         score -= 20;
         breakdown.push('-20: Stale record (>90 days)');
     }
 
-    // Clamp score
-    const finalScore = Math.min(100, Math.max(0, score));
-    
     return {
-        score: finalScore,
+        score: Math.min(100, Math.max(0, score)),
         breakdown
     };
 };
+

@@ -312,6 +312,32 @@ const FORECAST_SCHEMA = {
   required: ["projectedGrowth", "revenueVelocity", "topOpportunity", "riskFactors"]
 };
 
+const REMEDIATE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    remediations: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+           contactId: { type: "STRING" },
+           contactName: { type: "STRING" },
+           issue: { type: "STRING", description: "Short description of the data quality issue detected." },
+           suggestedAction: { type: "STRING", enum: ["Update Status", "Archive", "Correct Data", "Re-assign"] },
+           updates: { 
+             type: "OBJECT", 
+             description: "The specific HubSpot properties to change.",
+             additionalProperties: { type: "STRING" }
+           },
+           reasoning: { type: "STRING", description: "Why this change is being recommended (max 1 sentence)." }
+        },
+        required: ["contactId", "contactName", "issue", "suggestedAction", "updates", "reasoning"]
+      }
+    }
+  },
+  required: ["remediations"]
+};
+
 const REVOPS_SCHEMA = {
   type: "OBJECT",
   properties: {
@@ -446,7 +472,8 @@ export default async function handler(req, res) {
       'forecast': FORECAST_SCHEMA,
       'persona': PERSONA_SCHEMA,
       'translate_filter': FILTER_SCHEMA,
-      'revops': REVOPS_SCHEMA
+      'revops': REVOPS_SCHEMA,
+      'remediate': REMEDIATE_SCHEMA
     };
 
     if (schemaMapping[mode]) {
