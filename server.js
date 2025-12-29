@@ -172,6 +172,16 @@ app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   }
 });
 
+// Serve Static Frontend (Vite Build)
+// MUST come after API routes to avoid intercepting API calls
+app.use(express.static(join(__dirname, 'dist')));
+
+// SPA Catch-all Handler
+// Redirects all non-API requests to index.html so React Router can handle them
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
+});
+
 const port = process.env.PORT || 3001;
 app.listen(port, '0.0.0.0', async () => {
   console.log(`🚀 Railway Failover Server live on port ${port}`);
