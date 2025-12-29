@@ -46,11 +46,6 @@ export const initDb = async () => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
-            // Ensure last_modified exists for existing tables
-            try {
-                await client.query('ALTER TABLE deals ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP');
-            } catch (e) { /* ignore */ }
-
             CREATE TABLE IF NOT EXISTS segments (
                 id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -68,6 +63,11 @@ export const initDb = async () => {
                 message TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+
+            -- Migrations (Idempotent)
+            ALTER TABLE deals ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP;
+            ALTER TABLE contacts ADD COLUMN IF NOT EXISTS classification TEXT;
+            ALTER TABLE contacts ADD COLUMN IF NOT EXISTS health_score INTEGER;
         `);
         console.log('✅ PostgreSQL Schema Initialized (with deals table)');
         return true;
