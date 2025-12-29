@@ -73,6 +73,17 @@ app.get('/api/sync/status', async (req, res) => {
     }
 });
 
+// Reset endpoint to clear stuck sync
+app.post('/api/sync/reset', async (req, res) => {
+    try {
+        const { updateSyncStatus } = await import('./services/backend/dataService.js');
+        await updateSyncStatus('idle');
+        res.json({ message: 'Sync status reset to idle' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Native Express Proxy Handler (Bypassing wrapper for full control)
 app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   try {

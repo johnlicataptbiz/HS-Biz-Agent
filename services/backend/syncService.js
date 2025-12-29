@@ -8,10 +8,14 @@ let isSyncing = false;
  * Implements Delta Sync using the HubSpot Search API and concurrent batching.
  */
 export const startBackgroundSync = async (token) => {
-    if (isSyncing) return { message: 'Sync already in progress' };
+    if (isSyncing) {
+        console.log('⚠️ Sync already in progress, skipping...');
+        return { message: 'Sync already in progress' };
+    }
     
     isSyncing = true;
     updateSyncStatus('syncing');
+    console.log('🎬 SYNC INITIATED - Starting background process...');
 
     // Run in background
     (async () => {
@@ -19,6 +23,7 @@ export const startBackgroundSync = async (token) => {
             const lastSyncTime = await getLastSyncTime();
             let totalSynced = 0;
             const limit = 100;
+            let batchCount = 0;
             
             console.log(lastSyncTime 
                 ? `🔄 Starting Delta Sync (Last Sync: ${lastSyncTime})` 
@@ -66,24 +71,36 @@ export const startBackgroundSync = async (token) => {
                 // Initial Full Sync using standard pagination (more reliable for first pull)
                 let after = null;
                 while (true) {
+                    batchCount++;
                     const url = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}${after ? `&after=${after}` : ''}&properties=email,firstname,lastname,lifecyclestage,hubspot_owner_id`;
+                    
+                    console.log(`📡 Batch ${batchCount}: Fetching ${limit} contacts${after ? ` (after: ${after})` : ' (initial)'}...`);
                     
                     const response = await axios.get(url, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 
                     const data = response.data;
-                    if (!data.results || data.results.length === 0) break;
+                    console.log(`📥 Received ${data.results?.length || 0} contacts, hasNext: ${!!data.paging?.next}`);
+                    
+                    if (!data.results || data.results.length === 0) {
+                        console.log('✋ No more results, breaking pagination loop');
+                        break;
+                    }
 
                     await saveContacts(data.results);
                     totalSynced += data.results.length;
                     
                     // Read rate limit headers to show "Pro" awareness
                     const remaining = response.headers['x-hubspot-ratelimit-remaining'];
-                    console.log(`📦 Synced ${totalSynced} contacts... (API Strength: ${remaining})`);
+                    console.log(`📦 Batch ${batchCount} saved: ${totalSynced} total contacts synced (API Strength: ${remaining})`);
 
-                    if (!data.paging || !data.paging.next || !data.paging.next.after) break;
+                    if (!data.paging || !data.paging.next || !data.paging.next.after) {
+                        console.log('✋ No paging.next.after, pagination complete');
+                        break;
+                    }
                     after = data.paging.next.after;
+                    console.log(`➡️ Next cursor: ${after}`);
 
                     // Faster "tiny" batches by reducing wait if we have strong limit remaining
                     const sleepTime = remaining > 50 ? 50 : 250;
@@ -91,12 +108,20 @@ export const startBackgroundSync = async (token) => {
                 }
             }
 
-            console.log(`✅ Sync Completed: ${totalSynced} records reconciled.`);
+            console.log(`✅ ========================================`);
+            console.log(`✅ SYNC COMPLETED: ${totalSynced} records reconciled in ${batchCount} batches`);
+            console.log(`✅ ========================================`);
             updateSyncStatus('completed');
         } catch (e) {
-            console.error('❌ Sync Failed:', e.response?.data || e.message);
+            console.error('❌ ========================================');
+            console.error('❌ SYNC FAILED:');
+            console.error('❌ Error:', e.message);
+            console.error('❌ Response:', e.response?.data);
+            console.error('❌ Stack:', e.stack);
+            console.error('❌ ========================================');
             updateSyncStatus('failed');
         } finally {
+            console.log(`🏁 Sync process ended. Setting isSyncing = false`);
             isSyncing = false;
         }
     })();
