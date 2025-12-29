@@ -46,6 +46,11 @@ export class HubSpotService {
     localStorage.setItem(this.OAUTH_REQUEST_KEYS.STARTED_AT, Date.now().toString());
     // Persist which client we are trying to authorize
     localStorage.setItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID, clientId);
+    // --- PKCE SUPPORT ---
+    // Generate a code_verifier and code_challenge for PKCE (S256)
+    const codeVerifier = this.generateCodeVerifier();
+    const codeChallenge = await this.base64urlEncode(await this.sha256(codeVerifier));
+    localStorage.setItem('hubspot_oauth_code_verifier', codeVerifier);
     const width = 600;
     const height = 700;
     const screenWidth = (window.screen?.width || 1024);
@@ -81,7 +86,8 @@ export class HubSpotService {
       `client_id=${encodeURIComponent(clientId)}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `scope=${encodeURIComponent(scopes.join(' '))}&` +
-      `state=${encodeURIComponent(state)}`;
+      `state=${encodeURIComponent(state)}` +
+      `&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256`;
     let popup: Window | null = null;
     try {
       popup = window.open(
@@ -120,14 +126,17 @@ export class HubSpotService {
     try {
       this.isExchanging = true;
       const clientId = localStorage.getItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID) || this.CLIENT_ID;
-      
+      // Include PKCE code_verifier if present
+      const codeVerifier = localStorage.getItem('hubspot_oauth_code_verifier') || undefined;
+
       const response = await fetch(getApiUrl('/api/token'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: cleanCode,
           redirect_uri: redirectUri,
-          client_id: clientId
+          client_id: clientId,
+          code_verifier: codeVerifier
         }),
       });
 
@@ -146,7 +155,31 @@ export class HubSpotService {
       this.isExchanging = false;
       localStorage.removeItem(this.OAUTH_REQUEST_KEYS.STATE);
       localStorage.removeItem(this.OAUTH_REQUEST_KEYS.STARTED_AT);
+      // Remove PKCE verifier once exchanged
+      localStorage.removeItem('hubspot_oauth_code_verifier');
     }
+  }
+
+  // --- PKCE helpers ---
+  private generateCodeVerifier(len = 64): string {
+    const array = new Uint8Array(len);
+    crypto.getRandomValues(array);
+    return Array.from(array).map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+  }
+
+  private async sha256(buffer: string): Promise<ArrayBuffer> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(buffer);
+    return crypto.subtle.digest('SHA-256', data);
+  }
+
+  private async base64urlEncode(buffer: ArrayBuffer): Promise<string> {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 
   // --- REQUEST HELPER ---

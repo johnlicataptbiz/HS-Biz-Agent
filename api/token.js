@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { code, refresh_token, redirect_uri, client_id } = req.body;
+  const { code, refresh_token, redirect_uri, client_id, code_verifier } = req.body;
 
   console.log("Token API called with:", { 
     hasCode: !!code, 
@@ -69,6 +69,10 @@ export default async function handler(req, res) {
       params.append('grant_type', 'authorization_code');
       params.append('redirect_uri', redirect_uri);
       params.append('code', code);
+      // If the client provided a code_verifier (PKCE), pass it through
+      if (code_verifier) {
+        params.append('code_verifier', code_verifier);
+      }
   }
 
   try {
