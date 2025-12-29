@@ -189,6 +189,7 @@ const AppTour: React.FC<AppTourProps> = ({ isOpen, onClose, onComplete, onNaviga
     };
 
     // calculate initial coords based on preferred position
+    // define getCoords ...
     const getCoords = (pos: string) => {
         switch (pos) {
             case 'right':
@@ -223,8 +224,6 @@ const AppTour: React.FC<AppTourProps> = ({ isOpen, onClose, onComplete, onNaviga
         const flipMap: Record<string, string> = { right: 'left', left: 'right', bottom: 'top', top: 'bottom' };
         if (flipMap[newPos]) {
             const flippedCoords = getCoords(flipMap[newPos]);
-            // If flipped fits better (or at least valid X/Y), use it
-            // We favor the one that is mostly on screen
             if (checkFit(flippedCoords.top, flippedCoords.left)) {
                 coords = flippedCoords;
             }
@@ -232,14 +231,30 @@ const AppTour: React.FC<AppTourProps> = ({ isOpen, onClose, onComplete, onNaviga
     }
 
     // Safety Clamp (ensure it never goes fully off screen)
-    coords.top = Math.max(SCREEN_PADDING, Math.min(coords.top, window.innerHeight - POPOVER_HEIGHT - SCREEN_PADDING));
-    coords.left = Math.max(SCREEN_PADDING, Math.min(coords.left, window.innerWidth - POPOVER_WIDTH - SCREEN_PADDING));
+    // We add a safety margin of 20px
+    const SAFE_MARGIN = 20;
+    const MAX_TOP = window.innerHeight - POPOVER_HEIGHT - SAFE_MARGIN;
+    const MAX_LEFT = window.innerWidth - POPOVER_WIDTH - SAFE_MARGIN;
+
+    coords.top = Math.max(SAFE_MARGIN, Math.min(coords.top, MAX_TOP));
+    coords.left = Math.max(SAFE_MARGIN, Math.min(coords.left, MAX_LEFT));
 
     return {
         top: coords.top,
         left: coords.left
     };
   };
+
+  // Scroll to element when step changes
+  useEffect(() => {
+    if (isOpen && currentStep >= 0) {
+        const step = TOUR_STEPS[currentStep];
+        const el = document.querySelector(step.target);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+    }
+  }, [currentStep, isOpen]);
 
   return (
     <div className="fixed inset-0 z-[100] animate-in fade-in duration-500 font-['Outfit']">

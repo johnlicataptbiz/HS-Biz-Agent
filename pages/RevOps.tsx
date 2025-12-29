@@ -81,19 +81,19 @@ const RevOps: React.FC = () => {
           <div className="flex items-center gap-3">
             <div className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-2">
                 <Lock size={12} className="text-indigo-400" />
-                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Executive Access</span>
+                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Admin Access</span>
             </div>
             <div className="h-px w-12 bg-white/10"></div>
             <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 scale-animation"></div>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Systems Nominal</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">All Systems Go</span>
             </div>
           </div>
           <h1 className="text-6xl font-black text-white italic tracking-tighter leading-none">
-            RevOps <span className="gradient-text">Control.</span>
+            Operations <span className="gradient-text">Control.</span>
           </h1>
           <p className="text-slate-400 max-w-xl font-bold uppercase tracking-widest text-[11px] leading-relaxed">
-            Autonomous revenue architecture governance. Synchronizing pipeline stages, deal ownership, and team performance protocols.
+            Automatic monitoring of your sales pipeline and team performance.
           </p>
         </div>
         <button 
@@ -101,7 +101,7 @@ const RevOps: React.FC = () => {
           className="flex items-center gap-3 px-8 py-4 glass-card bg-white/5 border-white/10 hover:bg-white/10 text-white font-black uppercase tracking-widest text-xs transition-all"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          Sync Global State
+          Sync Data
         </button>
       </div>
 
@@ -139,7 +139,7 @@ const RevOps: React.FC = () => {
                         </svg>
                         <span className="absolute text-3xl font-black text-white italic">{audit?.ownershipHealth?.score || 0}%</span>
                     </div>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Architectural Integrity</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">System Health</p>
                 </div>
                 <div className="mt-8 pt-8 border-t border-white/5 space-y-4">
                     <div className="flex justify-between items-center">
@@ -184,8 +184,8 @@ const RevOps: React.FC = () => {
             <div className="glass-card p-10 flex flex-col space-y-10">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase underline decoration-indigo-500 decoration-4 underline-offset-8">Pipeline <span className="gradient-text">Architect.</span></h2>
-                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-3">Visualizing deal flow structural performance</p>
+                        <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase underline decoration-indigo-500 decoration-4 underline-offset-8">Pipeline <span className="gradient-text">Visualizer.</span></h2>
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-3">See how deals flow through your stages</p>
                     </div>
                     <div className="flex gap-4">
                         <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-right">
@@ -235,7 +235,7 @@ const RevOps: React.FC = () => {
                         <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center shadow-lg shadow-indigo-500/10">
                             <AlertTriangle className="text-indigo-400" size={20} />
                         </div>
-                        <h3 className="text-lg font-black text-white tracking-tighter italic uppercase">Bottleneck <span className="text-indigo-400">Scan.</span></h3>
+                        <h3 className="text-lg font-black text-white tracking-tighter italic uppercase">Bottleneck <span className="text-indigo-400">Finder.</span></h3>
                     </div>
                     <div className="space-y-6">
                         {audit?.bottlenecks?.map((b: any, i: number) => (
@@ -260,7 +260,7 @@ const RevOps: React.FC = () => {
                         <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center shadow-lg shadow-emerald-500/10">
                             <Users className="text-emerald-400" size={20} />
                         </div>
-                        <h3 className="text-lg font-black text-white tracking-tighter italic uppercase">Ownership <span className="text-emerald-400">Matrix.</span></h3>
+                        <h3 className="text-lg font-black text-white tracking-tighter italic uppercase">Deal <span className="text-emerald-400">Ownership.</span></h3>
                     </div>
                     
                     <div className="flex items-center justify-center h-48">
@@ -295,7 +295,7 @@ const RevOps: React.FC = () => {
 
                     <button className="w-full py-4 rounded-2xl premium-gradient text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
                         <Target size={16} />
-                        Trigger Global Realignment
+                        Fix Issues
                     </button>
                 </div>
 

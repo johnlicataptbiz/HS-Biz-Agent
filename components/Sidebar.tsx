@@ -27,38 +27,38 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
 
   const navGroups = [
     {
-      title: 'Command',
+      title: 'Main',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon },
       ]
     },
     {
-      title: 'Commercial Ops',
+      title: 'Business Ops',
       items: [
-        { id: 'contacts', label: 'Contacts Directory', icon: ContactsIcon },
-        { id: 'assets', label: 'Asset Intelligence', icon: FileText },
-        { id: 'win-loss', label: 'Win/Loss Lab', icon: Trophy },
-        { id: 'velocity', label: 'Pipeline Velocity', icon: Zap },
-        { id: 'reports', label: 'Revenue Intelligence', icon: ReportsIcon },
-        { id: 'attribution', label: 'Journey Attribution', icon: TrendingUp },
-        { id: 'workflows', label: 'High-Velocity Automation', icon: WorkflowsIcon },
+        { id: 'contacts', label: 'Contacts', icon: ContactsIcon },
+        { id: 'assets', label: 'Content Performance', icon: FileText },
+        { id: 'win-loss', label: 'Win/Loss Trends', icon: Trophy },
+        { id: 'velocity', label: 'Deal Pace', icon: Zap },
+        { id: 'reports', label: 'Revenue Reports', icon: ReportsIcon },
+        { id: 'attribution', label: 'Marketing Impact', icon: TrendingUp },
+        { id: 'workflows', label: 'Workflows', icon: WorkflowsIcon },
       ]
     },
     {
-      title: 'Data Intelligence',
+      title: 'Data Health',
       items: [
-        { id: 'data-model', label: 'Data Model Optimizer', icon: ShieldCheck },
+        { id: 'data-model', label: 'Data Cleaner', icon: ShieldCheck },
         { id: 'data-quality', label: 'Data Quality', icon: ShieldCheck },
-        { id: 'segments', label: 'Smart Segments', icon: Layers },
-        { id: 'journey', label: 'Behavioral Journey', icon: JourneyIcon },
-        { id: 'lead-scoring', label: 'Predictive Scoring', icon: TrendingUp },
+        { id: 'segments', label: 'Customer Groups', icon: Layers },
+        { id: 'journey', label: 'Customer Journey', icon: JourneyIcon },
+        { id: 'lead-scoring', label: 'Lead Scoring', icon: TrendingUp },
       ]
     },
     {
-      title: 'Strategy Hub',
+      title: 'Strategy',
       items: [
-        { id: 'copilot', label: 'Core Strategist', icon: CopilotIcon },
-        { id: 'strategic-audit', label: 'Neural Audit', icon: Zap },
+        { id: 'copilot', label: 'AI Assistant', icon: CopilotIcon },
+        { id: 'strategic-audit', label: 'System Check', icon: Zap },
       ]
     }
   ];
