@@ -356,45 +356,88 @@ export class HubSpotService {
 
   public async fetchSequences(): Promise<Sequence[]> {
     try {
-      console.log('🧩 Fetching detailed sequences (V2)...');
-      
-      // Try V2 first - it often returns full stats and steps in the list view
-      let response = await this.request('/automation/v2/sequences?limit=100');
-      
-      // Fallback to V4 user-specific if V2 fails (V2 is often restricted in some portals)
-      if (!response.ok) {
-        console.log('🧩 V2 fetch restricted, trying user-specific V4...');
-        const userId = await this.getCurrentUserId();
-        if (userId) {
-          response = await this.request(`/automation/v4/sequences?userId=${userId}`);
+      console.log('🧩 Fetching sequences...');
+      let sequences: any[] = [];
+      let response: Response;
+
+      // Try V2 first for comprehensive data
+      try {
+        response = await this.request('/automation/v2/sequences?limit=100');
+        if (response.ok) {
+          const data = await response.json();
+          sequences = data.sequences || data.results || data.objects || [];
+          console.log(`🧩 Found ${sequences.length} sequences via V2.`);
+        } else if (response.status === 404) {
+          console.log('🧩 V2 sequences endpoint not found (404), trying V4.');
+        } else {
+          console.warn(`🧩 V2 sequences fetch failed (${response.status}), trying V4.`);
+        }
+      } catch (e) {
+        console.warn('🧩 V2 sequences fetch error, trying V4:', e);
+      }
+
+      // If V2 failed or returned no sequences, try V4
+      if (sequences.length === 0) {
+        try {
+          const userId = await this.getCurrentUserId();
+          if (userId) {
+            response = await this.request(`/automation/v4/sequences?userId=${userId}&limit=100`);
+            if (response.ok) {
+              const data = await response.json();
+              sequences = data.results || data.objects || [];
+              console.log(`🧩 Found ${sequences.length} sequences via V4 (user-specific).`);
+            } else if (response.status === 404) {
+              console.log('🧩 V4 user-specific sequences endpoint not found (404), trying general V4.');
+            } else {
+              console.warn(`🧩 V4 user-specific sequences fetch failed (${response.status}), trying general V4.`);
+            }
+          }
+        } catch (e) {
+          console.warn('🧩 V4 user-specific sequences fetch error, trying general V4:', e);
         }
       }
-      
-      // Last ditch: V4 general (might be restricted/minimal)
-      if (!response.ok) {
-        response = await this.request('/automation/v4/sequences?limit=100');
+
+      // Last ditch: V4 general
+      if (sequences.length === 0) {
+        try {
+          response = await this.request('/automation/v4/sequences?limit=100');
+          if (response.ok) {
+            const data = await response.json();
+            sequences = data.results || data.objects || [];
+            console.log(`🧩 Found ${sequences.length} sequences via V4 (general).`);
+          } else if (response.status === 404) {
+            console.log('🧩 V4 general sequences endpoint not found (404). No sequences found.');
+          } else {
+            console.error(`🧩 V4 general sequences fetch failed (${response.status}).`);
+          }
+        } catch (e) {
+          console.error('🧩 V4 general sequences fetch error:', e);
+        }
       }
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error(`🧩 Sequences API Error (${response.status}):`, errorData);
+
+      if (sequences.length === 0) {
+        console.log("🧩 No sequences found.");
         return [];
       }
 
-      const data = await response.json();
-      console.log("🧩 Sequences Raw:", data);
-      let sequences = Array.isArray(data) ? data : (data.sequences || data.results || data.objects || []);
-
       // Optimization: If sequences have no stats/steps, attempt deep scan on top 10
+      // This is primarily for V4 list endpoints which might be thin
       if (sequences.length > 0 && !sequences[0].steps && !sequences[0].stats && !sequences[0].enrollmentStats) {
-        console.log("🧩 Data too thin, performing deep scan on top 10 sequences...");
+        console.log("🧩 Initial sequence data is thin, performing deep scan on top 10 sequences...");
         const deepScanLimit = Math.min(sequences.length, 10);
         const detailedSeqs = await Promise.all(
           sequences.slice(0, deepScanLimit).map(async (s: any) => {
             try {
-              const detailResp = await this.request(`/automation/v2/sequences/${s.id || s.hs_id || s.guid}`);
+              // Try V2 detail endpoint first, then V4
+              let detailResp = await this.request(`/automation/v2/sequences/${s.id || s.hs_id || s.guid}`);
+              if (!detailResp.ok) {
+                detailResp = await this.request(`/automation/v4/sequences/${s.id || s.hs_id || s.guid}`);
+              }
               return detailResp.ok ? await detailResp.json() : s;
-            } catch (e) { return s; }
+            } catch (e) {
+              console.warn(`Failed to deep scan sequence ${s.id || s.hs_id || s.guid}:`, e);
+              return s;
+            }
           })
         );
         sequences = [...detailedSeqs, ...sequences.slice(deepScanLimit)];
@@ -402,20 +445,20 @@ export class HubSpotService {
 
       const normalizeRate = (value: any) => {
         const num = Number(value) || 0;
-        if (num > 1 && num <= 100) return num / 100;
+        if (num > 1 && num <= 100) return num / 100; // Convert percentage to decimal
         return num;
       };
 
       if (sequences.length > 0) {
         console.log('🧩 [DEBUG] First sequence keys:', Object.keys(sequences[0]));
-        console.log('🧩 [DEBUG] First sequence stats:', sequences[0].stats || sequences[0].enrollmentStats || 'none');
+        console.log('🧩 [DEBUG] First sequence stats:', sequences[0].stats || sequences[0].enrollmentStats || sequences[0].performance || 'none');
       }
 
       return sequences.map((seq: any) => {
         // Improved stats extraction - sequences stats can be found in several places
         const stats = seq.stats || seq.enrollmentStats || seq.performance || seq.enrollment_stats || {};
-        const replyRate = normalizeRate(stats.reply_rate || stats.replyRate || stats.replied || stats.replyCount / (stats.enrolledCount || 1) || 0);
-        const openRate = normalizeRate(stats.open_rate || stats.openRate || stats.opened || stats.openCount / (stats.enrolledCount || 1) || 0);
+        const replyRate = normalizeRate(stats.reply_rate || stats.replyRate || stats.replied || (stats.replyCount && stats.enrolledCount ? stats.replyCount / stats.enrolledCount : 0));
+        const openRate = normalizeRate(stats.open_rate || stats.openRate || stats.opened || (stats.openCount && stats.enrolledCount ? stats.openCount / stats.enrolledCount : 0));
         
         // Fix: steps count can be an array or a numeric field
         let stepsCount = 0;
@@ -427,7 +470,7 @@ export class HubSpotService {
             stepsCount = seq.step_count;
         } else if (typeof seq.numSteps === 'number') {
             stepsCount = seq.numSteps;
-        } else if (seq.steps && typeof seq.steps === 'number') {
+        } else if (seq.steps && typeof seq.steps === 'number') { // Sometimes 'steps' itself is the count
             stepsCount = seq.steps;
         }
 

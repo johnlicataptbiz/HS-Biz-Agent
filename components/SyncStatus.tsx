@@ -8,7 +8,9 @@ const SyncStatus: React.FC = () => {
 
     const checkStatus = async () => {
         try {
-            const resp = await fetch(getApiUrl('/api/sync/status'));
+            const apiUrl = getApiUrl('/api/sync/status');
+            console.log('🔍 Checking sync status at:', apiUrl);
+            const resp = await fetch(apiUrl);
             if (resp.ok) {
                 const data = await resp.json();
                 setStatus(data);

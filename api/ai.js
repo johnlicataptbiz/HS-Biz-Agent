@@ -416,14 +416,18 @@ export default async function handler(req, res) {
       try { body = JSON.parse(body); } catch(e) { console.error("JSON Parse Error on body:", e); }
     }
     
-    const { mode, prompt, hubspotToken, contextType } = body || {};
+    const { mode, prompt, hubspotToken } = body || {};
     
-    if (!prompt) {
-      return res.status(400).json({ error: 'Missing prompt in request body' });
+    // 1. Validation Logic
+    if (!prompt || !mode) {
+      console.error('❌ AI Payload missing prompt or mode:', { mode, hasPrompt: !!prompt });
+      return res.status(400).json({ error: 'Missing prompt or mode in request body' });
     }
 
+    // 2. Environment Guard
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
+      console.error('❌ AI Service Unavailable: Missing GEMINI_API_KEY');
       return res.status(503).json({ error: 'AI Service Unavailable: Missing API Key' });
     }
     const genAI = new GoogleGenerativeAI(apiKey);
