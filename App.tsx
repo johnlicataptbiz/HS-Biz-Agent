@@ -5,7 +5,7 @@ import Dashboard from './pages/Dashboard';
 const Workflows = lazy(() => import('./pages/Workflows'));
 const Sequences = lazy(() => import('./pages/Sequences'));
 const Campaigns = lazy(() => import('./pages/Campaigns'));
-const Contacts = lazy(() => import('./pages/Contacts'));
+const ContactsExplorer = lazy(() => import('./pages/ContactsExplorer'));
 const DataModel = lazy(() => import('./pages/DataModel'));
 const BreezeTools = lazy(() => import('./pages/BreezeTools'));
 const CoPilot = lazy(() => import('./pages/CoPilot'));
@@ -170,7 +170,7 @@ const App: React.FC = () => {
       case 'workflows': return <Workflows />;
       case 'sequences': return <Sequences />;
       case 'campaigns': return <Campaigns />;
-      case 'contacts': return <Contacts />;
+      case 'contacts': return <ContactsExplorer />;
       case 'datamodel': return <DataModel />;
       case 'breezetools': return <BreezeTools />;
       case 'journey': return <JourneyMap />;

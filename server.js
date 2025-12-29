@@ -55,6 +55,10 @@ app.all('/api/remediate', wrap(remediate));
 app.all('/api/cleanup', wrap(cleanup));
 app.all('/api/vibe-ai', wrap(vibeAi));
 
+// Contacts API (from local database)
+import contacts from './api/contacts.js';
+app.all('/api/contacts', wrap(contacts));
+
 // CRM Mirror & Sync Endpoints
 app.post('/api/sync/start', async (req, res) => {
     const authHeader = req.headers.authorization;
