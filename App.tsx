@@ -243,48 +243,20 @@ const App: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Admin Console</span>
               </div>
             </div>
-        return (
-          <div className="flex h-screen bg-black">
-            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onSettingsClick={() => setIsSettingsOpen(true)} onTourClick={() => setIsTourOpen(true)} />
-            <main className="flex-1 overflow-y-auto">
-              {oauthError && (
-                <div className="bg-red-700 text-white px-4 py-2 text-center font-bold z-50">
-                  OAuth Error: {oauthError}
-                </div>
-              )}
-              {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
-              {activeTab === 'workflows' && <Suspense fallback={<div>Loading...</div>}><Workflows /></Suspense>}
-              {activeTab === 'sequences' && <Suspense fallback={<div>Loading...</div>}><Sequences /></Suspense>}
-              {activeTab === 'campaigns' && <Suspense fallback={<div>Loading...</div>}><Campaigns /></Suspense>}
-              {activeTab === 'contacts' && <Suspense fallback={<div>Loading...</div>}><ContactsExplorer /></Suspense>}
-              {activeTab === 'datamodel' && <Suspense fallback={<div>Loading...</div>}><DataModel /></Suspense>}
-              {activeTab === 'breezetools' && <Suspense fallback={<div>Loading...</div>}><BreezeTools /></Suspense>}
-              {activeTab === 'copilot' && <Suspense fallback={<div>Loading...</div>}><CoPilot /></Suspense>}
-              {activeTab === 'reports' && <Suspense fallback={<div>Loading...</div>}><Reports /></Suspense>}
-              {activeTab === 'journey' && <Suspense fallback={<div>Loading...</div>}><JourneyMap /></Suspense>}
-              {activeTab === 'organization' && <Suspense fallback={<div>Loading...</div>}><Organization /></Suspense>}
-              {activeTab === 'revops' && <Suspense fallback={<div>Loading...</div>}><RevOps /></Suspense>}
-              {activeTab === 'database' && <Suspense fallback={<div>Loading...</div>}><DatabaseExplorer /></Suspense>}
-              {activeTab === 'data-quality' && <Suspense fallback={<div>Loading...</div>}><DataQuality /></Suspense>}
-              {activeTab === 'attribution' && <Suspense fallback={<div>Loading...</div>}><Attribution /></Suspense>}
-              {activeTab === 'segments' && <Suspense fallback={<div>Loading...</div>}><Segments /></Suspense>}
-              {activeTab === 'assets' && <Suspense fallback={<div>Loading...</div>}><AssetIntelligence /></Suspense>}
-              {activeTab === 'win-loss' && <Suspense fallback={<div>Loading...</div>}><WinLoss /></Suspense>}
-              {activeTab === 'velocity' && <Suspense fallback={<div>Loading...</div>}><PipelineVelocity /></Suspense>}
-              <AiChat onTriggerAction={handleAiAction} />
-              <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-              <AppTour isOpen={isTourOpen} onClose={handleTourDismiss} />
-            </main>
-          </div>
-        );
-      />
+        <main className="flex-1 overflow-y-auto">
+          {oauthError && (
+            <div className="bg-red-700 text-white px-4 py-2 text-center font-bold z-50">
+              OAuth Error: {oauthError}
+            </div>
+          )}
 
-      <AppTour 
-        isOpen={isTourOpen}
-        onClose={handleTourDismiss}
-        onComplete={handleTourDismiss}
-        onNavigate={setActiveTab}
-      />
+          {/* Render the active tab's content */}
+          {renderContent()}
+
+          <AiChat onTriggerAction={handleAiAction} />
+          <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+          <AppTour isOpen={isTourOpen} onClose={handleTourDismiss} onComplete={handleTourDismiss} onNavigate={setActiveTab} />
+        </main>
     </div>
   );
 };
