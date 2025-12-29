@@ -20,14 +20,10 @@ exports.main = async (context = {}) => {
   }
 
   try {
-    const aiResp = await fetch('https://hs-biz-agent.vercel.app/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            mode: 'audit',
-            prompt: `[AUDIT CONTEXT: ${objectId}] ${auditContext}`,
-            contextType: 'structural-audit'
-        })
+    const aiResp = await axios.post('https://hubspot-ai-optimizer-murex.vercel.app/api/ai', {
+        mode: 'audit',
+        prompt: `[AUDIT CONTEXT: ${objectId}] ${auditContext}`,
+        contextType: 'structural-audit'
     });
 
     if (aiResp.ok) {

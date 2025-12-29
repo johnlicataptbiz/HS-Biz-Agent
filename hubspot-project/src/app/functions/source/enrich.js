@@ -90,7 +90,7 @@ exports.main = async (context = {}) => {
     `;
 
     const aiResp = await axios.post(
-      'https://hs-biz-agent.vercel.app/api/ai',
+      'https://hubspot-ai-optimizer-murex.vercel.app/api/ai',
       {
         mode: 'enrich',
         prompt: extractionPrompt,

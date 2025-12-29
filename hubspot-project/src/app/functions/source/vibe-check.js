@@ -86,9 +86,7 @@ exports.main = async (context = {}) => {
       .slice(0, 3); // Top 3 notes for context
 
     // 2. Call Centralized AI Proxy
-    const aiResp = await axios.post(
-      'https://hs-biz-agent.vercel.app/api/ai',
-      {
+    const aiResp = await axios.post('https://hubspot-ai-optimizer-murex.vercel.app/api/ai', {
         mode: 'vibe-check',
         prompt: `
           CONTACT DATA:
@@ -100,7 +98,8 @@ exports.main = async (context = {}) => {
           HISTORICAL NOTES:
           ${notes.length > 0 ? notes.map((n, i) => `Note ${i+1}: ${n}`).join('\n') : "No notes found. Infer from title and stage."}
         `,
-        contextType: 'contact-vibe-check'
+        contextType: 'contact-vibe-check',
+        hubspot_token: token
       },
       { validateStatus: () => true }
     );

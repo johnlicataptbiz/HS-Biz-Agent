@@ -27,7 +27,7 @@ exports.main = async (context = {}) => {
   }
   
   try {
-      const aiResp = await fetch('https://hs-biz-agent.vercel.app/api/ai', {
+      const aiResp = await fetch('https://hubspot-ai-optimizer-murex.vercel.app/api/ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

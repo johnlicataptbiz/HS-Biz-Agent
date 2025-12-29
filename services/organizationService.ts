@@ -186,7 +186,7 @@ export class OrganizationService {
                 availableObjects: schemas.results?.map((s: any) => s.name)
             };
 
-            const resp = await fetch('https://hs-biz-agent.vercel.app/api/ai', {
+            const resp = await fetch('/api/ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -206,7 +206,7 @@ export class OrganizationService {
     public async createStrategicList(personaName: string, criteria: string): Promise<any> {
         try {
             // Step 1: Translate English criteria to HubSpot Filter JSON
-            const translationResp = await fetch('https://hs-biz-agent.vercel.app/api/ai', {
+            const translationResp = await fetch('/api/ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -220,7 +220,7 @@ export class OrganizationService {
 
             // Step 2: Create the list via proxy
             const token = localStorage.getItem('hubspot_access_token');
-            const resp = await fetch('https://hs-biz-agent.vercel.app/api/proxy', {
+            const resp = await fetch('/api/proxy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -260,7 +260,7 @@ export class OrganizationService {
                 }).length
             };
 
-            const resp = await fetch('https://hs-biz-agent.vercel.app/api/ai', {
+            const resp = await fetch('/api/ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
