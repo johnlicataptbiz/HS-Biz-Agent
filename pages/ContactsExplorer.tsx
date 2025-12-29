@@ -138,8 +138,21 @@ const ContactsExplorer: React.FC = () => {
             <option value="customer">Customer</option>
           </select>
 
-          <button onClick={fetchContacts} className="refresh-btn" disabled={loading}>
+          <button onClick={fetchContacts} className="refresh-btn" disabled={loading} title="Refresh Table">
             <RefreshCw size={18} className={loading ? 'spinning' : ''} />
+          </button>
+
+          <button 
+            onClick={async () => {
+              if (confirm('Recalculate all 39k+ health scores in background?')) {
+                const resp = await fetch(getApiUrl('/api/contacts/process-scores'), { method: 'POST' });
+                if (resp.ok) alert('Batch score processing started! Refresh in a few minutes to see results.');
+              }
+            }} 
+            className="process-scores-btn" 
+            title="Batch Recalculate Scores"
+          >
+            AI Recalculate
           </button>
         </div>
       </div>
@@ -148,6 +161,9 @@ const ContactsExplorer: React.FC = () => {
         <table className="contacts-table">
           <thead>
             <tr>
+              <th onClick={() => handleSort('health_score')} className="sortable score-col">
+                Score {sortField === 'health_score' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th onClick={() => handleSort('firstname')} className="sortable">
                 Name {sortField === 'firstname' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
@@ -169,18 +185,27 @@ const ContactsExplorer: React.FC = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="loading-row">
+                <td colSpan={9} className="loading-row">
                   <Loader2 size={24} className="spinning" />
                   <span>Loading contacts...</span>
                 </td>
               </tr>
             ) : contacts.length === 0 ? (
               <tr>
-                <td colSpan={8} className="empty-row">No contacts found</td>
+                <td colSpan={9} className="empty-row">No contacts found</td>
               </tr>
             ) : (
               contacts.map((contact) => (
                 <tr key={contact.id}>
+                  <td className="score-cell">
+                    <div className={`health-score ${
+                      (contact.health_score || 0) >= 80 ? 'hot' : 
+                      (contact.health_score || 0) >= 60 ? 'active' : 
+                      (contact.health_score || 0) >= 40 ? 'passive' : 'cold'
+                    }`}>
+                      {contact.health_score || '0'}
+                    </div>
+                  </td>
                   <td className="name-cell">
                     <User size={16} />
                     <span>{contact.firstname || ''} {contact.lastname || ''}</span>
@@ -428,6 +453,60 @@ const ContactsExplorer: React.FC = () => {
           text-align: center;
           padding: 48px !important;
           color: rgba(255,255,255,0.5);
+        }
+
+        .process-scores-btn {
+          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+          border: none;
+          color: #fff;
+          padding: 10px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .process-scores-btn:hover {
+          transform: translateY(-1px);
+          opacity: 0.9;
+        }
+
+        .score-col {
+          width: 80px;
+          text-align: center !important;
+        }
+
+        .score-cell {
+          text-align: center;
+        }
+
+        .health-score {
+          display: inline-block;
+          width: 32px;
+          height: 32px;
+          line-height: 32px;
+          border-radius: 8px;
+          font-weight: 700;
+          font-size: 0.8rem;
+          background: rgba(255,255,255,0.1);
+        }
+
+        .health-score.hot {
+          background: #ef4444;
+          box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        }
+
+        .health-score.active {
+          background: #f59e0b;
+        }
+
+        .health-score.passive {
+          background: #3b82f6;
+        }
+
+        .health-score.cold {
+          background: #64748b;
         }
 
         .loading-row {

@@ -99,6 +99,53 @@ app.get('/api/sync/sample', async (req, res) => {
     }
 });
 
+// Trigger batch health score calculation
+app.post('/api/contacts/process-scores', async (req, res) => {
+    try {
+        const { pool, updateContactHealthScore } = await import('./services/backend/dataService.js');
+        const { calculateHealthScore } = await import('./services/backend/healthScoreService.js');
+        
+        // Return 202 accepted and process in background
+        res.status(202).json({ message: 'Score processing started in background' });
+
+        (async () => {
+            console.log('🚀 Starting batch health score processing...');
+            let processed = 0;
+            let hasMore = true;
+            let lastId = null;
+
+            while (hasMore) {
+                const query = lastId 
+                    ? 'SELECT id, raw_data FROM contacts WHERE id > $1 ORDER BY id LIMIT 500'
+                    : 'SELECT id, raw_data FROM contacts ORDER BY id LIMIT 500';
+                const params = lastId ? [lastId] : [];
+                
+                const result = await pool.query(query, params);
+                if (result.rows.length === 0) {
+                    hasMore = false;
+                    break;
+                }
+
+                for (const row of result.rows) {
+                    const { score } = calculateHealthScore(row.raw_data);
+                    await updateContactHealthScore(row.id, score, row.raw_data);
+                    processed++;
+                    lastId = row.id;
+                }
+                
+                console.log(`📊 Processed ${processed} contact scores...`);
+                // Tiny sleep to avoid pegging CPU/DB
+                await new Promise(r => setTimeout(r, 100));
+            }
+            console.log('✅ Batch health score processing completed!');
+        })();
+
+    } catch (e) {
+        console.error('Score processing error:', e);
+        if (!res.headersSent) res.status(500).json({ error: e.message });
+    }
+});
+
 // Native Express Proxy Handler (Bypassing wrapper for full control)
 app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   try {

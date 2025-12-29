@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       }
 
       // Validate sort column to prevent SQL injection
-      const validSortColumns = ['last_modified', 'email', 'firstname', 'lastname', 'lifecyclestage', 'created_at'];
+      const validSortColumns = ['last_modified', 'email', 'firstname', 'lastname', 'lifecyclestage', 'created_at', 'health_score'];
       const sortColumn = validSortColumns.includes(sort) ? sort : 'last_modified';
       const sortOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 

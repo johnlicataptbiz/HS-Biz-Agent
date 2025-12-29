@@ -46,19 +46,22 @@ export const initDb = async () => {
 };
 
 export const saveContacts = async (contacts) => {
+    const { calculateHealthScore } = await import('./healthScoreService.js');
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
         for (const contact of contacts) {
+            const { score } = calculateHealthScore(contact);
             const query = `
-                INSERT INTO contacts (id, email, firstname, lastname, lifecyclestage, hubspot_owner_id, last_modified, raw_data)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                INSERT INTO contacts (id, email, firstname, lastname, lifecyclestage, hubspot_owner_id, health_score, last_modified, raw_data)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 ON CONFLICT (id) DO UPDATE SET
                     email = EXCLUDED.email,
                     firstname = EXCLUDED.firstname,
                     lastname = EXCLUDED.lastname,
                     lifecyclestage = EXCLUDED.lifecyclestage,
                     hubspot_owner_id = EXCLUDED.hubspot_owner_id,
+                    health_score = EXCLUDED.health_score,
                     last_modified = EXCLUDED.last_modified,
                     raw_data = EXCLUDED.raw_data;
             `;
@@ -69,6 +72,7 @@ export const saveContacts = async (contacts) => {
                 contact.properties?.lastname || null,
                 contact.properties?.lifecyclestage || null,
                 contact.properties?.hubspot_owner_id || null,
+                score,
                 contact.updatedAt || new Date().toISOString(),
                 contact
             ];
@@ -119,4 +123,11 @@ export const updateSyncStatus = async (status) => {
 export const getLastSyncTime = async () => {
     const res = await pool.query('SELECT value FROM sync_state WHERE key = $1', ['last_sync_time']);
     return res.rows[0]?.value || null;
+};
+
+export const updateContactHealthScore = async (id, score, rawData) => {
+    await pool.query(
+        'UPDATE contacts SET health_score = $1, raw_data = $2, last_modified = CURRENT_TIMESTAMP WHERE id = $3',
+        [score, rawData, id]
+    );
 };
