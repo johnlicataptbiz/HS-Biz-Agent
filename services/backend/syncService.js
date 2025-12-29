@@ -47,7 +47,15 @@ export const startBackgroundSync = async (token) => {
                                 ]
                             }
                         ],
-                        properties: ['email', 'firstname', 'lastname', 'lifecyclestage', 'hubspot_owner_id'],
+                        properties: [
+                            'email', 'firstname', 'lastname', 'phone', 'company', 'jobtitle',
+                            'lifecyclestage', 'hubspot_owner_id', 'hs_lead_status',
+                            'hs_analytics_source', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2',
+                            'hs_analytics_num_page_views', 'hs_analytics_num_visits', 'hs_analytics_last_visit_timestamp',
+                            'num_associated_deals', 'notes_last_updated', 'hs_email_last_open_date',
+                            'hs_email_bounce', 'num_conversion_events', 'associatedcompanyid',
+                            'createdate', 'lastmodifieddate'
+                        ],
                         limit: limit,
                         after: after
                     }, {
@@ -70,9 +78,19 @@ export const startBackgroundSync = async (token) => {
             } else {
                 // Initial Full Sync using standard pagination (more reliable for first pull)
                 let after = null;
+                const properties = [
+                    'email', 'firstname', 'lastname', 'phone', 'company', 'jobtitle',
+                    'lifecyclestage', 'hubspot_owner_id', 'hs_lead_status',
+                    'hs_analytics_source', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2',
+                    'hs_analytics_num_page_views', 'hs_analytics_num_visits', 'hs_analytics_last_visit_timestamp',
+                    'num_associated_deals', 'notes_last_updated', 'hs_email_last_open_date',
+                    'hs_email_bounce', 'num_conversion_events', 'associatedcompanyid',
+                    'createdate', 'lastmodifieddate'
+                ].join(',');
+                
                 while (true) {
                     batchCount++;
-                    const url = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}${after ? `&after=${after}` : ''}&properties=email,firstname,lastname,lifecyclestage,hubspot_owner_id`;
+                    const url = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}${after ? `&after=${after}` : ''}&properties=${properties}`;
                     
                     console.log(`📡 Batch ${batchCount}: Fetching ${limit} contacts${after ? ` (after: ${after})` : ' (initial)'}...`);
                     
