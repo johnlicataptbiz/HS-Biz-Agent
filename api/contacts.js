@@ -97,6 +97,13 @@ export default async function handler(req, res) {
       params.push(parseInt(limit), offset);
 
       const result = await pool.query(dataQuery, params);
+      
+      // If a specific ID was requested, return the first result with FULL raw_data
+      const { id } = req.query;
+      if (id && result.rows.length > 0) {
+        const fullResult = await pool.query('SELECT * FROM contacts WHERE id = $1', [id]);
+        return res.status(200).json(fullResult.rows[0]);
+      }
 
       return res.status(200).json({
         contacts: result.rows,

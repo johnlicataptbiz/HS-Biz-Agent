@@ -5,9 +5,10 @@
  * 1. Base Score: 50
  * 2. Engagement (Up to +30): Page views, visits, conversions
  * 3. Commercial (Up to +30): Active deals, lifecycle stage
- * 4. Recency (Up to +20): Last visit, email interaction
- * 5. Velocity (Up to +10): CRM note updates
- * 6. Penalties: Email bounce (-50), Stale (>90 days) (-20)
+ * 4. Create Recency (Up to +20): Form submission within 7 days
+ * 5. Activity Recency (Up to +20): Last visit, email interaction
+ * 6. Velocity (Up to +10): CRM note updates
+ * 7. Penalties: Email bounce (-50), Stale (>90 days) (-20)
  */
 
 export const calculateHealthScore = (contact) => {
@@ -51,6 +52,17 @@ export const calculateHealthScore = (contact) => {
     if (['marketingqualifiedlead', 'salesqualifiedlead', 'opportunity'].includes(stage)) {
         score += 10;
         breakdown.push(`+10: Mature lifecycle stage (${stage})`);
+    }
+    
+    // 3. Create Date Recency (Up to +20)
+    // New leads are extremely hot.
+    const createDate = props.createdate ? new Date(props.createdate) : null;
+    if (createDate && (now.getTime() - createDate.getTime()) < 7 * 24 * 60 * 60 * 1000) {
+        score += 20;
+        breakdown.push('+20: New Lead Bonus (Created in last 7 days)');
+    } else if (createDate && (now.getTime() - createDate.getTime()) < 30 * 24 * 60 * 60 * 1000) {
+        score += 10;
+        breakdown.push('+10: Recent Lead Bonus (Created in last 30 days)');
     }
 
     // 3. Activity Recency (Up to +20)
