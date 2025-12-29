@@ -151,15 +151,18 @@ app.post('/api/contacts/process-scores', async (req, res) => {
 // Native Express Proxy Handler (Bypassing wrapper for full control)
 app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   try {
-    // Extract path from URL - everything after /api/hubspot/
-    const fullUrl = req.url.replace('/api/hubspot/', '');
-    const [pathPart] = fullUrl.split('?');
+    // Extract path using the regex capture group provided by Express
+    const pathPart = req.params[0];
     
-    console.log('🔍 Proxy route:', {
+    console.log('🔍 Proxy route hit:', {
       originalUrl: req.url,
-      extractedPath: pathPart,
-      existingQuery: req.query
+      capturedPath: pathPart,
+      query: req.query
     });
+    
+    if (!pathPart) {
+        return res.status(400).json({ error: "Invalid proxy path", details: "No path captured from regex" });
+    }
     
     // Inject path into query for the shared handler logic
     req.query.path = pathPart;
