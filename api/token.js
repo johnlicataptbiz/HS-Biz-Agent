@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { code, refresh_token, redirect_uri, client_id, code_verifier } = req.body;
+  const { code, refresh_token, redirect_uri, client_id, code_verifier, state } = req.body;
 
   console.log("Token API called with:", { 
     hasCode: !!code, 
@@ -56,6 +56,16 @@ export default async function handler(req, res) {
 
   if (!clientId || !clientSecret) {
     return res.status(500).json({ error: 'HubSpot credentials not configured on server' });
+  }
+
+  // If a state was provided, validate it against the server-side map (to prevent CSRF)
+  if (state) {
+    if (!global.__oauthStateMap || !global.__oauthStateMap[state]) {
+      console.error('Invalid or expired OAuth state provided in token exchange');
+      return res.status(400).json({ error: 'Invalid or expired OAuth state' });
+    }
+    // Optionally remove it now to prevent replay
+    delete global.__oauthStateMap[state];
   }
 
   const params = new URLSearchParams();

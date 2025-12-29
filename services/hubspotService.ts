@@ -36,21 +36,36 @@ export class HubSpotService {
       if (onPopupError) onPopupError("HubSpot client ID missing.");
       throw new Error("HubSpot client ID missing.");
     }
-    // Create a unique state for this request to force fresh interaction
-    const stateBytes = new Uint8Array(16);
-    crypto.getRandomValues(stateBytes);
-    const state = Array.from(stateBytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-    localStorage.setItem(this.OAUTH_REQUEST_KEYS.STATE, state);
-    localStorage.setItem(this.OAUTH_REQUEST_KEYS.STARTED_AT, Date.now().toString());
-    // Persist which client we are trying to authorize
-    localStorage.setItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID, clientId);
-    // --- PKCE SUPPORT ---
-    // Generate a code_verifier and code_challenge for PKCE (S256)
+    // Generate PKCE pair locally (we still keep verifier locally for exchange)
     const codeVerifier = this.generateCodeVerifier();
     const codeChallenge = await this.base64urlEncode(await this.sha256(codeVerifier));
     localStorage.setItem('hubspot_oauth_code_verifier', codeVerifier);
+
+    // Ask server to start an OAuth session and return the canonical auth URL + server-side state
+    let serverResp: any = null;
+    try {
+      const resp = await fetch(getApiUrl('/api/oauth-start'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useMcp: !!useMcp, client_id: clientId, code_challenge: codeChallenge, redirect_uri: redirectUri })
+      });
+      serverResp = await resp.json();
+    } catch (err) {
+      if (onPopupError) onPopupError('Failed to start OAuth session on server.');
+      throw err;
+    }
+
+    const authUrl = serverResp?.authUrl;
+    const serverState = serverResp?.state;
+    if (!authUrl) {
+      if (onPopupError) onPopupError('Server did not return an auth URL.');
+      throw new Error('Server did not return an auth URL.');
+    }
+
+    // Store server state and started_at
+    localStorage.setItem(this.OAUTH_REQUEST_KEYS.STATE, serverState || '');
+    localStorage.setItem(this.OAUTH_REQUEST_KEYS.STARTED_AT, Date.now().toString());
+    localStorage.setItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID, clientId);
     const width = 600;
     const height = 700;
     const screenWidth = (window.screen?.width || 1024);
@@ -91,7 +106,7 @@ export class HubSpotService {
     let popup: Window | null = null;
     try {
       popup = window.open(
-        authUrl, 
+        authUrl,
         `HubSpot OAuth ${clientId} ${Date.now()}`,
         `width=${width},height=${height},top=${top},left=${left}`
       );
