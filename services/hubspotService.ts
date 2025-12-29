@@ -144,6 +144,7 @@ export class HubSpotService {
       // Include PKCE code_verifier if present
       const codeVerifier = localStorage.getItem('hubspot_oauth_code_verifier') || undefined;
 
+      const serverState = localStorage.getItem(this.OAUTH_REQUEST_KEYS.STATE) || undefined;
       const response = await fetch(getApiUrl('/api/token'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,7 +152,8 @@ export class HubSpotService {
           code: cleanCode,
           redirect_uri: redirectUri,
           client_id: clientId,
-          code_verifier: codeVerifier
+          code_verifier: codeVerifier,
+          state: serverState
         }),
       });
 
