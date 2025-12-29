@@ -84,6 +84,17 @@ app.post('/api/sync/reset', async (req, res) => {
     }
 });
 
+// Sample leads endpoint for analysis
+app.get('/api/sync/sample', async (req, res) => {
+    try {
+        const { pool } = await import('./services/backend/dataService.js');
+        const result = await pool.query('SELECT * FROM contacts ORDER BY last_modified DESC LIMIT 5');
+        res.json({ leads: result.rows });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Native Express Proxy Handler (Bypassing wrapper for full control)
 app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   try {
