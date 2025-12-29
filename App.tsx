@@ -34,6 +34,7 @@ const App: React.FC = () => {
   const [isTourOpen, setIsTourOpen] = useState(false);
   
   useEffect(() => {
+    console.log("🚀 HS-Biz-Agent: Sprint 6 RevOps - Version 1.0.1 Loaded");
     localStorage.setItem('active_tab', activeTab);
     const url = new URL(window.location.href);
     if (url.pathname !== `/${activeTab}` && activeTab !== 'dashboard') {
