@@ -84,12 +84,20 @@ export const saveContacts = async (contacts) => {
 };
 
 export const getSyncProgress = async () => {
-    const res = await pool.query('SELECT COUNT(*) as count FROM contacts');
-    const state = await pool.query('SELECT value FROM sync_state WHERE key = $1', ['sync_status']);
-    return {
-        count: parseInt(res.rows[0].count),
-        status: state.rows[0]?.value || 'idle'
-    };
+    if (!process.env.DATABASE_URL) {
+        return { count: 0, status: 'error', error: 'Mirror Offline: DATABASE_URL missing' };
+    }
+    try {
+        const res = await pool.query('SELECT COUNT(*) as count FROM contacts');
+        const state = await pool.query('SELECT value FROM sync_state WHERE key = $1', ['sync_status']);
+        return {
+            count: parseInt(res.rows[0].count),
+            status: state.rows[0]?.value || 'idle'
+        };
+    } catch (e) {
+        console.error('Database query failed:', e.message);
+        throw new Error(`Database query failed: ${e.message}`);
+    }
 };
 
 export const updateSyncStatus = async (status) => {

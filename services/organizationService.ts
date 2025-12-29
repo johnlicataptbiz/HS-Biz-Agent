@@ -72,7 +72,7 @@ export class OrganizationService {
                             - Priority Leads Count: ${metrics.priorityLeads.length}
                             - Stalled Workflows: ${metrics.criticalWorkflows}`;
             
-            const resp = await fetch('https://hs-biz-agent.vercel.app/api/ai', {
+            const resp = await fetch('/api/ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mode: 'briefing', prompt })
@@ -112,7 +112,7 @@ export class OrganizationService {
 
                 if (matchedCompany) {
                     // 3. Verify with AI
-                    const aiVerify = await fetch('https://hs-biz-agent.vercel.app/api/ai', {
+                    const aiVerify = await fetch('/api/ai', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
@@ -157,7 +157,7 @@ export class OrganizationService {
                             
                             Predict revenue growth for next month and identify the top strategic lever.`;
             
-            const resp = await fetch('https://hs-biz-agent.vercel.app/api/ai', {
+            const resp = await fetch('/api/ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mode: 'forecast', prompt })
@@ -253,8 +253,9 @@ export class OrganizationService {
                 pipelines: pipelines.map(p => ({ label: p.label, stageCount: p.stages.length })),
                 ownerCount: owners.length,
                 dealCount: deals.length,
-                unassignedDeals: deals.filter(d => !d.properties.hubspot_owner_id).length,
+                unassignedDeals: deals.filter(d => !d.properties?.hubspot_owner_id).length,
                 stalledDeals: deals.filter(d => {
+                    if (!d.properties?.hs_lastmodifieddate) return false;
                     const lastMod = new Date(d.properties.hs_lastmodifieddate).getTime();
                     return (Date.now() - lastMod) > (30 * 24 * 60 * 60 * 1000);
                 }).length

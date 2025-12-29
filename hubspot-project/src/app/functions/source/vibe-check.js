@@ -27,7 +27,7 @@ exports.main = async (context = {}) => {
   // --- ACTION: DRAFT OUTREACH ---
   if (action === 'draft-outreach') {
     try {
-        const aiResp = await axios.post('https://hs-biz-agent.vercel.app/api/ai', {
+        const aiResp = await axios.post('https://hubspot-ai-optimizer-murex.vercel.app/api/ai', {
             mode: 'draft_outreach',
             prompt: `Generate a high-impact outreach draft for ${payload.persona}. 
                      Context: ${payload.summary}. 

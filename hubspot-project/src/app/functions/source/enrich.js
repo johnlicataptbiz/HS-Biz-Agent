@@ -139,7 +139,7 @@ exports.main = async (context = {}) => {
     let socialSummary = "";
     if (sources.length > 0) {
         try {
-            const socialResp = await axios.post('https://hs-biz-agent.vercel.app/api/ai', {
+            const socialResp = await axios.post('https://hubspot-ai-optimizer-murex.vercel.app/api/ai', {
                 mode: 'sentiment', // Using sentiment mode for analysis-style output
                 prompt: `Synthesize the following search results into a concise 'Social Context' paragraph (3 sentences max) for ${[contact.firstname, contact.lastname].filter(Boolean).join(' ') || 'this contact'}. Focus on their professional focus, recent activity, or public accomplishments. \n\n${snippets.join('\n')}`,
                 contextType: 'social-summary'

@@ -920,8 +920,8 @@ export class HubSpotService {
 
       // Aggregate deals
       deals.forEach((deal: any) => {
-        const stageId = deal.properties.dealstage;
-        if (stats[stageId]) {
+        const stageId = deal.properties?.dealstage;
+        if (stageId && stats[stageId]) {
           stats[stageId].count++;
           stats[stageId].value += parseFloat(deal.properties.amount || '0');
         }
