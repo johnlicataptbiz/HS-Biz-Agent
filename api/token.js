@@ -83,10 +83,17 @@ export default async function handler(req, res) {
     const data = await response.json();
     
     if (!response.ok) {
-      console.error('HubSpot Token Error:', data);
+      console.error('===========================================');
+      console.error('❌ HubSpot OAuth Token Exchange Failed');
+      console.error('Status:', response.status);
+      console.error('Client ID Used:', clientId);
+      console.error('Redirect URI Used:', redirect_uri || 'N/A (refresh token)');
+      console.error('HubSpot Error Response:', JSON.stringify(data, null, 2));
+      console.error('===========================================');
       return res.status(response.status).json(data);
     }
 
+    console.log('✅ OAuth Token Exchange Successful');
     return res.status(200).json(data);
   } catch (error) {
     console.error('Internal Token Exchange error:', error);
