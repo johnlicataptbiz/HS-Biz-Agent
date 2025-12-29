@@ -6,8 +6,8 @@ import proxy from './api/proxy.js';
 import remediate from './api/remediate.js';
 import cleanup from './api/cleanup.js';
 import vibeAi from './api/vibe-ai.js';
-import { initDb, getSyncProgress } from './api/dataService.js';
-import { startBackgroundSync } from './api/syncService.js';
+import { initDb, getSyncProgress } from './services/backend/dataService.js';
+import { startBackgroundSync } from './services/backend/syncService.js';
 
 const app = express();
 

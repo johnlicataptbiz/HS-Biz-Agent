@@ -7,7 +7,7 @@ const SyncStatus: React.FC = () => {
 
     const checkStatus = async () => {
         try {
-            const resp = await fetch('/api/sync/status');
+            const resp = await fetch('/api/sync');
             if (resp.ok) {
                 const data = await resp.json();
                 setStatus(data);
@@ -23,7 +23,7 @@ const SyncStatus: React.FC = () => {
         if (!token) return;
 
         try {
-            await fetch('/api/sync/start', {
+            await fetch('/api/sync', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
