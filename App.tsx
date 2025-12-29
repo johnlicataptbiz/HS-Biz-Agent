@@ -11,6 +11,8 @@ const BreezeTools = lazy(() => import('./pages/BreezeTools'));
 const CoPilot = lazy(() => import('./pages/CoPilot'));
 const Reports = lazy(() => import('./pages/Reports'));
 const JourneyMap = lazy(() => import('./pages/JourneyMap'));
+const Organization = lazy(() => import('./pages/Organization'));
+const RevOps = lazy(() => import('./pages/RevOps'));
 
 import AiChat from './components/AiChat';
 import AiModal from './components/AiModal';
@@ -141,6 +143,7 @@ const App: React.FC = () => {
       case 'datamodel': return <DataModel />;
       case 'breezetools': return <BreezeTools />;
       case 'journey': return <JourneyMap />;
+      case 'organization': return <Organization />;
       default: return <Dashboard onNavigate={setActiveTab} />;
     }
   };

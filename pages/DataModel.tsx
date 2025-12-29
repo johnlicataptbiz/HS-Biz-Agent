@@ -71,6 +71,39 @@ const DataModel: React.FC = () => {
     }
   };
 
+  const handleBulkArchive = async () => {
+    const redundant = properties.filter(p => p.redundant);
+    if (redundant.length === 0) return alert("No redundant properties detected.");
+    
+    if (!window.confirm(`Found ${redundant.length} redundant properties. This will archive THEM ALL. Proceed with mass cleanup?`)) return;
+
+    setIsLoading(true);
+    let successCount = 0;
+    const token = localStorage.getItem('hubspot_access_token');
+
+    for (const prop of redundant) {
+        try {
+            const resp = await fetch('/api/remediate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'archive-property',
+                    hubspotToken: token,
+                    payload: { propertyName: prop.name }
+                })
+            });
+            const data = await resp.json();
+            if (data.success) successCount++;
+        } catch (e) {
+            console.error(`Failed to archive ${prop.name}`);
+        }
+    }
+
+    alert(`Bulk Cleanup Complete: Successfully archived ${successCount} of ${redundant.length} properties.`);
+    await loadData();
+    setIsLoading(false);
+  };
+
   const filteredProperties = properties.filter(p => 
     p.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -203,6 +236,28 @@ const DataModel: React.FC = () => {
                         className="bg-transparent border-none outline-none text-xs text-white placeholder:text-slate-400 font-bold uppercase tracking-widest w-40" 
                       />
                   </div>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={handleBulkArchive}
+                      disabled={isLoading || !isConnected}
+                      className="glass-button px-6 py-3 text-sm font-bold flex items-center gap-2 border-rose-500/20 text-rose-400 hover:bg-rose-500/10" 
+                      title="Bulk Cleanup"
+                    >
+                        <AlertOctagon size={16} />
+                        Bulk Cleanup Redundant
+                    </button>
+                    <button 
+                      onClick={() => {
+                          setAuditPrompt("Analyze the current schema for property redundancy and usage gaps.");
+                          setShowAi(true);
+                      }}
+                      className="glass-button px-6 py-3 text-sm font-bold flex items-center gap-2" 
+                      title="AI Schema Audit"
+                    >
+                        <Sparkles size={16} className="text-amber-500" />
+                        AI Schema Audit
+                    </button>
+                  </div>
                   <button 
                     id="filter-trigger-btn"
                     className="glass-button p-2 text-slate-400 hover:text-white" 
@@ -244,9 +299,12 @@ const DataModel: React.FC = () => {
                             <td className="px-8 py-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                        <div className="h-full rounded-full bg-slate-700 w-0"></div>
+                                        <div 
+                                          className={`h-full rounded-full transition-all duration-1000 ${Number(prop.usage) > 50 ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                                          style={{ width: `${prop.usage || 0}%` }}
+                                        ></div>
                                     </div>
-                                    <span className="text-[10px] text-slate-400 font-extrabold italic">N/A</span>
+                                    <span className="text-[10px] text-slate-400 font-extrabold italic">{prop.usage !== null ? `${prop.usage}%` : 'N/A'}</span>
                                 </div>
                             </td>
                             <td className="px-8 py-6 text-right">

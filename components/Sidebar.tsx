@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard as DashboardIcon, GitFork as WorkflowsIcon, Mail as SequencesIcon, Database as DataIcon, Bot as CopilotIcon, Hammer as ToolsIcon, Settings as SettingsIcon, BrainCircuit as AppIcon, Megaphone as CampaignsIcon, Users as ContactsIcon, BarChart3 as ReportsIcon, Map as GitForkIcon } from 'lucide-react';
+import { LayoutDashboard as DashboardIcon, GitFork as WorkflowsIcon, Mail as SequencesIcon, Database as DataIcon, Bot as CopilotIcon, Hammer as ToolsIcon, Settings as SettingsIcon, BrainCircuit as AppIcon, Megaphone as CampaignsIcon, Users as ContactsIcon, BarChart3 as ReportsIcon, Map as JourneyIcon } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
 
 interface SidebarProps {
@@ -27,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
       title: 'Intelligence',
       items: [
         { id: 'dashboard', label: 'Overview', icon: DashboardIcon },
+        { id: 'organization', label: 'CRM Organization', icon: DataIcon },
         { id: 'contacts', label: 'Database Brain', icon: ContactsIcon },
         { id: 'reports', label: 'Health Reports', icon: ReportsIcon },
       ]
@@ -35,7 +36,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
       title: 'Strategy',
       items: [
         { id: 'copilot', label: 'AI Strategist', icon: CopilotIcon },
-        { id: 'journey', label: 'Journey Map', icon: GitForkIcon },
+        { id: 'revops', label: 'RevOps Control', icon: SettingsIcon },
+        { id: 'journey', label: 'Journey Map', icon: JourneyIcon },
         { id: 'campaigns', label: 'Campaigns', icon: CampaignsIcon },
       ]
     },

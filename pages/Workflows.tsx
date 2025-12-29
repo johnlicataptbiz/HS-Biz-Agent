@@ -25,10 +25,10 @@ const Workflows: React.FC = () => {
     const issueText = wf.issues && wf.issues.length > 0 ? wf.issues.join(', ') : 'this workflow';
     console.log("Opening fix for:", issueText);
     setFixPrompt(
-      `Help me fix ${issueText} in the workflow "${wf.name}". ` +
-      `Provide a concise analysis and return a workflow_spec with both YAML and JSON definitions for the updated workflow. ` +
-      `Include a short diff list of the most important changes. ` +
-      `If write actions are possible, include spec.apiCalls for HubSpot workflow updates.`
+      `Perform a deep node-level simulation for the workflow "${wf.name}" (Issue: ${issueText}). ` +
+      `Analyze the execution path to identify logic bottlenecks or circular branches. ` +
+      `Provide a concise strategy to modernize this flow and return a workflow_spec with YAML/JSON definitions. ` +
+      `If architectural debt is found, include spec.apiCalls for remedial HubSpot actions.`
     );
     setSelectedWf(wf);
   };

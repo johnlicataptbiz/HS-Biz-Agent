@@ -15,10 +15,12 @@ const LeadVibeCheck = ({ context, runServerless, sendAlert }) => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDrafting, setIsDrafting] = useState(false);
+  const [draft, setDraft] = useState(null);
 
-  useEffect(() => {
-    // Initial fetch to the serverless function
-    // We pass the contact ID or email to the backend
+  const fetchData = () => {
+    setLoading(true);
     runServerless({ name: "vibe-check", parameters: { contactId: context.crm.objectId } })
       .then((resp) => {
         if (resp.status === 'SUCCESS') {
@@ -27,12 +29,49 @@ const LeadVibeCheck = ({ context, runServerless, sendAlert }) => {
             setError(resp.message || "Analysis Failed");
         }
       })
-      .catch((err) => {
-        console.error(err);
-        setError("Network error");
-      })
+      .catch((err) => setError("Network error"))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
+
+  const handleSave = () => {
+    setIsSaving(true);
+    const noteBody = `Strategic Vibe Check Synthesis:\nPersona: ${data.persona}\nVibe Score: ${data.vibeScore}\nSummary: ${data.summary}\nStrategic Advice: ${data.strategicAdvice}`;
+    
+    runServerless({ 
+        name: "vibe-check", 
+        parameters: { 
+            contactId: context.crm.objectId, 
+            action: 'save-note',
+            payload: { noteBody }
+        } 
+    }).then((resp) => {
+        if (resp.status === 'SUCCESS') sendAlert({ message: "Strategic analysis synced to timeline.", type: "success" });
+        else sendAlert({ message: "Failed to save note.", type: "danger" });
+    }).finally(() => setIsSaving(false));
+  };
+
+  const handleDraft = () => {
+    setIsDrafting(true);
+    runServerless({
+        name: "vibe-check",
+        parameters: {
+            contactId: context.crm.objectId,
+            action: 'draft-outreach',
+            payload: { 
+                persona: data.persona, 
+                summary: data.summary, 
+                conversationStarters: data.conversationStarters 
+            }
+        }
+    }).then((resp) => {
+        if (resp.status === 'SUCCESS') setDraft(resp.response);
+        else sendAlert({ message: "Drafting failed.", type: "danger" });
+    }).finally(() => setIsDrafting(false));
+  };
 
   if (loading) {
     return <Loading />;
@@ -42,6 +81,7 @@ const LeadVibeCheck = ({ context, runServerless, sendAlert }) => {
     return (
         <Alert title="Vibe Check Failed" variant="danger">
             {error}
+            <Button onClick={fetchData} variant="secondary">Retry</Button>
         </Alert>
     );
   }
@@ -74,13 +114,33 @@ const LeadVibeCheck = ({ context, runServerless, sendAlert }) => {
       </Box>
 
       <Box>
-        <Text format={{ fontWeight: "bold" }} variant="microcopy" uppercase>Conversation Starters</Text>
-        <Flex direction="column" gap="xs">
-            {conversationStarters && conversationStarters.map((starter, idx) => (
-                <Text key={idx} variant="microcopy">• {starter}</Text>
-            ))}
+        <Text format={{ fontWeight: "bold" }} variant="microcopy" uppercase>Action Suite</Text>
+        <Flex gap="sm" direction="row">
+            <Button variant="secondary" onClick={handleDraft} loading={isDrafting}>
+                {isDrafting ? "Drafting..." : "Draft Outreach"}
+            </Button>
+            <Button 
+                variant="primary"
+                onClick={handleSave}
+                loading={isSaving}
+            >
+                {isSaving ? "Syncing..." : "Save to Timeline"}
+            </Button>
         </Flex>
       </Box>
+
+      {draft && (
+          <Box padding="md" variant="card">
+              <Text format={{ fontWeight: "bold" }} variant="microcopy" uppercase>AI Draft: {draft.subject}</Text>
+              <Divider />
+              <Box padding={{ top: "sm" }}>
+                <Text>{draft.body}</Text>
+              </Box>
+              <Flex justify="end" padding={{ top: "sm" }}>
+                  <Button variant="secondary" onClick={() => setDraft(null)}>Dismiss</Button>
+              </Flex>
+          </Box>
+      )}
 
       <Divider />
 
@@ -90,15 +150,6 @@ const LeadVibeCheck = ({ context, runServerless, sendAlert }) => {
               <Tag key={idx} variant="error">{risk}</Tag>
           ))}
           {!riskFactors?.length && <Text>No major risks detected.</Text>}
-      </Flex>
-      
-      <Flex justify="end">
-         <Button 
-            variant="primary"
-            onClick={() => sendAlert({ message: "Strategic analysis synced to timeline.", type: "success" })}
-         >
-            Save Analysis
-         </Button>
       </Flex>
     </Flex>
   );

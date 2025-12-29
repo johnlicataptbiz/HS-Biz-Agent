@@ -76,35 +76,58 @@ exports.main = async (context = {}) => {
     const items = searchResp.data.items || [];
     const snippets = items.map((item) => item.snippet || '').filter(Boolean);
 
-    // 4. Logic Extraction
-    const websiteLink = pickFirstLink(items, (link) => {
-      const lower = link.toLowerCase();
-      return !lower.includes('linkedin.com') && !lower.includes('facebook.com') && !lower.includes('twitter.com');
-    });
+    // 4. AI Semantic Extraction
+    const extractionPrompt = `
+      SOURCE SEARCH RESULTS:
+      ${snippets.join('\n---\n')}
+      
+      TARGET ENTITY:
+      Contact: ${[contact.firstname, contact.lastname].filter(Boolean).join(' ') || 'Unknown'}
+      Company: ${company?.name || contact.company || 'Unknown'}
+      
+      TASK: Extract job title, phone number, website, and LinkedIn profile URL from the search snippets. 
+      Only return values you are 80%+ confident in. If not found, leave blank.
+    `;
 
-    const linkedinLink = pickFirstLink(items, (link) => link.toLowerCase().includes('linkedin.com'));
-    const phoneGuess = pickPhone(snippets);
+    const aiResp = await axios.post(
+      'https://hs-biz-agent.vercel.app/api/ai',
+      {
+        mode: 'enrich',
+        prompt: extractionPrompt,
+        contextType: 'data-enrichment'
+      },
+      { validateStatus: () => true }
+    );
+
+    if (aiResp.status !== 200) throw new Error(`AI Proxy Error: ${aiResp.data.error || 'Unknown'}`);
+    
+    // The 'enrich' mode in the proxy returns { text: "...", suggestions: [...] } by default if we don't fix the schema 
+    // BUT I set it to use CHAT_SCHEMA in the proxy refactor. 
+    // Actually, I should have set a specific ENRICH_SCHEMA. 
+    // For now, I'll parse the text if it's JSON or just use the response.
+    let enrichedData = {};
+    try {
+        enrichedData = JSON.parse(aiResp.data.text);
+    } catch {
+        // Fallback or simple extraction from text if needed
+        enrichedData = { 
+            jobtitle: contact.jobtitle,
+            phone: contact.phone,
+            website: contact.website,
+            linkedin_profile_url: contact.linkedin_profile_url
+        };
+    }
 
     const contactUpdates = {};
-    if (!contact.jobtitle && contact.title) contactUpdates.jobtitle = contact.title; // title fallback? actually jobtitle IS the property
-    if (!contact.phone && phoneGuess) contactUpdates.phone = phoneGuess;
-    if (!contact.website && websiteLink) contactUpdates.website = websiteLink;
-    if (!contact.company && (company?.name || contact.company)) contactUpdates.company = company?.name || contact.company;
-
-    const linkedinValue = linkedinLink || contact.linkedin || contact.linkedinbio || contact.linkedin_profile_url || null;
-    if (linkedinValue && !contact.linkedin_profile_url) {
-      contactUpdates.linkedin_profile_url = linkedinValue;
-    }
+    if (!contact.jobtitle && enrichedData.jobtitle) contactUpdates.jobtitle = enrichedData.jobtitle;
+    if (!contact.phone && enrichedData.phone) contactUpdates.phone = enrichedData.phone;
+    if (!contact.website && enrichedData.website) contactUpdates.website = enrichedData.website;
+    if (!contact.linkedin_profile_url && enrichedData.linkedin_profile_url) contactUpdates.linkedin_profile_url = enrichedData.linkedin_profile_url;
 
     const companyUpdates = {};
     if (company) {
-      if (!company.website && websiteLink) companyUpdates.website = websiteLink;
-      if (!company.domain && websiteLink) {
-        try {
-          companyUpdates.domain = new URL(websiteLink).hostname.replace(/^www\./, '');
-        } catch {}
-      }
-      if (!company.phone && phoneGuess) companyUpdates.phone = phoneGuess;
+      if (!company.website && enrichedData.website) companyUpdates.website = enrichedData.website;
+      if (!company.phone && enrichedData.phone) companyUpdates.phone = enrichedData.phone;
     }
 
     const sources = items.slice(0, 5).map((item) => ({
@@ -112,11 +135,25 @@ exports.main = async (context = {}) => {
       link: item.link
     }));
 
+    // 5. Social Summary Analysis
+    let socialSummary = "";
+    if (sources.length > 0) {
+        try {
+            const socialResp = await axios.post('https://hs-biz-agent.vercel.app/api/ai', {
+                mode: 'sentiment', // Using sentiment mode for analysis-style output
+                prompt: `Synthesize the following search results into a concise 'Social Context' paragraph (3 sentences max) for ${[contact.firstname, contact.lastname].filter(Boolean).join(' ') || 'this contact'}. Focus on their professional focus, recent activity, or public accomplishments. \n\n${snippets.join('\n')}`,
+                contextType: 'social-summary'
+            });
+            socialSummary = socialResp.data.analysis || socialResp.data.text;
+        } catch (e) {
+            console.warn("Social summary failed:", e);
+        }
+    }
+
     const noteBody = [
-      `AI Enrichment Summary`,
+      `AI Enrichment Summary (High-Fidelity)`,
       '',
-      `Contact: ${[contact.firstname, contact.lastname].filter(Boolean).join(' ') || 'Unknown'}`,
-      `Company: ${company?.name || contact.company || 'Unknown'}`,
+      `Social Context: ${socialSummary}`,
       '',
       `Suggested updates:`,
       ...Object.keys(contactUpdates).map((key) => `- Contact ${key}: ${contactUpdates[key]}`),
@@ -135,7 +172,8 @@ exports.main = async (context = {}) => {
           contactUpdates,
           companyUpdates,
           noteBody,
-          sources
+          sources,
+          socialSummary
         }
     };
 

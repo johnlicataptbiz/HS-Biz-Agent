@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
-import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot, Users, RefreshCw } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Zap, ArrowUpRight, ShieldCheck, TrendingUp, MoreHorizontal, Link as LinkIcon, Sparkles, Target, Cpu, ShieldAlert, Bot, Users, RefreshCw, Database } from 'lucide-react';
 import { hubSpotService } from '../services/hubspotService';
+import { organizationService } from '../services/organizationService';
 import AiModal from '../components/AiModal';
 import AuditReportModal from '../components/AuditReportModal';
 import { JourneyFunnel } from '../components/JourneyFunnel';
+import LeakageCard from '../components/Dashboard/LeakageCard';
+import { VelocityForecaster } from '../components/Dashboard/VelocityForecaster';
+import { SentimentCard } from '../components/Dashboard/SentimentCard';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -29,6 +33,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       healthScore: 0,
       lifecycleStageBreakdown: {} as Record<string, number>
     },
+    journeyData: null as any,
+    sentiment: null as any,
+    priorityLeads: [] as any[],
+    mission: null as any,
+    forecast: null as any,
+    revopsAudit: null as any,
+    pipelineStats: {} as Record<string, any>,
+    owners: [] as any[]
   });
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
@@ -50,7 +62,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         setIsConnected(validation.success);
         
         if (validation.success) {
-          const [wf, seq, prop, seg, camp, forms, deals, contactHealth] = await Promise.all([
+          const results = await Promise.all([
             hubSpotService.fetchWorkflows(),
             hubSpotService.fetchSequences(),
             hubSpotService.fetchProperties(),
@@ -58,9 +70,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             hubSpotService.fetchCampaigns(),
             hubSpotService.fetchForms(),
             hubSpotService.fetchDeals(),
-            hubSpotService.scanContactOrganization()
+            hubSpotService.scanContactOrganization(),
+            hubSpotService.fetchJourneyData(),
+            hubSpotService.fetchMarketSentiment(),
+            hubSpotService.fetchPriorityLeads(),
+            hubSpotService.fetchOwners(),
+            hubSpotService.fetchPipelineStats(),
+            organizationService.auditRevenueArchitecture()
           ]);
+          
           if (isMounted) {
+            const [wf, seq, prop, seg, camp, forms, deals, contactHealth, journeyData, sentiment, priorityLeads, owners, pipelineStats, revopsAudit] = results;
             setMetrics({ 
               workflows: wf, 
               sequences: seq, 
@@ -69,7 +89,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               campaigns: camp, 
               forms, 
               deals, 
-              contactHealth: contactHealth 
+              contactHealth: contactHealth,
+              journeyData: journeyData,
+              sentiment: sentiment,
+              priorityLeads: priorityLeads,
+              mission: null,
+              forecast: null,
+              owners,
+              pipelineStats,
+              revopsAudit
             });
           }
         } else {
@@ -89,7 +117,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 inactive: 0, 
                 healthScore: 0,
                 lifecycleStageBreakdown: {}
-              } 
+              },
+              journeyData: null,
+              sentiment: null,
+              priorityLeads: [],
+              mission: null,
+              forecast: null,
+              owners: [],
+              pipelineStats: {},
+              revopsAudit: null
             });
           }
         }
@@ -185,8 +221,72 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     );
   };
 
+  useEffect(() => {
+    if (!isConnected || metrics.workflows.length === 0 || metrics.mission) return;
+
+    const fetchMission = async () => {
+        const briefing = await organizationService.fetchDailyMission({
+            overallScore,
+            redundantProps,
+            priorityLeads: metrics.priorityLeads || [],
+            criticalWorkflows: metrics.workflows.filter((w: any) => w.enabled && (w.enrolledCount || 0) === 0).length
+        });
+        if (briefing) setMetrics(prev => ({ ...prev, mission: briefing }));
+    };
+
+    fetchMission();
+
+    const fetchForecast = async () => {
+        const forecast = await organizationService.fetchStrategicForecast({
+            overallScore,
+            velocityScore: metrics.journeyData?.velocityScore || 0,
+            dealsCount: metrics.deals.length,
+            priorityLeadsCount: metrics.priorityLeads.length
+        });
+        if (forecast) setMetrics(prev => ({ ...prev, forecast }));
+    };
+
+    fetchForecast();
+  }, [isConnected, metrics.workflows, metrics.priorityLeads, overallScore, redundantProps, metrics.journeyData, metrics.deals.length]);
+
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Daily Mission Briefing */}
+      {metrics.mission && (
+          <div className="glass-card p-6 border-indigo-500/30 bg-indigo-500/10 overflow-hidden relative group">
+              <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
+                  <Sparkles size={48} className="text-indigo-400" />
+              </div>
+              <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+                  <div className="flex-1 space-y-4">
+                      <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em]">Operational Directive</span>
+                          <div className="h-0.5 flex-1 bg-indigo-500/20"></div>
+                      </div>
+                      <h2 className="text-2xl font-black text-white italic tracking-tight">{metrics.mission.slogan}</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          {(metrics.mission.objectives || []).map((obj: any, i: number) => (
+                              <div key={i} className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                      <div className={`w-1.5 h-1.5 rounded-full ${obj.priority === 'High' ? 'bg-rose-500' : 'bg-indigo-500'}`}></div>
+                                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{obj.category}</span>
+                                  </div>
+                                  <p className="text-sm font-bold text-white leading-tight">{obj.title}</p>
+                                  <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{obj.description}</p>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+                  <div className="md:border-l border-white/10 md:pl-8 flex flex-col items-center justify-center space-y-2 min-w-[120px]">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mission Focus</span>
+                      <div className="w-16 h-16 rounded-full border-4 border-indigo-500/20 flex items-center justify-center">
+                          <Zap size={24} className="text-indigo-400" />
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
       {/* Premium Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
@@ -237,6 +337,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <Sparkles size={16} className="text-indigo-400" />
                 Generate Deep Audit
             </button>
+            {/* Performance Quick Actions Trigger */}
+            {isHealing && (
+                <div className="glass-card p-4 border-indigo-500/30 bg-indigo-500/10 animate-pulse flex items-center gap-3">
+                    <RefreshCw className="animate-spin text-indigo-400" size={16} />
+                    <span className="text-xs font-bold text-white uppercase tracking-widest">Autonomous Healing Engaged: Optimizing Ghost Workflows...</span>
+                </div>
+            )}
             <button 
               onClick={async () => {
                 if (!window.confirm("This will automatically pause all active workflows with zero enrollments (Ghost Workflows) to optimize API usage. Proceed?")) return;
@@ -276,43 +383,141 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Main Stats (keep existing grid) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Consolidated Health" 
-          value={isConnected && !loading ? `${overallScore}%` : "0%"} 
-          sub={isConnected && !loading ? (overallScore > 0 ? "Analyzed" : "Pending Audit") : "Unauthorized"} 
-          icon={Cpu} 
-          colorClass="bg-indigo-400" 
-          gradient="bg-indigo-500"
-        />
-        <div id="stat-revenue-risk">
+
+      {/* Core Insights Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-1">
+            <LeakageCard />
+        </div>
+        <div className="lg:col-span-1">
+            {metrics.journeyData ? (
+                <VelocityForecaster 
+                    velocityScore={metrics.journeyData.velocityScore || 75} 
+                    totalPipelineValue={metrics.deals.reduce((acc, d) => acc + (d.amount || 0), 0)} 
+                />
+            ) : (
+                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 h-full flex items-center justify-center text-slate-500 italic text-xs">
+                    Loading Forecast...
+                </div>
+            )}
+        </div>
+        <div className="lg:col-span-1">
+            <SentimentCard data={metrics.sentiment} loading={loading} />
+        </div>
+        <div className="lg:col-span-1">
             <StatCard 
-                title="Revenue at Risk" 
-                value={isConnected && !loading ? `$${(metrics.deals.reduce((acc: number, d: any) => acc + d.amount, 0) / 1000).toFixed(1)}k` : "$0"} 
-                sub={isConnected && !loading ? `${metrics.deals.length} Stalled Opportunities` : "Pipeline Scan Inactive"} 
+                title="Campaign ROI" 
+                value={metrics.campaigns.length > 0 ? `$${Math.round(metrics.campaigns.reduce((acc, c) => acc + (c.revenue || 0), 0) / 1000)}k` : '$0'}
+                sub={`${metrics.campaigns.length} Active Feeds`}
                 icon={TrendingUp} 
-                colorClass="bg-rose-400" 
-                gradient="bg-rose-500"
+                colorClass="bg-emerald-500"
+                gradient="from-emerald-500 to-teal-600"
+                onClick={() => onNavigate && onNavigate('campaigns')}
             />
         </div>
-        <StatCard 
-          title="Active Automations" 
-          value={isConnected && !loading ? activeWorkflows : "0"} 
-          sub={isConnected && !loading ? `${criticalWorkflows} Stall Alerts` : "Limited Access"} 
-          icon={Zap} 
-          colorClass="bg-emerald-400" 
-          gradient="bg-emerald-500"
-          onClick={() => onNavigate?.('workflows')}
-        />
-        <StatCard 
-          title="Contact Health" 
-          value={isConnected && !loading ? `${metrics.contactHealth.healthScore}%` : "0%"} 
-          sub={isConnected && !loading ? `${metrics.contactHealth.unclassified + metrics.contactHealth.unassigned} Need Attention` : "Scan Pending"}
-          icon={Users} 
-          colorClass="bg-amber-400" 
-          gradient="bg-amber-500"
-        />
+      </div>
+ 
+      {/* Revenue Architecture Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 glass-card p-10 flex flex-col space-y-8">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Revenue <span className="gradient-text">Architecture.</span></h2>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Pipeline Stage Distribution & Heatmap</p>
+                </div>
+                <div className="flex gap-4">
+                    <div className="text-right">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">Stalled Deals</span>
+                        <span className="text-lg font-black text-amber-500">{metrics.revopsAudit?.stalledDeals || 0}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex-1 min-h-[300px]">
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart 
+                        data={Object.values(metrics.pipelineStats)} 
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                        <XAxis 
+                            dataKey="label" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                        />
+                        <YAxis hide />
+                        <Tooltip 
+                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                            itemStyle={{ color: '#818cf8', fontWeight: 900, fontSize: '10px', textTransform: 'uppercase' }}
+                        />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                            {Object.values(metrics.pipelineStats).map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#4f46e5' : '#818cf8'} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+
+        <div className="lg:col-span-1 space-y-8">
+            <div className="glass-card p-8 border-l-4 border-indigo-500">
+                <div className="flex items-center gap-3 mb-6">
+                    <Users className="text-indigo-400" size={20} />
+                    <h3 className="font-black text-white text-sm uppercase tracking-widest italic">Team Intelligence</h3>
+                </div>
+                <div className="space-y-6">
+                    <div>
+                        <div className="flex justify-between items-end mb-2">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Ownership Coverage</span>
+                            <span className="text-xs font-black text-white">
+                                {metrics.contactHealth.totalScanned > 0 
+                                    ? Math.round(((metrics.contactHealth.totalScanned - metrics.contactHealth.unassigned) / metrics.contactHealth.totalScanned) * 100) 
+                                    : 0}%
+                            </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full bg-indigo-500 transition-all duration-1000" 
+                                style={{ width: `${metrics.contactHealth.totalScanned > 0 ? ((metrics.contactHealth.totalScanned - metrics.contactHealth.unassigned) / metrics.contactHealth.totalScanned) * 100 : 0}%` }}
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                            <span className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Active Owners</span>
+                            <span className="text-xl font-black text-white">{metrics.owners.length}</span>
+                        </div>
+                        <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-rose-500">
+                            <span className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Unassigned</span>
+                            <span className="text-xl font-black">{metrics.contactHealth.unassigned}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="glass-card p-8 bg-indigo-500/5">
+                <div className="flex items-center gap-3 mb-4">
+                    <Bot className="text-indigo-400" size={20} />
+                    <h3 className="font-black text-white text-sm uppercase tracking-widest italic">RevOps Audit</h3>
+                </div>
+                <div className="space-y-4">
+                    {metrics.revopsAudit?.bottlenecks?.slice(0, 2).map((b: any, i: number) => (
+                        <div key={i} className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle size={10} className={b.impact === 'High' ? 'text-rose-500' : 'text-amber-500'} />
+                                <span className="text-[10px] font-black text-white uppercase tracking-tighter">{b.stage}</span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 leading-tight font-medium">{b.issue}</p>
+                        </div>
+                    ))}
+                    <button className="w-full py-3 text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors border-t border-white/5 mt-4">
+                        Launch Full Audit →
+                    </button>
+                </div>
+            </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -387,62 +592,121 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </div>
           </div>
         </div>
+      </div>
 
-        {/* Intelligence Actions */}
-        <div className="glass-card p-10 space-y-8 min-h-[500px]">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-2">Intelligence Tasks</h2>
-            <p className="text-slate-400 text-sm font-medium">AI-prioritized architectural improvements.</p>
+      {/* Intelligence Actions */}
+        <div className="glass-card p-10 space-y-8 min-h-[500px] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Cpu size={150} className="text-indigo-400" />
           </div>
-          
-          <div className="space-y-4">
-            {isConnected && !loading ? (
-              [
-                { label: `Fix ${criticalWorkflows} stalled workflows`, impact: 'Critical', type: 'Architecture', color: 'text-indigo-400' },
-                { label: `Optimize ${leadMagnets} lead magnets`, impact: 'High', type: 'Marketing', color: 'text-rose-400' },
-                { label: `Refactor ${redundantProps} legacy properties`, impact: 'High', type: 'Database', color: 'text-amber-400' },
-                { label: 'Analyze sequence health', impact: 'Medium', type: 'Sales', color: 'text-emerald-400' },
-              ].map((item, i) => (
-                <div key={i} className="group flex items-center justify-between p-5 rounded-3xl border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all cursor-pointer">
-                  <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm bg-slate-800 border border-white/5 ${item.color}`}>
-                          {item.type.charAt(0)}
-                      </div>
-                      <div>
-                          <span className="text-sm font-bold text-white group-hover:text-indigo-400 block transition-colors">{item.label}</span>
-                          <div className="flex items-center gap-2 mt-1">
-                               <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">{item.type}</span>
-                               <div className="w-1 h-1 rounded-full bg-slate-700"></div>
-                               <span className={`text-[10px] font-extrabold uppercase tracking-widest ${item.impact === 'Critical' ? 'text-rose-500' : 'text-slate-400'}`}>
-                                   {item.impact}
-                               </span>
-                          </div>
-                      </div>
-                  </div>
-                  <ArrowUpRight size={18} className="text-slate-700 group-hover:text-white transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                </div>
-              ))
-            ) : (
-                <div className="p-10 text-center border border-dashed border-white/5 rounded-3xl text-slate-400 font-bold uppercase tracking-widest text-[10px] italic">
-                    Requires Secure Connection to Populate Task Queue
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase underline decoration-indigo-500/50 underline-offset-8">Strategy <span className="gradient-text">Command.</span></h2>
+              <p className="text-slate-400 text-sm font-medium pt-2">Algorithmic forecasts and priority lead intercepts.</p>
+            </div>
+            
+            {isConnected && !loading && metrics.forecast && (
+                <div className="flex items-center gap-6 px-6 py-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+                    <div>
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Forecast</p>
+                        <p className="text-2xl font-black text-white italic">+{metrics.forecast.projectedGrowth}%</p>
+                    </div>
+                    <div className="w-px h-8 bg-indigo-500/20"></div>
+                    <div>
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Velocity</p>
+                        <p className="text-sm font-bold text-white uppercase">{metrics.forecast.revenueVelocity}</p>
+                    </div>
                 </div>
             )}
           </div>
-
-          {/* Journey Funnel Visualization */}
-          {isConnected && !loading && metrics.contactHealth.lifecycleStageBreakdown && (
-            <JourneyFunnel data={metrics.contactHealth.lifecycleStageBreakdown} />
-          )}
           
-          <button 
-            className="w-full py-5 rounded-3xl premium-gradient text-white text-sm font-bold shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all" 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
+            {/* Priority Intercepts */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Priority Intercepts</p>
+                    <span className="text-[10px] font-bold text-indigo-400 uppercase">Top 4 Intent</span>
+                </div>
+                <div className="space-y-3">
+                    {isConnected && !loading && metrics.priorityLeads.length > 0 ? metrics.priorityLeads.map((lead: any) => (
+                        <div key={lead.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all group flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-xs font-bold text-white bg-slate-900">
+                                    {lead.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <span className="text-sm font-bold text-white block group-hover:text-indigo-400 transition-colors uppercase italic">{lead.name}</span>
+                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{lead.title || 'Decision Maker'}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs font-black text-indigo-400">{lead.priority}%</span>
+                                <button className="p-2 rounded-lg bg-slate-900 text-slate-500 hover:text-white transition-colors" title="View Strategic Insights">
+                                    <Sparkles size={12} />
+                                </button>
+                            </div>
+                        </div>
+                    )) : (
+                        <div className="p-8 text-center border border-dashed border-white/5 rounded-2xl text-xs text-slate-500 font-bold uppercase">
+                            {isConnected ? "Scanning for high-intent signals..." : "Connection Required"}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Strategic Analysis */}
+            <div className="space-y-4">
+                <div className="px-2">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Forecast Analysis</p>
+                </div>
+                {isConnected && !loading && metrics.forecast ? (
+                    <div className="glass-card p-6 bg-slate-900 border-indigo-500/20 h-full flex flex-col justify-between">
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
+                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Top Lever</p>
+                                <p className="text-sm font-bold text-white leading-relaxed">{metrics.forecast.topOpportunity}</p>
+                            </div>
+                            <div className="space-y-2">
+                                {metrics.forecast.riskFactors.map((risk: string, i: number) => (
+                                    <div key={i} className="flex items-center gap-2 text-[10px] font-medium text-slate-400">
+                                        <AlertTriangle size={12} className="text-rose-500" />
+                                        {risk}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">Confidence 88%</span>
+                            <button className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors">Apply strategy</button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="glass-card p-8 border-dashed border-white/10 flex flex-col items-center justify-center text-center space-y-4 h-full">
+                        <TrendingUp size={32} className="text-slate-700 animate-pulse" />
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            {isConnected ? "Running growth simulations..." : "Forecast Unavailable"}
+                        </p>
+                    </div>
+                )}
+            </div>
+          </div>
+        </div>
+
+        {/* Journey Funnel Visualization */}
+        {isConnected && !loading && metrics.contactHealth.lifecycleStageBreakdown && (
+            <div className="mt-8">
+                <JourneyFunnel data={metrics.contactHealth.lifecycleStageBreakdown} />
+            </div>
+        )}
+        
+        <button 
+            className="w-full py-5 rounded-3xl premium-gradient text-white text-sm font-bold shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all mt-8" 
             title="Optimizer"
             onClick={() => setShowAuditModal(true)}
-          >
+        >
             Launch Heuristic Optimizer
-          </button>
-        </div>
-      </div>
+        </button>
 
       {/* Connection Prompt for Demo Users */}
       {!isConnected && !loading && (

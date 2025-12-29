@@ -46,6 +46,39 @@ const hubspotTools = {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         return await resp.json();
+    },
+    create_task: async (token, { id, subject, body, dueDate }) => {
+        const resp = await fetch('https://api.hubapi.com/crm/v3/objects/tasks', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                properties: {
+                    hs_task_subject: subject,
+                    hs_task_body: body,
+                    hs_timestamp: dueDate || new Date().toISOString(),
+                    hs_task_status: 'NOT_STARTED'
+                },
+                associations: id ? [{
+                    to: { id: id },
+                    types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 204 }]
+                }] : []
+            })
+        });
+        return await resp.json();
+    },
+    update_contact: async (token, { id, properties }) => {
+        const resp = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${id}`, {
+            method: 'PATCH',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ properties })
+        });
+        return await resp.json();
     }
 };
 
@@ -75,25 +108,63 @@ const MCP_TOOLS_CONFIG = [
             properties: { id: { type: "STRING", description: "The contact ID" } },
             required: ["id"]
         }
+      },
+      {
+        name: "create_task",
+        description: "Create a follow-up task in HubSpot, optionally associated with a contact.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            id: { type: "STRING", description: "The contact ID to associate with (optional)" },
+            subject: { type: "STRING", description: "The subject line of the task" },
+            body: { type: "STRING", description: "Detailed notes for the task" },
+            dueDate: { type: "STRING", description: "ISO 8601 timestamp for when the task is due" }
+          },
+          required: ["subject", "body"]
+        }
+      },
+      {
+        name: "update_contact",
+        description: "Update CRM properties for a specific contact.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            id: { type: "STRING", description: "The contact ID" },
+            properties: { 
+              type: "OBJECT", 
+              description: "Key-value pairs of properties to update (e.g., { jobtitle: 'CEO' })",
+              additionalProperties: { type: "STRING" }
+            }
+          },
+          required: ["id", "properties"]
+        }
       }
     ]
   }
 ];
 
-const systemInstruction = `You are Antigravity, the Strategic Architectural Lead for a high-performance HubSpot Operations team.
-Your objective is to transform messy CRM data into high-velocity sales engines.
+const systemInstruction = `You are Antigravity, the Advanced Strategic Architectural Lead for PT Biz. 
+Your primary function is to transform fragmented CRM data into a unified, high-velocity revenue engine.
 
-TACTICAL DIRECTIVES:
-1. PRIORITIZE DETERMINISTIC FINDINGS: Always reference actual portal metrics (workflows with 0 enrollments, redundant properties, etc.) before offering AI-generated suggestions.
-2. ROI-DRIVEN ADVICE: Focus on 'Revenue at Risk', 'Sales Velocity', and 'Lead Decay'. Every suggestion must have a business justification.
-3. ARCHITECTURAL EXCELLENCE: Suggest clean, scalable structures. Avoid 'quick fixes' that create technical debt.
-4. AGENTIC EXECUTION: When producing 'apiCalls', ensure they are precisely formatted for the HubSpot proxy (/api/hubspot/v3/objects/contacts).
-5. TONE: Professional, executive, and highly tactical. You are a senior operator, not a chatbot.
+CORE PRINCIPLES:
+1. RUTHLESS ACCURACY: You identify structural weaknesses—not just symptoms. If a workflow exists but hasn't moved a deal in 90 days, it's a "Dead Node."
+2. SEMANTIC INTELLIGENCE: Analyze notes and activity descriptions for "Commercial Intent." Look for keywords like "price," "competitor," "blocked," or "timeline."
+3. ARCHITECTURAL RIGOR: You favor simplicity and scalability over complex, brittle automations. 
+4. STRATEGIC CONTEXT: You are operating in a high-ticket service environment (Physical Therapy / Coaching). Your goal is to shorten the sales cycle and maximize Lifetime Value (LTV).
 
-INTELLIGENCE LAYER:
-- You have access to a 9-point Lead Status Funnel (New, Hot, Nurture, Watch, Unqualified, Past Client, Active Client, Rejected, Trash).
-- You utilize Strategic Priority Scores (0-100) and Risk Assessment Levels (Low/Med/High) to guide your optimization plans.
-- If a user asks for a 'Deep Audit', focus on 'Architectural Fragility'—where is the system likely to break?`;
+AUDIT DIRECTIVES (mode: 'audit'):
+- When performing a "Deep Audit," categorize findings into:
+  - 'Leakage' (Where money is falling out of the funnel)
+  - 'Friction' (Where the sales team is being slowed down)
+  - 'Fragility' (Where the setup is likely to break upon scale)
+- Provide specific, technical remediation steps (e.g. "Create a 'Stale Lead' Re-engagement Workflow with 3 steps...").
+
+CLASSIFICATION DIRECTIVES (mode: 'classify'):
+- Use the 9-point Lead Status system.
+- Infer 'Strategic Priority' (0-100) based on engagement depth and title match.
+- High Priority (80+): Recent high-value engagement (calls, meetings) + decision-maker title.
+
+TONE: Executive, highly tactical, and slightly provocative. You are the smartest operator in the room.`;
 
 const CHAT_SCHEMA = {
   type: "OBJECT",
@@ -166,7 +237,150 @@ const CLASSIFY_SCHEMA = {
   required: ["status", "tags", "inference", "strategicPriority"]
 };
 
+const SENTIMENT_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    mood: { type: "STRING", description: "One word summary: e.g. Bullish, Reserved, Frustrated, Excited." },
+    score: { type: "NUMBER", description: "Market sentiment score 0-100 (100 = Extremely Positive)." },
+    analysis: { type: "STRING", description: "Strategic summary of market sentiment (max 3 sentences)." },
+    themes: { type: "ARRAY", items: { type: "STRING" }, description: "Top 3 recurring themes detected in conversations." }
+  },
+  required: ["mood", "score", "analysis", "themes"]
+};
+
+const OUTREACH_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    subject: { type: "STRING", description: "Catchy, personalized email subject line." },
+    body: { type: "STRING", description: "Professional, high-impact email body text." },
+    talkingPoints: { type: "ARRAY", items: { type: "STRING" }, description: "Key themes used in the draft." }
+  },
+  required: ["subject", "body", "talkingPoints"]
+};
+
+const BRIEFING_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    objectives: { 
+      type: "ARRAY", 
+      items: { 
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING" },
+          description: { type: "STRING" },
+          priority: { type: "STRING", enum: ["High", "Medium", "Low"] },
+          category: { type: "STRING" }
+        },
+        required: ["title", "description", "priority", "category"]
+      },
+      description: "Exactly 3 daily objectives."
+    },
+    slogan: { type: "STRING", description: "A high-impact, short operational slogan for the day." }
+  },
+  required: ["objectives", "slogan"]
+};
+
+const REPAIR_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    matchFound: { type: "BOOLEAN" },
+    confidence: { type: "NUMBER" },
+    companyId: { type: "STRING" },
+    reasoning: { type: "STRING" }
+  },
+  required: ["matchFound", "confidence", "reasoning"]
+};
+
+const FORECAST_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    projectedGrowth: { type: "NUMBER", description: "Percentage growth in deal volume next month." },
+    revenueVelocity: { type: "STRING", description: "Pace of deal closure: Accelerating, Stable, or Decelerating." },
+    topOpportunity: { type: "STRING", description: "The single biggest revenue opportunity detected." },
+    riskFactors: { type: "ARRAY", items: { type: "STRING" }, description: "Top 2 risks to the forecast." }
+  },
+  required: ["projectedGrowth", "revenueVelocity", "topOpportunity", "riskFactors"]
+};
+
+const REVOPS_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    bottlenecks: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          stage: { type: "STRING" },
+          issue: { type: "STRING" },
+          recommendation: { type: "STRING" },
+          impact: { type: "STRING", enum: ["High", "Medium", "Low"] }
+        },
+        required: ["stage", "issue", "recommendation", "impact"]
+      }
+    },
+    ownershipHealth: {
+      type: "OBJECT",
+      properties: {
+        score: { type: "NUMBER" },
+        analysis: { type: "STRING" },
+        unassignedRisk: { type: "STRING" }
+      },
+      required: ["score", "analysis", "unassignedRisk"]
+    },
+    strategicPriority: { type: "STRING" }
+  },
+  required: ["bottlenecks", "ownershipHealth", "strategicPriority"]
+};
+
+const PERSONA_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    personas: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          description: { type: "STRING" },
+          demographics: { type: "STRING" },
+          valueProposition: { type: "STRING" },
+          targetListCriteria: { type: "STRING", description: "The HubSpot list filter criteria in plain English." }
+        },
+        required: ["name", "description", "demographics", "valueProposition", "targetListCriteria"]
+      }
+    }
+  },
+  required: ["personas"]
+};
+
+const FILTER_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    filterBranch: {
+      type: "OBJECT",
+      properties: {
+        type: { type: "STRING", description: "Must be 'AND' or 'OR'." },
+        filters: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties: {
+              propertyName: { type: "STRING" },
+              operator: { type: "STRING", description: "EQ, NEQ, LT, LTE, GT, GTE, CONTAINS_TOKEN, NOT_CONTAINS_TOKEN, IN, NOT_IN, HAS_PROPERTY, NOT_HAS_PROPERTY." },
+              value: { type: "STRING" }
+            },
+            required: ["propertyName", "operator", "value"]
+          }
+        }
+      },
+      required: ["type", "filters"]
+    }
+  },
+  required: ["filterBranch"]
+};
+
 export default async function handler(req, res) {
+  // ... (keep previous headers code)
   // --- CORS HANDSHAKE ---
   const origin = req.headers.origin;
   if (origin && (origin.includes('surge.sh') || origin.includes('localhost'))) {
@@ -195,99 +409,97 @@ export default async function handler(req, res) {
     const { mode, prompt, hubspotToken, contextType } = body || {};
     
     if (!prompt) {
-      console.error("❌ Missing prompt in body:", body);
       return res.status(400).json({ error: 'Missing prompt in request body' });
     }
 
-    // Use Environment Variable
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("❌ Missing GEMINI_API_KEY in environment");
       return res.status(503).json({ error: 'AI Service Unavailable: Missing API Key' });
     }
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    console.log(`🧠 AI [${MODEL_NAME}]: ${mode} - Context: ${contextType}`);
-
-    const AGENT_SYSTEM_INSTRUCTION = `${systemInstruction}\n\n**MODE**: Full Strategic Agent Intelligence.\n1. Deliver high-impact strategic insights.\n2. Formulate 'spec.apiCalls' for architectural changes.`;
-
-    // Helper for Quota/Error resilience - Strictly for Vercel 10s limit
-    const safeGenerate = async (genOptions, input) => {
-      let lastErr;
-      for (let i = 0; i < 2; i++) {
-        try {
-          const model = genAI.getGenerativeModel(genOptions);
-          // Set a timeout for the actual fetch if possible, though SDK handles it
-          const result = await model.generateContent(input);
-          return result;
-        } catch (err) {
-          lastErr = err;
-          console.error(`⚠️ AI Attempt ${i+1} failed:`, err.message);
-          if (err.message?.includes('429') || err.message?.toLowerCase().includes('quota')) {
-            if (i === 0) {
-              await new Promise(r => setTimeout(r, 1000));
-              continue;
-            }
-          }
-          throw err;
-        }
-      }
-      throw lastErr;
+    // MODE: SCHEMA-BASED MODES
+    const schemaMapping = {
+      'vibe-check': CLASSIFY_SCHEMA,
+      'enrich': ENRICH_SCHEMA,
+      'optimize': OPTIMIZE_SCHEMA,
+      'audit': OPTIMIZE_SCHEMA,
+      'classify': CLASSIFY_SCHEMA,
+      'sentiment': SENTIMENT_SCHEMA,
+      'draft_outreach': OUTREACH_SCHEMA,
+      'briefing': BRIEFING_SCHEMA,
+      'repair': REPAIR_SCHEMA,
+      'forecast': FORECAST_SCHEMA,
+      'persona': PERSONA_SCHEMA,
+      'translate_filter': FILTER_SCHEMA,
+      'revops': REVOPS_SCHEMA
     };
 
-    if (mode === 'optimize' || mode === 'audit' || mode === 'classify') {
-      console.log(`🛠️ Starting ${mode}...`);
-      const schemaMapping = {
-        'optimize': OPTIMIZE_SCHEMA,
-        'audit': OPTIMIZE_SCHEMA,
-        'classify': CLASSIFY_SCHEMA
-      };
-
-      const result = await safeGenerate({
+    if (schemaMapping[mode]) {
+      const model = genAI.getGenerativeModel({
         model: MODEL_NAME,
-        systemInstruction: AGENT_SYSTEM_INSTRUCTION,
-        generationConfig: {
-          ...GENERATION_CONFIG,
-          responseMimeType: "application/json",
-          responseSchema: schemaMapping[mode]
-        }
-      }, prompt);
-
-      const text = await result.response.text();
-      console.log("✅ AI Response received (Length:", text.length, ")");
-      
-      try {
-        const parsed = JSON.parse(text);
-        return res.status(200).json(parsed);
-      } catch (parseErr) {
-        console.error("❌ JSON Parse Error on AI response:", text);
-        return res.status(500).json({ error: "AI returned invalid JSON", details: parseErr.message, raw: text });
-      }
+        systemInstruction: systemInstruction,
+        generationConfig: { ...GENERATION_CONFIG, responseMimeType: "application/json", responseSchema: schemaMapping[mode] }
+      });
+      const result = await model.generateContent(prompt);
+      return res.status(200).json(JSON.parse(result.response.text()));
     }
 
-    // Default Chat Mode
-    console.log("💬 Starting Chat...");
-    const chatModel = genAI.getGenerativeModel({ 
+    // DEFAULT MODE: CHAT with TOOL CALLING
+    const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
-      systemInstruction: AGENT_SYSTEM_INSTRUCTION,
-      generationConfig: {
-        ...GENERATION_CONFIG,
-        responseMimeType: "application/json",
-        responseSchema: CHAT_SCHEMA
-      }
+      systemInstruction: systemInstruction,
+      tools: MCP_TOOLS_CONFIG,
     });
 
-    const chatResult = await chatModel.generateContent(prompt);
-    const chatText = await chatResult.response.text();
-    return res.status(200).json(JSON.parse(chatText));
+    let chat = model.startChat({ history: [] });
+    let result = await chat.sendMessage(prompt);
+    let response = result.response;
+
+    // Tool Calling Loop
+    let iterations = 0;
+    while (response.candidates[0].content.parts.some(part => part.functionCall) && iterations < 5) {
+      iterations++;
+      const functionCalls = response.candidates[0].content.parts.filter(part => part.functionCall);
+      const toolResults = [];
+
+      for (const call of functionCalls) {
+        const { name, args } = call.functionCall;
+        console.log(`🛠️ Executing Tool: ${name}`, args);
+        
+        try {
+          const functionLogic = hubspotTools[name];
+          if (!functionLogic) throw new Error(`Tool ${name} not found`);
+          
+          const output = await functionLogic(hubspotToken, args);
+          toolResults.push({
+            functionResponse: { name, response: { content: output } }
+          });
+        } catch (err) {
+          toolResults.push({
+            functionResponse: { name, response: { error: err.message } }
+          });
+        }
+      }
+
+      // Send the results back to the model
+      result = await chat.sendMessage(toolResults);
+      response = result.response;
+    }
+
+    // Final result (might be formatted by the model or JSON if we forced it, 
+    // but for chat we'll return a structured wrapper)
+    const text = response.text();
+    return res.status(200).json({
+      text,
+      suggestions: ["Analyze recent deals", "Review workflow health", "Check lead vibes"]
+    });
 
   } catch (error) {
     console.error("❌ CRITICAL AI ERROR:", error);
     return res.status(500).json({ 
       error: "AI Generation Failed", 
-      message: error.message,
-      stack: error.stack,
-      type: error.constructor.name
+      message: error.message
     });
   }
 }

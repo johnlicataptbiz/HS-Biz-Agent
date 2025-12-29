@@ -139,6 +139,13 @@ const EnrichmentCard = ({ context, runServerless }) => {
 
              {status === 'ready' && result && (
                <Flex direction="column" gap="medium">
+                 {result.socialSummary && (
+                     <Box variant="card" padding="md" style={{ backgroundColor: 'rgba(79, 70, 229, 0.05)', borderColor: 'rgba(79, 70, 229, 0.2)' }}>
+                         <Heading size="extra-small" style={{ color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Social Intelligence</Heading>
+                         <Text format={{ italic: true }}>"{result.socialSummary}"</Text>
+                     </Box>
+                 )}
+
                  <Box>
                    <Heading size="small">Updates Found</Heading>
                    {Object.keys(contactUpdates).length === 0 && Object.keys(companyUpdates).length === 0 ? (

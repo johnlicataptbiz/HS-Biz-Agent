@@ -177,7 +177,7 @@ export class HubSpotService {
 
   // --- REQUEST HELPER ---
 
-  private async request(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<Response> {
+  public async request(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<Response> {
     const token = this.getToken();
     if (!token) throw new Error("Authentication required");
 
@@ -461,6 +461,12 @@ export class HubSpotService {
       const data = await response.json();
       const props = data.results || [];
 
+      // Sampling heuristic: fetch 50 contacts with the first 100 property names
+      const sampleNames = props.slice(0, 100).map((p: any) => p.name);
+      const sampleResp = await this.request(`/crm/v3/objects/contacts?limit=50&properties=${sampleNames.join(',')}`);
+      const sampleData = sampleResp.ok ? await sampleResp.json() : { results: [] };
+      const contacts = sampleData.results || [];
+
       return props.map((prop: any) => {
         const name = prop.name.toLowerCase();
         const label = prop.label.toLowerCase();
@@ -474,13 +480,20 @@ export class HubSpotService {
           label.includes('deprecated') ||
           label.includes('do not use');
 
+        // Calculate fill rate if in sample, else default to null/heuristic
+        let usage = null;
+        if (sampleNames.includes(prop.name) && contacts.length > 0) {
+            const withValue = contacts.filter((c: any) => c.properties[prop.name]);
+            usage = Math.round((withValue.length / contacts.length) * 100);
+        }
+
         return {
           name: prop.name,
           label: prop.label,
           type: prop.type,
           group: prop.groupName,
-          usage: null, // Note: Real usage requires engagement API
-          redundant: isRedundant
+          usage: usage,
+          redundant: isRedundant || (usage !== null && usage < 5) // Low usage can also flag redundancy
         };
       });
     } catch (e) {
@@ -708,19 +721,26 @@ export class HubSpotService {
   // --- HEURISTIC ENGINE ---
   
   private calculateCampaignHeuristic(camp: any): number {
-      const base = 70;
-      if (camp.type === 'EMAIL_BLAST' && camp.counters) {
-          const opens = camp.counters.open || 0;
-          const sent = camp.counters.sent || 1;
+      // Deterministic scoring based on engagement density
+      if (camp.type === 'EMAIL_BLAST' && camp.contacts > 0) {
+          const sent = camp.contacts || 1;
+          const opens = camp.opens || 0;
           const openRate = (opens / sent) * 100;
           
-          let score = openRate * 3.5; // Scale rate to score
-          if (openRate > 25) score += 10;
-          if (openRate < 5) score -= 20;
+          let score = 50 + (openRate * 2); 
+          if (openRate > 30) score += 10;
+          if (openRate < 10) score -= 15;
           
-          return Math.min(99, Math.max(10, Math.round(score + (Math.random() * 5))));
+          return Math.min(99, Math.max(5, Math.round(score)));
       }
-      return base + (Math.floor(Math.random() * 10)); // Container variance
+      
+      // For Marketing Containers, use revenue efficiency if available
+      if (camp.revenue > 0 && camp.budget > 0) {
+          const roi = (camp.revenue / camp.budget) * 10;
+          return Math.min(99, Math.max(10, 70 + Math.round(roi)));
+      }
+
+      return 75; // Balanced default for active nodes
   }
 
   private calculateFormHeuristic(form: any): number {
@@ -825,10 +845,15 @@ export class HubSpotService {
       });
 
       // Inject revenue into campaigns
-      return allCampaigns.map(camp => ({
-          ...camp,
-          revenue: attributionMap[camp.id] || 0
-      }));
+      return allCampaigns.map(camp => {
+          const revenue = attributionMap[camp.id] || 0;
+          return {
+              ...camp,
+              revenue,
+              // Recalculate heuristic with real revenue data
+              aiScore: this.calculateCampaignHeuristic({ ...camp, revenue })
+          };
+      });
 
     } catch (e) {
       console.error("Campaign fetch error:", e);
@@ -857,7 +882,57 @@ export class HubSpotService {
       return [];
     }
   }
+ 
+  public async fetchOwners(): Promise<any[]> {
+    try {
+      const response = await this.request('/crm/v3/owners?limit=100');
+      if (!response.ok) return [];
+      const data = await response.json();
+      return (data.results || []).map((o: any) => ({
+        id: o.id,
+        firstName: o.firstName,
+        lastName: o.lastName,
+        email: o.email,
+        userId: o.userId,
+        teams: o.teams || []
+      }));
+    } catch (e) {
+      console.error("Owners fetch error:", e);
+      return [];
+    }
+  }
 
+  public async fetchPipelineStats(): Promise<any> {
+    try {
+      const [deals, pipelines] = await Promise.all([
+        this.fetchDeals(),
+        this.fetchPipelines('deals')
+      ]);
+
+      const stats: Record<string, { count: number, value: number, label: string }> = {};
+      
+      // Initialize with pipeline stages
+      pipelines.forEach(p => {
+        p.stages.forEach(s => {
+          stats[s.id] = { count: 0, value: 0, label: s.label };
+        });
+      });
+
+      // Aggregate deals
+      deals.forEach((deal: any) => {
+        const stageId = deal.properties.dealstage;
+        if (stats[stageId]) {
+          stats[stageId].count++;
+          stats[stageId].value += parseFloat(deal.properties.amount || '0');
+        }
+      });
+
+      return stats;
+    } catch (e) {
+      console.error("Pipeline stats error:", e);
+      return {};
+    }
+  }
 
   // --- PIPELINES & LEADS ARCHITECTURE ---
 
@@ -1147,7 +1222,7 @@ export class HubSpotService {
         'lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status,' + 
         'hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated,' + 
         'associatedcompanyid,firstname,email,hs_email_last_open_date,membership_type,membership_status,' +
-        'num_conversion_events,hs_analytics_num_page_views'
+        'num_conversion_events,hs_analytics_num_page_views,hs_latest_source_data_1'
       );
       
       if (!response.ok) {
@@ -1232,59 +1307,238 @@ export class HubSpotService {
 
       const breakdown = contactScan.statusBreakdown || {};
       
+      const stages = [
+        {
+          id: 'discovery',
+          title: 'Discovery',
+          subTitle: 'Marketing',
+          count: breakdown['New'] || 0,
+          workflows: workflows.filter(w => w.name.toLowerCase().includes('marketing') || w.name.toLowerCase().includes('top')).length,
+          sequences: sequences.filter(s => s.name.toLowerCase().includes('cold') || s.name.toLowerCase().includes('discovery')).length,
+          dropOff: 0
+        },
+        {
+          id: 'engagement',
+          title: 'Engagement',
+          subTitle: 'Leads',
+          count: breakdown['Nurture'] || 0,
+          workflows: workflows.filter(w => w.name.toLowerCase().includes('nurture') || w.name.toLowerCase().includes('lead')).length,
+          sequences: sequences.filter(s => s.name.toLowerCase().includes('nurture') || s.name.toLowerCase().includes('engagement')).length,
+          dropOff: 0 // Will calculate below
+        },
+        {
+          id: 'qualification',
+          title: 'Qualification',
+          subTitle: 'Prospecting',
+          count: breakdown['Hot'] || 0,
+          workflows: workflows.filter(w => w.name.toLowerCase().includes('qualification') || w.name.toLowerCase().includes('hot')).length,
+          sequences: sequences.filter(s => s.name.toLowerCase().includes('qualification') || s.name.toLowerCase().includes('vetting')).length,
+          dropOff: 0
+        },
+        {
+          id: 'opportunity',
+          title: 'Opportunity',
+          subTitle: 'Deals',
+          count: deals.length,
+          workflows: workflows.filter(w => w.name.toLowerCase().includes('deal') || w.name.toLowerCase().includes('sales')).length,
+          sequences: sequences.filter(s => s.name.toLowerCase().includes('closing') || s.name.toLowerCase().includes('proposal')).length,
+          dropOff: 0
+        },
+        {
+          id: 'retention',
+          title: 'Retention',
+          subTitle: 'Customers',
+          count: breakdown['Active Client'] || 0,
+          workflows: workflows.filter(w => w.name.toLowerCase().includes('customer') || w.name.toLowerCase().includes('retention') || w.name.toLowerCase().includes('onboarding')).length,
+          sequences: sequences.filter(s => s.name.toLowerCase().includes('upsell') || s.name.toLowerCase().includes('referral')).length,
+          dropOff: 0
+        }
+      ];
+
+      // Calculate Real Drop-Off Rates
+      for (let i = 1; i < stages.length; i++) {
+          const prev = stages[i-1].count || 1;
+          const curr = stages[i].count;
+          const leakage = Math.max(0, 1 - (curr / prev));
+          stages[i].dropOff = Math.round(leakage * 100);
+      }
+
+      // Velocity Heuristic: Ratio of Hot Leads to New Leads
+      const velocity = stages[0].count > 0 ? (stages[2].count / stages[0].count) * 200 : 75;
+
       return {
-        stages: [
-          {
-            id: 'discovery',
-            title: 'Discovery',
-            subTitle: 'Marketing',
-            count: breakdown['New'] || 0,
-            workflows: workflows.filter(w => w.name.toLowerCase().includes('marketing') || w.name.toLowerCase().includes('top')).length,
-            sequences: sequences.filter(s => s.name.toLowerCase().includes('cold') || s.name.toLowerCase().includes('discovery')).length,
-            dropOff: 0
-          },
-          {
-            id: 'engagement',
-            title: 'Engagement',
-            subTitle: 'Leads',
-            count: breakdown['Nurture'] || 0,
-            workflows: workflows.filter(w => w.name.toLowerCase().includes('nurture') || w.name.toLowerCase().includes('lead')).length,
-            sequences: sequences.filter(s => s.name.toLowerCase().includes('nurture') || s.name.toLowerCase().includes('engagement')).length,
-            dropOff: 15
-          },
-          {
-            id: 'qualification',
-            title: 'Qualification',
-            subTitle: 'Prospecting',
-            count: breakdown['Hot'] || 0,
-            workflows: workflows.filter(w => w.name.toLowerCase().includes('qualification') || w.name.toLowerCase().includes('hot')).length,
-            sequences: sequences.filter(s => s.name.toLowerCase().includes('qualification') || s.name.toLowerCase().includes('vetting')).length,
-            dropOff: 25
-          },
-          {
-            id: 'opportunity',
-            title: 'Opportunity',
-            subTitle: 'Deals',
-            count: deals.length,
-            workflows: workflows.filter(w => w.name.toLowerCase().includes('deal') || w.name.toLowerCase().includes('sales')).length,
-            sequences: sequences.filter(s => s.name.toLowerCase().includes('closing') || s.name.toLowerCase().includes('proposal')).length,
-            dropOff: 40
-          },
-          {
-            id: 'retention',
-            title: 'Retention',
-            subTitle: 'Customers',
-            count: breakdown['Active Client'] || 0,
-            workflows: workflows.filter(w => w.name.toLowerCase().includes('customer') || w.name.toLowerCase().includes('retention') || w.name.toLowerCase().includes('onboarding')).length,
-            sequences: sequences.filter(s => s.name.toLowerCase().includes('upsell') || s.name.toLowerCase().includes('referral')).length,
-            dropOff: 5
-          }
-        ],
-        totalContacts: contactScan.totalScanned
+        stages,
+        totalContacts: contactScan.totalScanned,
+        velocityScore: Math.min(99, Math.round(velocity))
       };
     } catch (e) {
       console.error("Journey Data Fetch Error:", e);
       throw e;
+    }
+  }
+
+  public async fetchRecentNotes(): Promise<string[]> {
+    try {
+      const resp = await this.request('/crm/v3/objects/notes?limit=15&properties=hs_note_body&sort=-hs_lastmodifieddate');
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      return (data.results || []).map((n: any) => n.properties.hs_note_body).filter(Boolean);
+    } catch (e) {
+      console.warn("Notes fetch failed:", e);
+      return [];
+    }
+  }
+
+  public async fetchMarketSentiment(): Promise<any> {
+    try {
+        const token = this.getToken();
+        if (!token) return null;
+
+        const notes = await this.fetchRecentNotes();
+        if (notes.length === 0) return { mood: 'Unknown', score: 50, analysis: 'Insufficient conversation volume for sentiment analysis.', themes: [] };
+
+        const apiUrl = getApiUrl('/api/ai');
+        const resp = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mode: 'sentiment',
+                hubspotToken: token,
+                prompt: `Analyze the market sentiment based on the following recent sales notes: \n\n${notes.join('\n---\n')}`,
+                contextType: 'market-analysis'
+            })
+        });
+
+        if (!resp.ok) return null;
+        return await resp.json();
+    } catch (e) {
+        console.error("Market Sentiment Fetch Error:", e);
+        return null;
+    }
+  }
+
+  public async runSemanticAudit(): Promise<any> {
+    try {
+      const token = this.getToken();
+      if (!token) return null;
+
+      const [workflows, sequences, recentNotes] = await Promise.all([
+        this.fetchWorkflows(),
+        this.fetchSequences(),
+        this.fetchRecentNotes()
+      ]);
+
+      const summary = {
+        workflows: workflows.map(w => ({ name: w.name, issues: w.issues, active: w.enabled })),
+        sequences: sequences.map(s => ({ name: s.name, active: s.active })),
+        notesContext: recentNotes.slice(0, 5)
+      };
+
+      const apiUrl = getApiUrl('/api/ai');
+      const resp = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'audit',
+          hubspotToken: token,
+          prompt: `Perform a High-Velocity Structural Audit for this HubSpot portal. 
+                   Identify 3 "Strategic Gaps" that deterministic logic would miss (e.g. tone inconsistency, missing middle-funnel acceleration, or redundant lead-gen flows).
+                   
+                   Context:
+                   ${JSON.stringify(summary)}`,
+          contextType: 'data'
+        })
+      });
+
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch (e) {
+      console.error("Semantic Audit Failed:", e);
+      return null;
+    }
+  }
+
+  public async getContactEmails(contactId: string): Promise<{subject: string, body: string}[]> {
+    try {
+      const resp = await this.request(`/crm/v3/objects/contacts/${contactId}/associations/emails`);
+      if (!resp.ok) return [];
+      
+      const associations = await resp.json();
+      const emailIds = (associations.results || []).map((a: any) => a.toObjectId);
+      
+      if (emailIds.length === 0) return [];
+      
+      const batchResp = await this.request(`/crm/v3/objects/emails/batch/read`, {
+        method: 'POST',
+        body: JSON.stringify({
+          inputs: emailIds.map((id: string) => ({ id })),
+          properties: ['hs_email_subject', 'hs_email_text']
+        })
+      });
+      
+      if (!batchResp.ok) return [];
+      const batchData = await batchResp.json();
+      return (batchData.results || []).map((e: any) => ({
+        subject: e.properties.hs_email_subject,
+        body: e.properties.hs_email_text
+      })).filter((e: any) => e.subject || e.body);
+    } catch (error: any) {
+      console.warn(`Email fetch fail for ${contactId}`, error);
+      return [];
+    }
+  }
+
+  public async fetchSchemas(): Promise<any> {
+    const resp = await this.request('/crm/v3/schemas');
+    return resp.ok ? await resp.json() : { results: [] };
+  }
+
+  public async fetchAssociationTypes(fromObject: string, toObject: string): Promise<any> {
+    const resp = await this.request(`/crm/v3/associations/${fromObject}/${toObject}/types`);
+    return resp.ok ? await resp.json() : { results: [] };
+  }
+
+  public async fetchListMetadata(): Promise<any[]> {
+    const resp = await this.request('/crm/v3/lists?limit=250');
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return data.lists || [];
+  }
+
+  public async fetchPriorityLeads(): Promise<any[]> {
+    try {
+        const resp = await this.request('/crm/v3/objects/contacts?limit=20&properties=firstname,lastname,email,jobtitle,lifecyclestage&associations=deals,notes&sort=-lastmodifieddate');
+        if (!resp.ok) return [];
+        const data = await resp.json();
+        
+        return (data.results || []).map((contact: any) => {
+            const dealCount = (contact.associations?.deals?.results || []).length;
+            const noteCount = (contact.associations?.notes?.results || []).length;
+            
+            // Priority Heuristic: 
+            // - Stage: +20 for 'opportunity', +10 for 'lead'
+            // - Deals: +30 per deal
+            // - Notes: +5 per recent interaction
+            let priority = 10;
+            if (contact.properties.lifecyclestage === 'opportunity') priority += 40;
+            if (contact.properties.lifecyclestage === 'lead') priority += 20;
+            priority += (dealCount * 30);
+            priority += (noteCount * 10);
+
+            return {
+                id: contact.id,
+                name: `${contact.properties.firstname || ''} ${contact.properties.lastname || ''}`.trim() || 'Anonymous Lead',
+                email: contact.properties.email,
+                title: contact.properties.jobtitle,
+                stage: contact.properties.lifecyclestage,
+                priority: Math.min(99, priority),
+                dealCount,
+                noteCount
+            };
+        }).sort((a: any, b: any) => b.priority - a.priority).slice(0, 5);
+    } catch (e) {
+        console.error("Priority Leads Fetch Error:", e);
+        return [];
     }
   }
 }

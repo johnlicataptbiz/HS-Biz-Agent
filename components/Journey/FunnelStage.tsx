@@ -26,11 +26,14 @@ const FunnelStage: React.FC<FunnelStageProps> = ({
 }) => {
   return (
     <div className="flex-1 flex items-stretch">
-      <div className="flex-1 glass-card p-6 flex flex-col relative overflow-hidden group hover:border-white/20 transition-all duration-500">
-        <div className={`absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl pointer-events-none transition-opacity group-hover:opacity-20`} style={{ backgroundColor: color }}></div>
+      <div 
+        className="flex-1 glass-card p-6 flex flex-col relative overflow-hidden group hover:border-white/20 transition-all duration-500"
+        style={{ '--stage-accent': color } as React.CSSProperties}
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl pointer-events-none transition-opacity group-hover:opacity-20 bg-[var(--stage-accent)]"></div>
         
         <div className="flex justify-between items-start mb-6 relative z-10">
-          <div className={`p-3 rounded-xl bg-white/5 border border-white/5`} style={{ color: color }}>
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform text-[var(--stage-accent)]">
             <Icon size={24} />
           </div>
           <div className="flex flex-col items-end">

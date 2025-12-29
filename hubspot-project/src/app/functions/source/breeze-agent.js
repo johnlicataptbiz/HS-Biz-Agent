@@ -26,14 +26,39 @@ exports.main = async (context = {}) => {
     };
   }
   
-  // NOTE: In production, this node could fetch from your /api/ai endpoint or run internal logic.
-  return {
-    statusCode: 200,
-    body: {
-        outputFields: {
-          recommendation: `Breeze Agent Standby for ${objectType} ${objectId}. Requesting Real-Time Optimization for: "${prompt.substring(0, 50)}..."`,
-          confidenceScore: baseScore
-        }
-    }
-  };
+  try {
+      const aiResp = await fetch('https://hs-biz-agent.vercel.app/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              prompt: `[AGENT CONTEXT: ${objectType} ${objectId}] ${prompt}`,
+              hubspotToken: accessToken,
+              stream: false
+          })
+      });
+
+      if (aiResp.ok) {
+          const aiData = await aiResp.json();
+          return {
+              statusCode: 200,
+              body: {
+                  outputFields: {
+                      recommendation: aiData.text || "Analysis complete. Recommendation: Continue nurture flow.",
+                      confidenceScore: 85
+                  }
+              }
+          };
+      }
+      throw new Error("AI Proxy failed");
+  } catch (err) {
+      return {
+          statusCode: 200,
+          body: {
+              outputFields: {
+                  recommendation: `Breeze Agent Standby for ${objectType} ${objectId}. (Deferred: ${err.message})`,
+                  confidenceScore: 70
+              }
+          }
+      };
+  }
 };

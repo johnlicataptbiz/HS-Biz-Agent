@@ -133,8 +133,10 @@ const JourneyMap: React.FC = () => {
                         <TrendingUp size={20} className="text-indigo-400" />
                         <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Velocity Score</h4>
                     </div>
-                    <p className="text-4xl font-extrabold text-white tracking-tighter">74%</p>
-                    <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase tracking-widest">High Acceleration Potential</p>
+                    <p className="text-4xl font-extrabold text-white tracking-tighter">{journeyData.velocityScore || 0}%</p>
+                    <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase tracking-widest">
+                        {journeyData.velocityScore > 80 ? 'Elite Acceleration' : (journeyData.velocityScore > 50 ? 'High Potential' : 'Stalled Engine')}
+                    </p>
                 </div>
 
                 <div className="glass-card p-8 flex flex-col justify-between relative overflow-hidden group hover:border-rose-500/30 transition-all">
@@ -143,8 +145,12 @@ const JourneyMap: React.FC = () => {
                         <AlertTriangle size={20} className="text-rose-400" />
                         <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Leakage Points</h4>
                     </div>
-                    <p className="text-4xl font-extrabold text-white tracking-tighter">03</p>
-                    <p className="text-[10px] text-rose-500/60 font-bold mt-2 uppercase tracking-widest">Critical Fix Required</p>
+                    <p className="text-4xl font-extrabold text-white tracking-tighter">
+                        {String(journeyData.stages.filter((s: any) => s.dropOff > 30).length).padStart(2, '0')}
+                    </p>
+                    <p className="text-[10px] text-rose-500/60 font-bold mt-2 uppercase tracking-widest">
+                        {journeyData.stages.filter((s: any) => s.dropOff > 30).length > 0 ? 'Critical Optimization Required' : 'Healthy Flow'}
+                    </p>
                 </div>
 
                 <div className="glass-card p-8 flex flex-col justify-between relative overflow-hidden group hover:border-emerald-500/30 transition-all">

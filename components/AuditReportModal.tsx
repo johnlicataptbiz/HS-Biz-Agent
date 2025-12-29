@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ShieldCheck, Activity, AlertTriangle, CheckCircle, ArrowRight, Zap, RefreshCw, Sparkles, LayoutPanelTop, Database, PieChart } from 'lucide-react';
 import { auditService, PortalAuditReport, AuditIssue } from '../services/auditService';
+import { hubSpotService } from '../services/hubspotService';
 
 interface AuditReportModalProps {
     isOpen: boolean;
@@ -13,6 +14,8 @@ const AuditReportModal: React.FC<AuditReportModalProps> = ({ isOpen, onClose, on
     const [loading, setLoading] = useState(true);
     const [executing, setExecuting] = useState<string | null>(null);
     const [report, setReport] = useState<PortalAuditReport | null>(null);
+    const [semanticReport, setSemanticReport] = useState<any>(null);
+    const [isSemanticLoading, setIsSemanticLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -25,10 +28,25 @@ const AuditReportModal: React.FC<AuditReportModalProps> = ({ isOpen, onClose, on
         try {
             const result = await auditService.runComprehensiveAudit();
             setReport(result);
+            
+            // Auto-trigger semantic audit in background
+            runSemanticScan();
         } catch (e) {
             console.error("Audit failed", e);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const runSemanticScan = async () => {
+        setIsSemanticLoading(true);
+        try {
+            const result = await hubSpotService.runSemanticAudit();
+            setSemanticReport(result);
+        } catch (e) {
+            console.error("Semantic scan failed", e);
+        } finally {
+            setIsSemanticLoading(false);
         }
     };
 
@@ -118,6 +136,44 @@ const AuditReportModal: React.FC<AuditReportModalProps> = ({ isOpen, onClose, on
                                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{s.label}</span>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                            
+                            {/* AI Semantic Audit Overlay */}
+                            <div className="glass-card border-indigo-500/20 bg-indigo-500/5 p-8 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4">
+                                    {isSemanticLoading ? <RefreshCw className="animate-spin text-indigo-400" size={20} /> : <Sparkles className="text-indigo-400" size={20} />}
+                                </div>
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                                        Antigravity Semantic Scan
+                                    </h3>
+                                    {isSemanticLoading ? (
+                                        <p className="text-sm text-slate-400 animate-pulse font-medium">Deconstructing portal architecture into semantic vectors...</p>
+                                    ) : semanticReport ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div className="space-y-3">
+                                                 <p className="text-sm text-white font-bold italic leading-relaxed">"{semanticReport.analysis}"</p>
+                                                 <div className="flex flex-wrap gap-2">
+                                                     {semanticReport.diff?.slice(0, 3).map((d: string, i: number) => (
+                                                         <span key={i} className="text-[9px] font-black uppercase tracking-widest px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg">{d}</span>
+                                                     ))}
+                                                 </div>
+                                            </div>
+                                            <div className="space-y-3 border-l border-white/5 pl-8">
+                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Architectural Recommendation</p>
+                                                <p className="text-xs text-slate-300 leading-relaxed font-medium">{semanticReport.spec?.title}</p>
+                                                <button 
+                                                     onClick={() => onRunAiRefinement?.(`Implement semantic fix: ${semanticReport.spec?.title}`)}
+                                                     className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors flex items-center gap-1"
+                                                >
+                                                    Blueprint Execution <ArrowRight size={10} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-slate-500 font-medium italic leading-relaxed">Semantic analysis unavailable. Operating on deterministic heuristics only.</p>
+                                    )}
                                 </div>
                             </div>
 
