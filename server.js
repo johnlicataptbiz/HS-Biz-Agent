@@ -6,6 +6,8 @@ import proxy from './api/proxy.js';
 import remediate from './api/remediate.js';
 import cleanup from './api/cleanup.js';
 import vibeAi from './api/vibe-ai.js';
+import contacts from './api/contacts.js';
+import aggregates from './api/aggregates.js';
 import { initDb, getSyncProgress } from './services/backend/dataService.js';
 import { startBackgroundSync } from './services/backend/syncService.js';
 
@@ -56,8 +58,6 @@ app.all('/api/cleanup', wrap(cleanup));
 app.all('/api/vibe-ai', wrap(vibeAi));
 
 // Contacts API (from local database)
-import contacts from './api/contacts.js';
-import aggregates from './api/aggregates.js';
 app.all('/api/contacts', wrap(contacts));
 app.all('/api/contacts/aggregates', wrap(aggregates));
 
