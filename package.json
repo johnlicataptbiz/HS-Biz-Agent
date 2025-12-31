@@ -1,7 +1,7 @@
 {
   "name": "hubspot-ai-optimizer",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,8 @@
     "start": "node server.js",
     "server": "node server.js",
     "railway:up": "npx --yes @railway/cli up",
-    "verify:lead-magnets": "node scripts/verify-lead-magnets.mjs"
+    "verify:lead-magnets": "node scripts/verify-lead-magnets.mjs",
+    "e2e:deep": "node scripts/e2e/fullCrawlDeep.cjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
