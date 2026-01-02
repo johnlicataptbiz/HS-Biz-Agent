@@ -1,15 +1,15 @@
-import pg from 'pg';
+import pg from "pg";
 const { Pool } = pg;
 
 // Connection pool with graceful fallback
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
 export const initDb = async () => {
-    try {
-        await pool.query(`
+  try {
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS sync_state (
                 key TEXT PRIMARY KEY,
                 value TEXT,
@@ -69,24 +69,26 @@ export const initDb = async () => {
             ALTER TABLE contacts ADD COLUMN IF NOT EXISTS classification TEXT;
             ALTER TABLE contacts ADD COLUMN IF NOT EXISTS health_score INTEGER;
         `);
-        console.log('✅ PostgreSQL Schema Initialized (with deals table)');
-        return true;
-    } catch (e) {
-        console.error('❌ Database Initialization Failed:', e.message);
-        return false;
-    }
+    console.log("✅ PostgreSQL Schema Initialized (with deals table)");
+    return true;
+  } catch (e) {
+    console.error("❌ Database Initialization Failed:", e.message);
+    return false;
+  }
 };
 
 export const saveContacts = async (contacts) => {
-    const { calculateHealthScore, classifyLead } = await import('./healthScoreService.js');
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        for (const contact of contacts) {
-            const { score } = calculateHealthScore(contact);
-            const classification = classifyLead(contact);
-            contact.classification = classification;
-            const query = `
+  const { calculateHealthScore, classifyLead } = await import(
+    "./healthScoreService.js"
+  );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const contact of contacts) {
+      const { score } = calculateHealthScore(contact);
+      const classification = classifyLead(contact);
+      contact.classification = classification;
+      const query = `
                 INSERT INTO contacts (id, email, firstname, lastname, lifecyclestage, hubspot_owner_id, health_score, classification, last_modified, raw_data)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT (id) DO UPDATE SET
@@ -100,72 +102,87 @@ export const saveContacts = async (contacts) => {
                     last_modified = EXCLUDED.last_modified,
                     raw_data = EXCLUDED.raw_data;
             `;
-            const values = [
-                contact.id,
-                contact.properties?.email || null,
-                contact.properties?.firstname || null,
-                contact.properties?.lastname || null,
-                contact.properties?.lifecyclestage || null,
-                contact.properties?.hubspot_owner_id || null,
-                score,
-                contact.classification || null,
-                contact.updatedAt || new Date().toISOString(),
-                contact
-            ];
-            await client.query(query, values);
-        }
-        await client.query('COMMIT');
-    } catch (e) {
-        await client.query('ROLLBACK');
-        throw e;
-    } finally {
-        client.release();
+      const values = [
+        contact.id,
+        contact.properties?.email || null,
+        contact.properties?.firstname || null,
+        contact.properties?.lastname || null,
+        contact.properties?.lifecyclestage || null,
+        contact.properties?.hubspot_owner_id || null,
+        score,
+        contact.classification || null,
+        contact.updatedAt || new Date().toISOString(),
+        contact,
+      ];
+      await client.query(query, values);
     }
+    await client.query("COMMIT");
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
 };
 
 export const getSyncProgress = async () => {
-    if (!process.env.DATABASE_URL) {
-        return { count: 0, status: 'error', error: 'Mirror Offline: DATABASE_URL missing' };
-    }
-    try {
-        const res = await pool.query('SELECT COUNT(*) as count FROM contacts');
-        const state = await pool.query('SELECT value FROM sync_state WHERE key = $1', ['sync_status']);
-        return {
-            count: parseInt(res.rows[0].count),
-            status: state.rows[0]?.value || 'idle'
-        };
-    } catch (e) {
-        console.error('Database query failed:', e.message);
-        throw new Error(`Database query failed: ${e.message}`);
-    }
+  if (!process.env.DATABASE_URL) {
+    return {
+      count: 0,
+      status: "error",
+      error: "Mirror Offline: DATABASE_URL missing",
+    };
+  }
+  try {
+    const res = await pool.query("SELECT COUNT(*) as count FROM contacts");
+    const state = await pool.query(
+      "SELECT value FROM sync_state WHERE key = $1",
+      ["sync_status"]
+    );
+    return {
+      count: parseInt(res.rows[0].count),
+      status: state.rows[0]?.value || "idle",
+    };
+  } catch (e) {
+    console.error("Database query failed:", e.message);
+    throw new Error(`Database query failed: ${e.message}`);
+  }
 };
 
 export const updateSyncStatus = async (status) => {
-    await pool.query(`
+  await pool.query(
+    `
         INSERT INTO sync_state (key, value, updated_at) 
         VALUES ('sync_status', $1, CURRENT_TIMESTAMP)
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
-    `, [status]);
-    
-    if (status === 'completed') {
-        await pool.query(`
+    `,
+    [status]
+  );
+
+  if (status === "completed") {
+    await pool.query(
+      `
             INSERT INTO sync_state (key, value, updated_at) 
             VALUES ('last_sync_time', $1, CURRENT_TIMESTAMP)
             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
-        `, [new Date().toISOString()]);
-    }
+        `,
+      [new Date().toISOString()]
+    );
+  }
 };
 
 export const getLastSyncTime = async () => {
-    const res = await pool.query('SELECT value FROM sync_state WHERE key = $1', ['last_sync_time']);
-    return res.rows[0]?.value || null;
+  const res = await pool.query("SELECT value FROM sync_state WHERE key = $1", [
+    "last_sync_time",
+  ]);
+  return res.rows[0]?.value || null;
 };
 
 export const updateContactHealthScore = async (id, score, rawData) => {
-    await pool.query(
-        'UPDATE contacts SET health_score = $1, raw_data = $2, last_modified = CURRENT_TIMESTAMP WHERE id = $3',
-        [score, rawData, id]
-    );
+  await pool.query(
+    "UPDATE contacts SET health_score = $1, raw_data = $2, last_modified = CURRENT_TIMESTAMP WHERE id = $3",
+    [score, rawData, id]
+  );
 };
 
 /**
@@ -173,47 +190,65 @@ export const updateContactHealthScore = async (id, score, rawData) => {
  * Extracts deal type from dealname and links to contact's lead source/form
  */
 export const saveDeals = async (deals, contactMap = {}) => {
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        for (const deal of deals) {
-            // Infer deal type from name (Mastermind, Clinical Rainmaker, etc.)
-            const dealName = (deal.dealname || deal.name || '').toLowerCase();
-            let dealType = 'Other';
-            if (dealName.includes('mastermind')) dealType = 'Mastermind';
-            else if (dealName.includes('rainmaker') || dealName.includes('clinical')) dealType = 'Clinical Rainmaker';
-            else if (dealName.includes('coaching')) dealType = 'Coaching';
-            else if (dealName.includes('consulting')) dealType = 'Consulting';
-            
-            // Get contact attribution from contactMap if available
-            const name = (deal.dealname || '').toLowerCase();
-            if (name.includes('mastermind') || name.includes('mm')) dealType = 'Mastermind';
-            else if (name.includes('rainmaker') || name.includes('clinical')) dealType = 'Clinical Rainmaker';
-            else if (name.includes('coaching')) dealType = 'Coaching';
-            else if (name.includes('consulting')) dealType = 'Consulting';
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const deal of deals) {
+      // Infer deal type from name (Mastermind, Clinical Rainmaker, etc.)
+      const dealName = (deal.dealname || deal.name || "").toLowerCase();
+      let dealType = "Other";
+      if (dealName.includes("mastermind")) dealType = "Mastermind";
+      else if (dealName.includes("rainmaker") || dealName.includes("clinical"))
+        dealType = "Clinical Rainmaker";
+      else if (dealName.includes("coaching")) dealType = "Coaching";
+      else if (dealName.includes("consulting")) dealType = "Consulting";
 
-            await client.query(query, [
-                deal.id,
-                deal.dealname,
-                deal.amount,
-                deal.dealstage,
-                deal.pipeline,
-                deal.closedate,
-                deal.last_modified || new Date().toISOString(), // New field
-                dealType,
-                deal.contactId,
-                deal.leadSource,
-                deal.firstForm,
-                JSON.stringify(deal.properties)
-            ]);
-        }
-        await client.query('COMMIT');
-        console.log(`✅ Saved ${deals.length} deals to database`);
-    } catch (e) {
-        await client.query('ROLLBACK');
-        console.error('Deal save error:', e);
-        throw e;
-    } finally {
-        client.release();
+      // Get contact attribution from contactMap if available
+      const name = (deal.dealname || "").toLowerCase();
+      if (name.includes("mastermind") || name.includes("mm"))
+        dealType = "Mastermind";
+      else if (name.includes("rainmaker") || name.includes("clinical"))
+        dealType = "Clinical Rainmaker";
+      else if (name.includes("coaching")) dealType = "Coaching";
+      else if (name.includes("consulting")) dealType = "Consulting";
+
+      const query = `
+                INSERT INTO deals (id, dealname, amount, dealstage, pipeline, closedate, last_modified, deal_type, contact_id, lead_source, first_form, raw_data)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                ON CONFLICT (id) DO UPDATE SET
+                    dealname = EXCLUDED.dealname,
+                    amount = EXCLUDED.amount,
+                    dealstage = EXCLUDED.dealstage,
+                    pipeline = EXCLUDED.pipeline,
+                    closedate = EXCLUDED.closedate,
+                    last_modified = EXCLUDED.last_modified,
+                    deal_type = EXCLUDED.deal_type,
+                    contact_id = EXCLUDED.contact_id,
+                    raw_data = EXCLUDED.raw_data;
+            `;
+
+      await client.query(query, [
+        deal.id,
+        deal.dealname,
+        deal.amount,
+        deal.dealstage,
+        deal.pipeline,
+        deal.closedate,
+        deal.last_modified || new Date().toISOString(), // New field
+        dealType,
+        deal.contactId,
+        deal.leadSource,
+        deal.firstForm,
+        JSON.stringify(deal.properties),
+      ]);
     }
+    await client.query("COMMIT");
+    console.log(`✅ Saved ${deals.length} deals to database`);
+  } catch (e) {
+    await client.query("ROLLBACK");
+    console.error("Deal save error:", e);
+    throw e;
+  } finally {
+    client.release();
+  }
 };
