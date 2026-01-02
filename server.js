@@ -1,5 +1,9 @@
 import express from "express";
 import cors from "cors";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import token from "./api/token.js";
 import ai from "./api/ai.js";
 import proxy from "./api/proxy.js";
@@ -71,12 +75,6 @@ app.get("/health", (req, res) => {
 });
 
 // Serve Circle Embed (Tour 33)
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 app.get("/embeds/tour-33", (req, res) => {
   res.sendFile(join(__dirname, "embeds/tour-33.html"));
 });
