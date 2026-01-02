@@ -2,34 +2,42 @@ import express from "express";
 import cors from "cors";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+
+// Process-level error handling for immediate visibility in Railway logs
+process.on("uncaughtException", (err) => {
+  console.error("💥 CRITICAL: Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error(
+    "💥 CRITICAL: Unhandled Rejection at:",
+    promise,
+    "reason:",
+    reason
+  );
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-import token from "./api/token.js";
-import ai from "./api/ai.js";
-import proxy from "./api/proxy.js";
-import remediate from "./api/remediate.js";
-import cleanup from "./api/cleanup.js";
-import vibeAi from "./api/vibe-ai.js";
-import contacts from "./api/contacts.js";
-import aggregates from "./api/aggregates.js";
-import oauthStart from "./api/oauth-start.js";
-import assets from "./api/assets.js";
-import attributionAnalytics from "./api/attribution-analytics.js";
-import contactWorkflows from "./api/contact-workflows.js";
-import contactsAnalytics from "./api/contacts-analytics.js";
-import contactsStats from "./api/contacts-stats.js";
-import enrichApply from "./api/enrich-apply.js";
-import enrich from "./api/enrich.js";
-import leadStatusSync from "./api/lead-status-sync.js";
-import segments from "./api/segments.js";
-import sync from "./api/sync.js";
-import velocity from "./api/velocity.js";
-import winLoss from "./api/win-loss.js";
-import { initDb, getSyncProgress } from "./services/backend/dataService.js";
-import { startBackgroundSync } from "./services/backend/syncService.js";
 
 const app = express();
+const port = process.env.PORT || 3001;
 
+// 1. LISTEN FIRST - Respond to healthchecks immediately
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+console.log(`📡 Starting server on port ${port}...`);
+const server = app.listen(port, "0.0.0.0", () => {
+  console.log(`🚀 Railway Failover Server live on port ${port}`);
+});
+
+// 2. MIDDLEWARE
 const allowedOrigins = [
   "https://hubspot-ai-optimizer.vercel.app",
   "https://hubspot-ai-optimizer-murex.vercel.app",
@@ -68,63 +76,66 @@ app.use(
 
 app.use(express.json());
 
-// Adapt Vercel-style handlers to Express
-const wrap = (handler) => async (req, res) => {
+// 3. ADAPTIVE ROUTE WRAPPER (Dynamic Import Support)
+const wrap = (modulePath) => async (req, res) => {
   try {
-    // Vercel handlers use res.status().json() which Express also supports.
-    // However, some Vercel features like req.query might be slightly different.
+    const module = await import(modulePath);
+    const handler = module.default;
     await handler(req, res);
   } catch (err) {
-    console.error("Handler Error:", err);
-    res
-      .status(500)
-      .json({ error: "Internal Server Error", message: err.message });
+    console.error(`❌ Handler Error (${modulePath}):`, err);
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .json({ error: "Internal Server Error", message: err.message });
+    }
   }
 };
 
-// Health check endpoint for Railway
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-});
+// 4. API ROUTES (Dynamically Loaded)
+app.all("/api/token", wrap("./api/token.js"));
+app.all("/api/ai", wrap("./api/ai.js"));
+app.all("/api/remediate", wrap("./api/remediate.js"));
+app.all("/api/cleanup", wrap("./api/cleanup.js"));
+app.all("/api/vibe-ai", wrap("./api/vibe-ai.js"));
+app.all("/api/oauth-start", wrap("./api/oauth-start.js"));
+app.all("/api/contacts", wrap("./api/contacts.js"));
+app.all("/api/contacts/aggregates", wrap("./api/aggregates.js"));
+app.all("/api/assets", wrap("./api/assets.js"));
+app.all("/api/attribution-analytics", wrap("./api/attribution-analytics.js"));
+app.all("/api/contact-workflows", wrap("./api/contact-workflows.js"));
+app.all("/api/contacts-analytics", wrap("./api/contacts-analytics.js"));
+app.all("/api/contacts-stats", wrap("./api/contacts-stats.js"));
+app.all("/api/enrich-apply", wrap("./api/enrich-apply.js"));
+app.all("/api/enrich", wrap("./api/enrich.js"));
+app.all("/api/lead-status-sync", wrap("./api/lead-status-sync.js"));
+app.all("/api/segments", wrap("./api/segments.js"));
+app.all("/api/sync", wrap("./api/sync.js"));
+app.all("/api/velocity", wrap("./api/velocity.js"));
+app.all("/api/win-loss", wrap("./api/win-loss.js"));
 
-// Serve Circle Embed (Tour 33)
-app.get("/embeds/tour-33", (req, res) => {
-  res.sendFile(join(__dirname, "embeds/tour-33.html"));
-});
-
-app.all("/api/token", wrap(token));
-app.all("/api/ai", wrap(ai));
-app.all("/api/remediate", wrap(remediate));
-app.all("/api/cleanup", wrap(cleanup));
-app.all("/api/vibe-ai", wrap(vibeAi));
-app.all("/api/oauth-start", wrap(oauthStart));
-app.all("/api/contacts", wrap(contacts));
-app.all("/api/contacts/aggregates", wrap(aggregates));
-app.all("/api/assets", wrap(assets));
-app.all("/api/attribution-analytics", wrap(attributionAnalytics));
-app.all("/api/contact-workflows", wrap(contactWorkflows));
-app.all("/api/contacts-analytics", wrap(contactsAnalytics));
-app.all("/api/contacts-stats", wrap(contactsStats));
-app.all("/api/enrich-apply", wrap(enrichApply));
-app.all("/api/enrich", wrap(enrich));
-app.all("/api/lead-status-sync", wrap(leadStatusSync));
-app.all("/api/segments", wrap(segments));
-app.all("/api/sync", wrap(sync));
-app.all("/api/velocity", wrap(velocity));
-app.all("/api/win-loss", wrap(winLoss));
-
-// CRM Mirror & Sync Endpoints
+// 5. CRM SYNC & SPECIAL ENDPOINTS
 app.post("/api/sync/start", async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader)
-    return res.status(401).json({ error: "Missing Authorization header" });
-  const token = authHeader.replace("Bearer ", "");
-  const result = await startBackgroundSync(token);
-  res.json(result);
+  try {
+    const { startBackgroundSync } = await import(
+      "./services/backend/syncService.js"
+    );
+    const authHeader = req.headers.authorization;
+    if (!authHeader)
+      return res.status(401).json({ error: "Missing Authorization header" });
+    const token = authHeader.replace("Bearer ", "");
+    const result = await startBackgroundSync(token);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get("/api/sync/status", async (req, res) => {
   try {
+    const { getSyncProgress } = await import(
+      "./services/backend/dataService.js"
+    );
     const progress = await getSyncProgress();
     res.json(progress);
   } catch (e) {
@@ -132,7 +143,6 @@ app.get("/api/sync/status", async (req, res) => {
   }
 });
 
-// Reset endpoint to clear stuck sync
 app.post("/api/sync/reset", async (req, res) => {
   try {
     const { updateSyncStatus } = await import(
@@ -145,7 +155,6 @@ app.post("/api/sync/reset", async (req, res) => {
   }
 });
 
-// Sample leads endpoint for analysis
 app.get("/api/sync/sample", async (req, res) => {
   try {
     const { pool } = await import("./services/backend/dataService.js");
@@ -158,7 +167,6 @@ app.get("/api/sync/sample", async (req, res) => {
   }
 });
 
-// Trigger batch health score calculation
 app.post("/api/contacts/process-scores", async (req, res) => {
   try {
     const { pool, updateContactHealthScore } = await import(
@@ -167,37 +175,28 @@ app.post("/api/contacts/process-scores", async (req, res) => {
     const { calculateHealthScore } = await import(
       "./services/backend/healthScoreService.js"
     );
-
-    // Return 202 accepted and process in background
     res.status(202).json({ message: "Score processing started in background" });
-
     (async () => {
       console.log("🚀 Starting batch health score processing...");
-      let processed = 0;
-      let hasMore = true;
-      let lastId = null;
-
+      let processed = 0,
+        hasMore = true,
+        lastId = null;
       while (hasMore) {
         const query = lastId
           ? "SELECT id, raw_data FROM contacts WHERE id > $1 ORDER BY id LIMIT 500"
           : "SELECT id, raw_data FROM contacts ORDER BY id LIMIT 500";
-        const params = lastId ? [lastId] : [];
-
-        const result = await pool.query(query, params);
+        const result = await pool.query(query, lastId ? [lastId] : []);
         if (result.rows.length === 0) {
           hasMore = false;
           break;
         }
-
         for (const row of result.rows) {
           const { score } = calculateHealthScore(row.raw_data);
           await updateContactHealthScore(row.id, score, row.raw_data);
           processed++;
           lastId = row.id;
         }
-
         console.log(`📊 Processed ${processed} contact scores...`);
-        // Tiny sleep to avoid pegging CPU/DB
         await new Promise((r) => setTimeout(r, 100));
       }
       console.log("✅ Batch health score processing completed!");
@@ -208,57 +207,42 @@ app.post("/api/contacts/process-scores", async (req, res) => {
   }
 });
 
-// Native Express Proxy Handler (Bypassing wrapper for full control)
+// Proxy handler
 app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   try {
-    // Extract path using the regex capture group provided by Express
     const pathPart = req.params[0];
-
-    console.log("🔍 Proxy route hit:", {
-      originalUrl: req.url,
-      capturedPath: pathPart,
-      query: req.query,
-    });
-
-    if (!pathPart) {
-      return res.status(400).json({
-        error: "Invalid proxy path",
-        details: "No path captured from regex",
-      });
-    }
-
-    // Inject path into query for the shared handler logic
+    if (!pathPart) return res.status(400).json({ error: "Invalid proxy path" });
+    const { default: proxy } = await import("./api/proxy.js");
     req.query.path = pathPart;
-
-    // Call proxy handler directly
     await proxy(req, res);
   } catch (err) {
     console.error("Proxy Route Error:", err);
-    res.status(500).json({ error: "Proxy Route Failed", details: err.message });
+    if (!res.headersSent)
+      res
+        .status(500)
+        .json({ error: "Proxy Route Failed", details: err.message });
   }
 });
 
-// Serve Static Frontend (Vite Build)
-// MUST come after API routes to avoid intercepting API calls
+// Static files & SPA
 app.use(express.static(join(__dirname, "dist")));
-
-// SPA Catch-all Handler
+app.get("/embeds/tour-33", (req, res) =>
+  res.sendFile(join(__dirname, "embeds/tour-33.html"))
+);
 app.get("*", (req, res) => {
   if (req.path.startsWith("/api"))
     return res.status(404).json({ error: "Not Found" });
   res.sendFile(join(__dirname, "dist", "index.html"));
 });
 
-const port = process.env.PORT || 3001;
-console.log(`📡 Attempting to start server on port ${port}...`);
-
-app.listen(port, "0.0.0.0", async () => {
-  console.log(`🚀 Railway Failover Server live on port ${port}`);
+// Post-Listen Initialization
+(async () => {
   try {
+    const { initDb } = await import("./services/backend/dataService.js");
     console.log("🗄️ Initializing Database...");
     await initDb();
     console.log("✅ Database Initialization Complete");
   } catch (err) {
     console.error("❌ Database Initialization Async Error:", err);
   }
-});
+})();
