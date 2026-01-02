@@ -81,6 +81,23 @@ export default async function handler(req, res) {
       data = { message: text };
     }
 
+    if (!response.ok) {
+      console.error("❌ [Proxy] HubSpot Error:", {
+        status: response.status,
+        url: hubspotUrl,
+        responseBody: data,
+      });
+
+      // Pass more details to the client for debugging
+      return res.status(response.status).json({
+        error: "HubSpot API Error",
+        status: response.status,
+        hubspot_message: data?.message || "Unknown error",
+        details: data,
+        proxy_target: hubspotUrl,
+      });
+    }
+
     // Forward the status code from HubSpot
     res.status(response.status).json(data);
   } catch (error) {
