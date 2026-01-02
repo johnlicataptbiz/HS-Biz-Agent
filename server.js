@@ -12,6 +12,19 @@ import cleanup from "./api/cleanup.js";
 import vibeAi from "./api/vibe-ai.js";
 import contacts from "./api/contacts.js";
 import aggregates from "./api/aggregates.js";
+import oauthStart from "./api/oauth-start.js";
+import assets from "./api/assets.js";
+import attributionAnalytics from "./api/attribution-analytics.js";
+import contactWorkflows from "./api/contact-workflows.js";
+import contactsAnalytics from "./api/contacts-analytics.js";
+import contactsStats from "./api/contacts-stats.js";
+import enrichApply from "./api/enrich-apply.js";
+import enrich from "./api/enrich.js";
+import leadStatusSync from "./api/lead-status-sync.js";
+import segments from "./api/segments.js";
+import sync from "./api/sync.js";
+import velocity from "./api/velocity.js";
+import winLoss from "./api/win-loss.js";
 import { initDb, getSyncProgress } from "./services/backend/dataService.js";
 import { startBackgroundSync } from "./services/backend/syncService.js";
 
@@ -84,10 +97,21 @@ app.all("/api/ai", wrap(ai));
 app.all("/api/remediate", wrap(remediate));
 app.all("/api/cleanup", wrap(cleanup));
 app.all("/api/vibe-ai", wrap(vibeAi));
-
-// Contacts API (from local database)
+app.all("/api/oauth-start", wrap(oauthStart));
 app.all("/api/contacts", wrap(contacts));
 app.all("/api/contacts/aggregates", wrap(aggregates));
+app.all("/api/assets", wrap(assets));
+app.all("/api/attribution-analytics", wrap(attributionAnalytics));
+app.all("/api/contact-workflows", wrap(contactWorkflows));
+app.all("/api/contacts-analytics", wrap(contactsAnalytics));
+app.all("/api/contacts-stats", wrap(contactsStats));
+app.all("/api/enrich-apply", wrap(enrichApply));
+app.all("/api/enrich", wrap(enrich));
+app.all("/api/lead-status-sync", wrap(leadStatusSync));
+app.all("/api/segments", wrap(segments));
+app.all("/api/sync", wrap(sync));
+app.all("/api/velocity", wrap(velocity));
+app.all("/api/win-loss", wrap(winLoss));
 
 // CRM Mirror & Sync Endpoints
 app.post("/api/sync/start", async (req, res) => {
