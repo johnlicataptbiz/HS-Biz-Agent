@@ -229,7 +229,7 @@ app.use(express.static(join(__dirname, "dist")));
 app.get("/embeds/tour-33", (req, res) =>
   res.sendFile(join(__dirname, "embeds/tour-33.html"))
 );
-app.get("(.*)", (req, res) => {
+app.get(/.*/, (req, res) => {
   if (req.path.startsWith("/api"))
     return res.status(404).json({ error: "Not Found" });
   res.sendFile(join(__dirname, "dist", "index.html"));
