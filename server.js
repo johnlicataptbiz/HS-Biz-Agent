@@ -250,7 +250,15 @@ app.get("*", (req, res) => {
 });
 
 const port = process.env.PORT || 3001;
+console.log(`📡 Attempting to start server on port ${port}...`);
+
 app.listen(port, "0.0.0.0", async () => {
   console.log(`🚀 Railway Failover Server live on port ${port}`);
-  await initDb();
+  try {
+    console.log("🗄️ Initializing Database...");
+    await initDb();
+    console.log("✅ Database Initialization Complete");
+  } catch (err) {
+    console.error("❌ Database Initialization Async Error:", err);
+  }
 });
