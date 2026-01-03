@@ -84,7 +84,7 @@ app.use(
 );
 
 // HUBPSOT PROXY (Exempt from global json parsing)
-app.all("/api/hubspot/*", async (req, res) => {
+app.use("/api/hubspot", async (req, res) => {
   try {
     const { default: proxy } = await import("./api-backend/proxy.js");
     await proxy(req, res);
@@ -156,6 +156,15 @@ app.all("/api/*", (req, res) => {
 
 // SPA Fallback - Returns HTML
 app.get("*", (req, res) => {
+  // If the request starts with /api but reached here, it's a 404
+  if (req.originalUrl.startsWith("/api")) {
+    return res.status(404).json({
+      success: false,
+      error: "API Route Not Found (Fallback)",
+      path: req.originalUrl,
+      method: req.method,
+    });
+  }
   res.sendFile(join(__dirname, "dist", "index.html"));
 });
 
