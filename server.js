@@ -75,8 +75,9 @@ app.use(
 );
 
 // HUBPSOT PROXY (Exempt from global json parsing)
-app.all(/^\/api\/hubspot\/([^?]+)/, async (req, res) => {
+app.all("/api/hubspot/*", async (req, res) => {
   try {
+    // req.params[0] captures whatever follows /api/hubspot/
     const pathPart = req.params[0];
     if (!pathPart) return res.status(400).json({ error: "Invalid proxy path" });
     const { default: proxy } = await import("./api-backend/proxy.js");

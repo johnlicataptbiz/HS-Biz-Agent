@@ -3,16 +3,6 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Ensure path is a clean string without double slashes
-  let path = (req.query.path || "").toString();
-
-  if (!path) {
-    return res.status(400).json({ error: "Missing path parameter" });
-  }
-
-  // Trim all leading slashes
-  path = path.replace(/^\/+/, "");
-
   // Get the authorization header from the request
   const authHeader = req.headers.authorization;
 
@@ -20,22 +10,33 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Missing Authorization header" });
   }
 
-  // Reconstruct the original query string from the request URL to avoid issues with nested params
-  // req.url in Express includes the path and query string
-  const urlParts = req.url.split("?");
-  let queryString = "";
-  if (urlParts.length > 1) {
-    // We want all params EXCEPT 'path' (which was added by server.js)
-    const searchParams = new URLSearchParams(urlParts[1]);
-    searchParams.delete("path");
-    queryString = searchParams.toString();
-    if (queryString) queryString = "?" + queryString;
+  // REVOLUTIONARY PROXY STRATEGY:
+  // We take the exact string after /api/hubspot/ from the original URL.
+  // This preserves encoding, multiple query params, and prevents "double ??" issues.
+  const basePrefix = "/api/hubspot/";
+  const originalUrl = req.originalUrl || req.url || "";
+
+  let targetPathWithQuery = "";
+  if (originalUrl.includes(basePrefix)) {
+    targetPathWithQuery = originalUrl.substring(
+      originalUrl.indexOf(basePrefix) + basePrefix.length
+    );
+  } else {
+    // Fallback to the path parameter set by server.js
+    targetPathWithQuery = req.query.path || "";
+  }
+
+  // Trim leading slashes
+  targetPathWithQuery = targetPathWithQuery.replace(/^\/+/, "");
+
+  if (!targetPathWithQuery) {
+    return res.status(400).json({ error: "Invalid proxy path" });
   }
 
   // Construct the full HubSpot URL
-  const hubspotUrl = `https://api.hubapi.com/${path}${queryString}`;
+  const hubspotUrl = `https://api.hubapi.com/${targetPathWithQuery}`;
 
-  console.log(`[Proxy] ${req.method} ${hubspotUrl}`);
+  console.log(`[Proxy] ${req.method} -> ${hubspotUrl}`);
 
   try {
     const fetchOptions = {
@@ -58,10 +59,12 @@ export default async function handler(req, res) {
     const contentType = response.headers.get("content-type");
 
     let data;
-    if (contentType && contentType.includes("application/json")) {
-      data = await response.json();
+    const isJson = contentType && contentType.includes("application/json");
+
+    if (isJson) {
+      data = await response.json().catch(() => ({}));
     } else {
-      const text = await response.text();
+      const text = await response.text().catch(() => "");
       data = { message: text };
     }
 
@@ -76,7 +79,7 @@ export default async function handler(req, res) {
         success: false,
         error: "HubSpot API Error",
         status: response.status,
-        message: data?.message || "Unknown error",
+        message: data?.message || data?.error || `HTTP ${response.status}`,
         details: data,
         proxy_target: hubspotUrl,
       });

@@ -1,4 +1,4 @@
-import { pool } from '../services/backend/dataService.js';
+import { pool } from "../services/backend/dataService.js";
 
 /**
  * /api/contacts-analytics - Aggregate contact data from JSONB for use across all tabs
@@ -6,16 +6,17 @@ import { pool } from '../services/backend/dataService.js';
  * from the stored raw_data JSONB to enhance Campaigns, Reports, and other pages.
  */
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "GET")
+    return res.status(405).json({ error: "Method not allowed" });
 
   try {
     const client = await pool.connect();
-    
+
     try {
       // 1. LEAD SOURCES - Count contacts by original source
       const leadSourcesQuery = `
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
         ORDER BY count DESC
         LIMIT 15
       `;
-      
+
       // 2. FORM SUBMISSIONS - Count contacts by first conversion form
       const formSubmissionsQuery = `
         SELECT 
@@ -41,7 +42,7 @@ export default async function handler(req, res) {
         LIMIT 20
       `;
 
-      // 3. LIFECYCLE DISTRIBUTION  
+      // 3. LIFECYCLE DISTRIBUTION
       const lifecycleQuery = `
         SELECT 
           COALESCE(lifecyclestage, 'Unknown') as stage,
@@ -105,7 +106,7 @@ export default async function handler(req, res) {
       // 8. DEAL ASSOCIATIONS (from raw_data if available)
       const dealsQuery = `
         SELECT 
-          COUNT(CASE WHEN (raw_data->'properties'->>'num_associated_deals')::int > 0 THEN 1 END) as with_deals,
+          COUNT(CASE WHEN NULLIF(raw_data->'properties'->>'num_associated_deals', '')::int > 0 THEN 1 END) as with_deals,
           COUNT(*) as total
         FROM contacts
         WHERE raw_data IS NOT NULL
@@ -120,7 +121,7 @@ export default async function handler(req, res) {
         ownerResult,
         classificationResult,
         hotLeadsResult,
-        dealsResult
+        dealsResult,
       ] = await Promise.all([
         client.query(leadSourcesQuery),
         client.query(formSubmissionsQuery),
@@ -129,40 +130,40 @@ export default async function handler(req, res) {
         client.query(ownerQuery),
         client.query(classificationQuery),
         client.query(hotLeadsQuery),
-        client.query(dealsQuery)
+        client.query(dealsQuery),
       ]);
 
       // Transform results
       const leadSources = {};
-      leadSourcesResult.rows.forEach(row => {
+      leadSourcesResult.rows.forEach((row) => {
         leadSources[row.source] = parseInt(row.count);
       });
 
       const formSubmissions = {};
-      formSubmissionsResult.rows.forEach(row => {
-        if (row.form_name !== 'No Form') {
+      formSubmissionsResult.rows.forEach((row) => {
+        if (row.form_name !== "No Form") {
           formSubmissions[row.form_name] = parseInt(row.count);
         }
       });
 
       const lifecycleBreakdown = {};
-      lifecycleResult.rows.forEach(row => {
+      lifecycleResult.rows.forEach((row) => {
         lifecycleBreakdown[row.stage] = {
           count: parseInt(row.count),
-          avgScore: parseInt(row.avg_score) || 0
+          avgScore: parseInt(row.avg_score) || 0,
         };
       });
 
       const classificationBreakdown = {};
-      classificationResult.rows.forEach(row => {
+      classificationResult.rows.forEach((row) => {
         classificationBreakdown[row.classification] = {
           count: parseInt(row.count),
-          avgScore: parseInt(row.avg_score) || 0
+          avgScore: parseInt(row.avg_score) || 0,
         };
       });
 
       const ownerDistribution = {};
-      ownerResult.rows.forEach(row => {
+      ownerResult.rows.forEach((row) => {
         ownerDistribution[row.owner_id] = parseInt(row.count);
       });
 
@@ -175,44 +176,46 @@ export default async function handler(req, res) {
           // For Campaign/Form pages
           leadSources,
           formSubmissions,
-          
+
           // For Reports/Dashboard
           lifecycleBreakdown,
           classificationBreakdown,
-          
+
           // For RevOps/Team views
           ownerDistribution,
           contactsWithDeals: parseInt(deals.with_deals) || 0,
-          
+
           // Activity metrics
           activity: {
             last7Days: parseInt(activity.last_7_days) || 0,
             last30Days: parseInt(activity.last_30_days) || 0,
             last60Days: parseInt(activity.last_60_days) || 0,
             last90Days: parseInt(activity.last_90_days) || 0,
-            total: parseInt(activity.total) || 0
+            total: parseInt(activity.total) || 0,
           },
-          
+
           // Priority leads
-          hotLeads: hotLeadsResult.rows.map(row => ({
+          hotLeads: hotLeadsResult.rows.map((row) => ({
             id: row.id,
             email: row.email,
-            name: `${row.firstname || ''} ${row.lastname || ''}`.trim() || 'Anonymous',
+            name:
+              `${row.firstname || ""} ${row.lastname || ""}`.trim() ||
+              "Anonymous",
             score: row.health_score,
             classification: row.classification,
             stage: row.lifecyclestage,
-            lastModified: row.last_modified
-          }))
-        }
+            lastModified: row.last_modified,
+          })),
+        },
       });
     } finally {
       client.release();
     }
   } catch (error) {
-    console.error('Contact analytics error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to fetch contact analytics',
-      message: error.message 
+    console.error("Contact analytics error:", error);
+    return res.status(500).json({
+      error: "Failed to fetch contact analytics",
+      message: error.message,
     });
   }
 }
