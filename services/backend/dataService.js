@@ -206,6 +206,10 @@ export const saveDeals = async (deals, contactMap = {}) => {
   try {
     await client.query("BEGIN");
     for (const deal of deals) {
+      const normalizeTimestamp = (value) => {
+        if (!value || value === "") return null;
+        return value;
+      };
       // Infer deal type from name (Mastermind, Clinical Rainmaker, etc.)
       const dealName = (deal.dealname || deal.name || "").toLowerCase();
       let dealType = "Other";
@@ -245,8 +249,8 @@ export const saveDeals = async (deals, contactMap = {}) => {
         deal.amount,
         deal.dealstage,
         deal.pipeline,
-        deal.closedate,
-        deal.last_modified || new Date().toISOString(), // New field
+        normalizeTimestamp(deal.closedate),
+        normalizeTimestamp(deal.last_modified) || new Date().toISOString(), // New field
         dealType,
         deal.contactId,
         deal.leadSource,
