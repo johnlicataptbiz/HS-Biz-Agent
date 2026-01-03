@@ -93,26 +93,26 @@ const wrap = (modulePath) => async (req, res) => {
 };
 
 // 4. API ROUTES (Dynamically Loaded)
-app.all("/api/token", wrap("./api/token.js"));
-app.all("/api/ai", wrap("./api/ai.js"));
-app.all("/api/remediate", wrap("./api/remediate.js"));
-app.all("/api/cleanup", wrap("./api/cleanup.js"));
-app.all("/api/vibe-ai", wrap("./api/vibe-ai.js"));
-app.all("/api/oauth-start", wrap("./api/oauth-start.js"));
-app.all("/api/contacts", wrap("./api/contacts.js"));
-app.all("/api/contacts/aggregates", wrap("./api/aggregates.js"));
-app.all("/api/assets", wrap("./api/assets.js"));
-app.all("/api/attribution-analytics", wrap("./api/attribution-analytics.js"));
-app.all("/api/contact-workflows", wrap("./api/contact-workflows.js"));
-app.all("/api/contacts-analytics", wrap("./api/contacts-analytics.js"));
-app.all("/api/contacts-stats", wrap("./api/contacts-stats.js"));
-app.all("/api/enrich-apply", wrap("./api/enrich-apply.js"));
-app.all("/api/enrich", wrap("./api/enrich.js"));
-app.all("/api/lead-status-sync", wrap("./api/lead-status-sync.js"));
-app.all("/api/segments", wrap("./api/segments.js"));
-app.all("/api/sync", wrap("./api/sync.js"));
-app.all("/api/velocity", wrap("./api/velocity.js"));
-app.all("/api/win-loss", wrap("./api/win-loss.js"));
+app.all("/api/token", wrap("./api-backend/token.js"));
+app.all("/api/ai", wrap("./api-backend/ai.js"));
+app.all("/api/remediate", wrap("./api-backend/remediate.js"));
+app.all("/api/cleanup", wrap("./api-backend/cleanup.js"));
+app.all("/api/vibe-ai", wrap("./api-backend/vibe-ai.js"));
+app.all("/api/oauth-start", wrap("./api-backend/oauth-start.js"));
+app.all("/api/contacts", wrap("./api-backend/contacts.js"));
+app.all("/api/contacts/aggregates", wrap("./api-backend/aggregates.js"));
+app.all("/api/assets", wrap("./api-backend/assets.js"));
+app.all("/api/attribution-analytics", wrap("./api-backend/attribution-analytics.js"));
+app.all("/api/contact-workflows", wrap("./api-backend/contact-workflows.js"));
+app.all("/api/contacts-analytics", wrap("./api-backend/contacts-analytics.js"));
+app.all("/api/contacts-stats", wrap("./api-backend/contacts-stats.js"));
+app.all("/api/enrich-apply", wrap("./api-backend/enrich-apply.js"));
+app.all("/api/enrich", wrap("./api-backend/enrich.js"));
+app.all("/api/lead-status-sync", wrap("./api-backend/lead-status-sync.js"));
+app.all("/api/segments", wrap("./api-backend/segments.js"));
+app.all("/api/sync", wrap("./api-backend/sync.js"));
+app.all("/api/velocity", wrap("./api-backend/velocity.js"));
+app.all("/api/win-loss", wrap("./api-backend/win-loss.js"));
 
 // 5. CRM SYNC & SPECIAL ENDPOINTS
 app.post("/api/sync/start", async (req, res) => {
@@ -212,7 +212,7 @@ app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
   try {
     const pathPart = req.params[0];
     if (!pathPart) return res.status(400).json({ error: "Invalid proxy path" });
-    const { default: proxy } = await import("./api/proxy.js");
+    const { default: proxy } = await import("./api-backend/proxy.js");
     req.query.path = pathPart;
     await proxy(req, res);
   } catch (err) {
