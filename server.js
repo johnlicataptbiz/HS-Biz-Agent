@@ -23,6 +23,14 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3001;
 
+// 0. GLOBAL DEBUG LOGGING
+app.use((req, res, next) => {
+  console.log(
+    `[DEBUG] ${req.method} ${req.url} (Original: ${req.originalUrl})`
+  );
+  next();
+});
+
 // 1. LISTEN FIRST - Respond to healthchecks immediately
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -30,6 +38,10 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
+});
+
+app.get("/api/debug-ping", (req, res) => {
+  res.json({ pong: true, time: new Date().toISOString() });
 });
 
 console.log(`📡 Initializing server on port ${port}...`);
