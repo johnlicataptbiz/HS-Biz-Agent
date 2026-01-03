@@ -366,7 +366,12 @@ export class HubSpotService {
     const token = this.getToken();
     if (!token) throw new Error("Authentication required");
 
-    const url = `${this.BASE_API_URL}${endpoint}`;
+    // Trim leading slash to prevent double-slashes in the proxy route
+    const sanitizedEndpoint = endpoint.startsWith("/")
+      ? endpoint.substring(1)
+      : endpoint;
+    const url = `${this.BASE_API_URL}${this.BASE_API_URL.endsWith("/") ? "" : "/"}${sanitizedEndpoint}`;
+
     const headers = new Headers(options.headers);
     if (options.body) {
       headers.set("Content-Type", "application/json");
@@ -514,7 +519,12 @@ export class HubSpotService {
       if (response.status === 403)
         return { success: false, error: "Insufficient Permissions" };
 
-      return { success: false, error: `Direct Link Error: ${response.status}` };
+      const errorBody = await response.json().catch(() => ({}));
+      const message =
+        errorBody.message ||
+        errorBody.hubspot_message ||
+        `HTTP ${response.status}`;
+      return { success: false, error: `Direct Link Error: ${message}` };
     } catch (e: any) {
       const token = this.getToken();
       if (

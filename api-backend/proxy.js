@@ -3,17 +3,15 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Path is already put into req.query.path by server.js
-  let { path, ...otherParams } = req.query;
+  // Ensure path is a clean string without double slashes
+  let path = (req.query.path || "").toString();
 
   if (!path) {
     return res.status(400).json({ error: "Missing path parameter" });
   }
 
-  // Clean leading slash to avoid double slashes in hubspotUrl
-  if (path.startsWith("/")) {
-    path = path.substring(1);
-  }
+  // Trim all leading slashes
+  path = path.replace(/^\/+/, "");
 
   // Get the authorization header from the request
   const authHeader = req.headers.authorization;
