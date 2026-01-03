@@ -78,10 +78,10 @@ const WinLoss: React.FC = () => {
                Business Insights
              </span>
           </div>
-           <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+           <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
              Win/Loss <span className="gradient-text">Trends.</span>
            </h1>
-          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+          <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
             See why you win and lose deals. Learn how to close deals faster.
           </p>
         </div>
@@ -89,8 +89,8 @@ const WinLoss: React.FC = () => {
 
       {loading ? (
          <div className="grid grid-cols-2 gap-8">
-            <div className="h-64 glass-card animate-pulse bg-white/5" />
-            <div className="h-64 glass-card animate-pulse bg-white/5" />
+            <div className="h-64 glass-card animate-pulse bg-slate-100" />
+            <div className="h-64 glass-card animate-pulse bg-slate-100" />
          </div>
       ) : (
          <>
@@ -109,19 +109,19 @@ const WinLoss: React.FC = () => {
                      
                      <div className="space-y-6">
                         <div>
-                           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Total Wins</p>
-                           <p className="text-5xl font-black text-white">{data?.cohorts.won?.count || 0}</p>
+                           <p className="text-sm font-bold text-slate-600 uppercase tracking-widest mb-1">Total Wins</p>
+                           <p className="text-5xl font-black text-slate-900">{data?.cohorts.won?.count || 0}</p>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
-                           <div className="p-4 rounded-2xl bg-white/5">
+                           <div className="p-4 rounded-2xl bg-slate-100">
                               <div className="flex items-center gap-2 mb-2">
                                  <Clock size={14} className="text-emerald-400" />
                                  <span className="text-[10px] font-black uppercase text-slate-500">Time to Close</span>
                               </div>
                               <p className="text-xl font-bold text-emerald-300">{data?.cohorts.won?.avg_days_to_close || 0} days</p>
                            </div>
-                           <div className="p-4 rounded-2xl bg-white/5">
+                           <div className="p-4 rounded-2xl bg-slate-100">
                               <div className="flex items-center gap-2 mb-2">
                                  <TrendingUp size={14} className="text-emerald-400" />
                                  <span className="text-[10px] font-black uppercase text-slate-500">Avg Deal Size</span>
@@ -146,19 +146,19 @@ const WinLoss: React.FC = () => {
                      
                      <div className="space-y-6">
                         <div>
-                           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Total Losses</p>
-                           <p className="text-5xl font-black text-white">{data?.cohorts.lost?.count || 0}</p>
+                           <p className="text-sm font-bold text-slate-600 uppercase tracking-widest mb-1">Total Losses</p>
+                           <p className="text-5xl font-black text-slate-900">{data?.cohorts.lost?.count || 0}</p>
                         </div>
                         
                          <div className="grid grid-cols-2 gap-4">
-                           <div className="p-4 rounded-2xl bg-white/5">
+                           <div className="p-4 rounded-2xl bg-slate-100">
                               <div className="flex items-center gap-2 mb-2">
                                  <Clock size={14} className="text-rose-400" />
                                  <span className="text-[10px] font-black uppercase text-slate-500">Time to Fail</span>
                               </div>
                               <p className="text-xl font-bold text-rose-300">{data?.cohorts.lost?.avg_days_to_close || 0} days</p>
                            </div>
-                           <div className="p-4 rounded-2xl bg-white/5">
+                           <div className="p-4 rounded-2xl bg-slate-100">
                               <div className="flex items-center gap-2 mb-2">
                                  <Target size={14} className="text-rose-400" />
                                  <span className="text-[10px] font-black uppercase text-slate-500">Avg Lost Size</span>
@@ -178,8 +178,8 @@ const WinLoss: React.FC = () => {
                      <PieChart size={20} />
                   </div>
                   <div>
-                     <h3 className="text-lg font-bold text-white">Lead Sources</h3>
-                     <p className="text-xs text-slate-400 uppercase tracking-wider">Which lead sources actually close?</p>
+                     <h3 className="text-lg font-bold text-slate-900">Lead Sources</h3>
+                     <p className="text-xs text-slate-600 uppercase tracking-wider">Which lead sources actually close?</p>
                   </div>
                </div>
 

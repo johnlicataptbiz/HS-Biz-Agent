@@ -177,7 +177,7 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
         onClick={() => setIsOpen(true)}
         title="Open Co-Pilot Chat"
         aria-label="Open AI Co-Pilot Chat"
-        className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg shadow-indigo-900/30 flex items-center justify-center transition-all hover:scale-105 z-50 group"
+        className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-slate-900 rounded-full shadow-lg shadow-indigo-900/30 flex items-center justify-center transition-all hover:scale-105 z-50 group"
       >
         <Sparkles size={24} className="group-hover:rotate-12 transition-transform" />
       </button>
@@ -187,7 +187,7 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
   return (
     <div className="fixed bottom-8 right-8 w-96 h-[600px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">
       {/* Header */}
-      <div className="p-4 bg-indigo-600 text-white flex justify-between items-center">
+      <div className="p-4 bg-indigo-600 text-slate-900 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-indigo-500 rounded-lg">
             <Bot size={20} />
@@ -219,7 +219,7 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
             <div
               className={`max-w-[85%] p-3 rounded-2xl text-sm ${
                 msg.role === 'user'
-                  ? 'bg-indigo-600 text-white rounded-tr-sm'
+                  ? 'bg-indigo-600 text-slate-900 rounded-tr-sm'
                   : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm'
               }`}
             >
@@ -238,7 +238,7 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
                             onClick={() => toggleToolDetails(msg.id)}
                         >
                             <div className="flex items-center gap-2">
-                                <Terminal size={12} className="text-slate-400" />
+                                <Terminal size={12} className="text-slate-600" />
                                 <span className="font-mono font-semibold text-slate-700">{msg.toolCallResult.toolName}</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -252,10 +252,10 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
                         </div>
                         
                         <div className="p-2 border-t border-slate-200 bg-white">
-                            <p className="text-slate-400 mb-1">{msg.toolCallResult.dataSummary}</p>
+                            <p className="text-slate-600 mb-1">{msg.toolCallResult.dataSummary}</p>
                             
                             {expandedTools[msg.id] && (
-                                <pre className="mt-2 bg-slate-900 text-emerald-300 p-2 rounded overflow-x-auto font-mono text-[10px]">
+                                <pre className="mt-2 bg-slate-100 text-emerald-700 p-2 rounded overflow-x-auto font-mono text-[10px]">
                                     {JSON.stringify(msg.toolCallResult.rawData, null, 2)}
                                 </pre>
                             )}
@@ -270,7 +270,7 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
           <div className="flex justify-start">
             <div className="bg-white border border-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-2">
                <Loader2 size={14} className="animate-spin text-indigo-500" />
-               <span className="text-xs text-slate-400 font-medium">Agent is thinking...</span>
+               <span className="text-xs text-slate-600 font-medium">Agent is thinking...</span>
             </div>
           </div>
         )}
@@ -305,7 +305,7 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
             onKeyDown={handleKeyDown}
             placeholder="Ask to audit workflows, data, etc..."
             aria-label="Ask the AI co-pilot"
-            className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-slate-400"
+            className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-slate-600"
           />
           <button
             id="send-message-btn"
@@ -315,8 +315,8 @@ const AiChat: React.FC<AiChatProps> = ({ onTriggerAction }) => {
             aria-label="Send message"
             className={`p-2 rounded-full ${
               !inputValue.trim() || isTyping
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                ? 'bg-slate-100 text-slate-600 cursor-not-allowed'
+                : 'bg-indigo-600 text-slate-900 hover:bg-indigo-700'
             } transition-colors flex-shrink-0`}
           >
             <Send size={18} />

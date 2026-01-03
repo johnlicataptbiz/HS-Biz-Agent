@@ -37,7 +37,7 @@ export const SentimentCard: React.FC<SentimentCardProps> = ({ data, loading }) =
       <div className="flex justify-between items-start mb-6">
         <div>
           <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em]">Market Intelligence</span>
-          <h3 className="text-xl font-black text-white mt-1 uppercase tracking-tighter">Current Vibe</h3>
+          <h3 className="text-xl font-black text-slate-900 mt-1 uppercase tracking-tighter">Current Vibe</h3>
         </div>
         <div className={`flex items-center gap-1 font-mono font-bold ${scoreColor}`}>
           <TrendIcon size={16} />
@@ -46,7 +46,7 @@ export const SentimentCard: React.FC<SentimentCardProps> = ({ data, loading }) =
       </div>
 
       <div className="space-y-6 relative z-10">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+        <div className="bg-slate-100 border border-slate-200 rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <Quote size={14} className="text-slate-500" />
             <span className={`text-sm font-black uppercase tracking-widest ${scoreColor}`}>{data.mood}</span>

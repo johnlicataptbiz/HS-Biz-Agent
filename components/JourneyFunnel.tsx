@@ -36,11 +36,11 @@ export const JourneyFunnel: React.FC<JourneyFunnelProps> = ({ data }) => {
   }, [data]);
 
   return (
-    <div className="w-full h-[300px] mt-6 bg-slate-900/40 rounded-2xl border border-white/5 p-6 backdrop-blur-xl">
+    <div className="w-full h-[300px] mt-6 bg-slate-100 rounded-2xl border border-slate-200 p-6 backdrop-blur-xl">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">Journey Distribution</h3>
-          <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Lead to Active Client Funnel</p>
+          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Journey Distribution</h3>
+          <p className="text-[10px] text-slate-600 mt-1 uppercase tracking-widest">Lead to Active Client Funnel</p>
         </div>
         <div className="flex gap-2">
             <div className="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-bold uppercase">Live Velocity</div>

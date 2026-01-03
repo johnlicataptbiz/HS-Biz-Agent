@@ -174,7 +174,7 @@ Analyze the notes and properties deeply. If notes contradict current status, pri
             `/crm/v3/objects/contacts?limit=${limit}&properties=` + 
             'lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status,' + 
             'hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated,' + 
-            'associatedcompanyid,firstname,lastname,email,hs_email_open_count,membership_type,membership_status,' +
+            'associatedcompanyid,firstname,lastname,email,hs_email_open_count,hs_email_click_count,membership_type,membership_status,' +
             'num_conversion_events,hs_email_last_open_date,hs_analytics_num_page_views'
         );
 
@@ -215,6 +215,7 @@ Analyze the notes and properties deeply. If notes contradict current status, pri
         'Watch': 'WATCH',
         'Unqualified': 'UNQUALIFIED',
         'Active Client': 'ACTIVE_CLIENT',
+        'Employee': 'EMPLOYEE',
         'Past Client': 'PAST_CLIENT',
         'Rejected': 'REJECTED',
         'Trash': 'TRASH',
@@ -227,6 +228,7 @@ Analyze the notes and properties deeply. If notes contradict current status, pri
             { label: 'Hot', value: 'HOT', displayOrder: 1 },
             { label: 'Nurture', value: 'NURTURE', displayOrder: 2 },
             { label: 'Watch', value: 'WATCH', displayOrder: 3 },
+            { label: 'Employee', value: 'EMPLOYEE', displayOrder: 4 },
             { label: 'Active Client', value: 'ACTIVE_CLIENT', displayOrder: 5 },
             { label: 'Past Client', value: 'PAST_CLIENT', displayOrder: 6 },
             { label: 'Rejected', value: 'REJECTED', displayOrder: 7 },
@@ -314,7 +316,7 @@ Analyze the notes and properties deeply. If notes contradict current status, pri
         const PAGE_LIMIT = 100;
         const props = 'lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status,' +
             'hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated,' +
-            'associatedcompanyid,firstname,lastname,email,hs_email_open_count,membership_type,membership_status,' +
+            'associatedcompanyid,firstname,lastname,email,hs_email_open_count,hs_email_click_count,membership_type,membership_status,' +
             'num_conversion_events,hs_email_last_open_date,hs_analytics_num_page_views';
 
         let after: string | null = null;

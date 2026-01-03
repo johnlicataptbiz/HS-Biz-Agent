@@ -6,6 +6,8 @@
 
 Primary Reference: [HubSpot-Dev-Features-for-AI-Agents.md](./HubSpot-Dev-Features-for-AI-Agents.md) (**Absolute Source of Truth**)
 
+Product Goal: [GOAL.md](./GOAL.md)
+
 ---
 
 # Run and deploy your AI Studio app

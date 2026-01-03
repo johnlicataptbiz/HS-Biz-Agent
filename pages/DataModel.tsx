@@ -153,10 +153,10 @@ const DataModel: React.FC = () => {
               Schema Integrity
             </span>
           </div>
-          <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
             Data <span className="gradient-text">Architecture.</span>
           </h1>
-          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+          <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
             Structural audit of your CRM property registry. isolating redundant
             fields and schema technical debt.
           </p>
@@ -166,7 +166,7 @@ const DataModel: React.FC = () => {
           <button
             id="refresh-schema-btn"
             onClick={loadData}
-            className="p-3 glass-button border-white/5 text-slate-400 hover:text-white transition-all active:scale-90"
+            className="p-3 glass-button border-slate-200 text-slate-600 hover:text-slate-900 transition-all active:scale-90"
             title="Refresh Schema Cache"
             aria-label="Refresh data schema from HubSpot"
           >
@@ -197,7 +197,7 @@ const DataModel: React.FC = () => {
               setShowAi(true);
             }}
             aria-label="Run architectural audit with AI"
-            className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
+            className="px-8 py-3 premium-gradient text-slate-900 rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
           >
             <Sparkles size={18} />
             Run Architectural Audit
@@ -211,10 +211,10 @@ const DataModel: React.FC = () => {
             <ShieldCheck className="text-amber-500" size={32} />
           </div>
           <div className="max-w-md mx-auto">
-            <h3 className="text-xl font-bold text-white uppercase tracking-wider">
+            <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider">
               Sync Required
             </h3>
-            <p className="text-slate-400 mt-2 font-medium">
+            <p className="text-slate-600 mt-2 font-medium">
               Link your HubSpot instance to visualize and de-duplicate your CRM
               property schema.
             </p>
@@ -224,41 +224,41 @@ const DataModel: React.FC = () => {
 
       {isConnected && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-card p-6 border-white/5 flex items-center gap-4">
+          <div className="glass-card p-6 border-slate-200 flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
               <Database size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+              <p className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest">
                 Total Properties
               </p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-slate-900">
                 {properties.length}
               </p>
             </div>
           </div>
-          <div className="glass-card p-6 border-white/5 flex items-center gap-4">
+          <div className="glass-card p-6 border-slate-200 flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-400">
               <AlertOctagon size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+              <p className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest">
                 Redundant Detected
               </p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-slate-900">
                 {properties.filter((p) => p.redundant).length}
               </p>
             </div>
           </div>
-          <div className="glass-card p-6 border-white/5 flex items-center gap-4">
+          <div className="glass-card p-6 border-slate-200 flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
               <Layers size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+              <p className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest">
                 Audit Score
               </p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-slate-900">
                 {properties.length > 0 ? "Analyzed" : "N/A"}
               </p>
             </div>
@@ -267,25 +267,25 @@ const DataModel: React.FC = () => {
       )}
 
       {properties.length > 0 && (
-        <div className="glass-card overflow-hidden border-white/5 shadow-2xl">
-          <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/2">
+        <div className="glass-card overflow-hidden border-slate-200 shadow-2xl">
+          <div className="p-8 border-b border-slate-200 flex items-center justify-between bg-slate-50">
             <div className="flex items-center gap-4">
               <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400">
                 <Layers size={20} />
               </div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900">
                 Property Registry{" "}
-                <span className="text-slate-400 text-sm font-medium ml-2">
+                <span className="text-slate-600 text-sm font-medium ml-2">
                   — Contact Model
                 </span>
               </h3>
             </div>
             <div className="flex items-center gap-3">
-              <div className="glass-card px-4 py-2 flex items-center gap-2 border-white/5">
+              <div className="glass-card px-4 py-2 flex items-center gap-2 border-slate-200">
                 <label htmlFor="schema-filter-input" className="sr-only">
                   Filter schema
                 </label>
-                <Search size={14} className="text-slate-400" />
+                <Search size={14} className="text-slate-600" />
                 <input
                   id="schema-filter-input"
                   type="text"
@@ -296,7 +296,7 @@ const DataModel: React.FC = () => {
                     setPage(1);
                   }}
                   aria-label="Filter schema properties"
-                  className="bg-transparent border-none outline-none text-xs text-white placeholder:text-slate-400 font-bold uppercase tracking-widest w-40"
+                  className="bg-transparent border-none outline-none text-xs text-slate-800 placeholder:text-slate-600 font-bold uppercase tracking-widest w-40"
                 />
               </div>
               <div className="flex gap-4">
@@ -325,7 +325,7 @@ const DataModel: React.FC = () => {
               </div>
               <button
                 id="filter-trigger-btn"
-                className="glass-button p-2 text-slate-400 hover:text-white"
+                className="glass-button p-2 text-slate-600 hover:text-slate-900"
                 title="Filter Properties"
                 aria-label="Filter properties options"
               >
@@ -336,7 +336,7 @@ const DataModel: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-white/5 border-b border-white/5 text-[10px] uppercase text-slate-400 font-extrabold tracking-[0.2em]">
+                <tr className="bg-slate-100 border-b border-slate-200 text-[10px] uppercase text-slate-500 font-extrabold tracking-[0.2em]">
                   <th className="px-8 py-6">Architectural Identity</th>
                   <th className="px-8 py-6">Data Primitive</th>
                   <th className="px-8 py-6">Logical Group</th>
@@ -348,35 +348,35 @@ const DataModel: React.FC = () => {
                 {pagedProperties.map((prop) => (
                   <tr
                     key={prop.name}
-                    className="hover:bg-white/5 transition-all group"
+                    className="hover:bg-slate-50 transition-all group"
                   >
                     <td className="px-8 py-6">
-                      <div className="font-bold text-white group-hover:text-amber-400 transition-colors text-base tracking-tight">
+                      <div className="font-bold text-slate-900 group-hover:text-amber-500 transition-colors text-base tracking-tight">
                         {prop.label}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-1 font-bold tracking-widest uppercase font-mono">
+                      <div className="text-[10px] text-slate-600 mt-1 font-bold tracking-widest uppercase font-mono">
                         ID: {prop.name}
                       </div>
                     </td>
                     <td className="px-8 py-6 lowercase">
-                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest border border-white/10 px-2 py-1 rounded-lg">
+                      <span className="text-[10px] text-slate-600 font-extrabold uppercase tracking-widest border border-slate-200 px-2 py-1 rounded-lg">
                         {prop.type}
                       </span>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="text-sm font-bold text-slate-400 font-medium">
+                      <span className="text-sm font-bold text-slate-600 font-medium">
                         {prop.group}
                       </span>
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                        <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                           <div
                             className={`h-full rounded-full transition-all duration-1000 ${Number(prop.usage) > 50 ? "bg-emerald-500" : "bg-amber-500"}`}
                             style={{ width: `${prop.usage || 0}%` }}
                           ></div>
                         </div>
-                        <span className="text-[10px] text-slate-400 font-extrabold italic">
+                        <span className="text-[10px] text-slate-600 font-extrabold italic">
                           {prop.usage !== null ? `${prop.usage}%` : "N/A"}
                         </span>
                       </div>
@@ -405,7 +405,7 @@ const DataModel: React.FC = () => {
                           </button>
                         </div>
                       ) : (
-                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-500/10 text-slate-400 text-[10px] font-extrabold uppercase tracking-widest border border-white/5">
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-extrabold uppercase tracking-widest border border-slate-200">
                           ANALYZED NODE
                         </span>
                       )}

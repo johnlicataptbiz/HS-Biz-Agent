@@ -204,7 +204,7 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
     >
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-slate-200/70 backdrop-blur-sm transition-opacity" 
         onClick={onClose}
       ></div>
 
@@ -218,12 +218,12 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
             </div>
             <div>
                 <h3 id="ai-modal-title" className="font-semibold text-slate-900">AI Co-Pilot Optimizer</h3>
-                <p id="ai-modal-description" className="text-xs text-slate-400">
+                <p id="ai-modal-description" className="text-xs text-slate-600">
                     Context: <span className="font-medium text-slate-700">{contextName || contextType}</span>
                 </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-400" aria-label="Close modal">
+          <button onClick={onClose} className="text-slate-600 hover:text-slate-600" aria-label="Close modal">
             <X size={20} />
           </button>
         </div>
@@ -240,20 +240,20 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder={`Describe your goal or issue...`}
-                    className="w-full h-32 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-slate-700 placeholder:text-slate-400 text-sm"
+                    className="w-full h-32 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-slate-700 placeholder:text-slate-600 text-sm"
                     autoFocus
                 />
               </div>
 
               {/* Context-aware suggestions */}
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Suggested Optimizations</p>
+                <p className="text-xs font-semibold text-slate-600 uppercase mb-2">Suggested Optimizations</p>
                 <div className="flex flex-wrap gap-2">
                     {currentSuggestions.map((suggestion, idx) => (
                         <button
                             key={idx}
                             onClick={() => setPrompt(suggestion)}
-                            className="px-3 py-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-700 text-xs font-medium rounded-full border border-slate-200 hover:border-indigo-200 transition-colors text-left"
+                            className="px-3 py-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 text-xs font-medium rounded-full border border-slate-200 hover:border-indigo-200 transition-colors text-left"
                         >
                             {suggestion}
                         </button>
@@ -265,7 +265,7 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
                 <button
                   onClick={handleOptimize}
                   disabled={!prompt.trim() || isProcessing || countdown > 0}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-medium transition-all ${
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-slate-900 font-medium transition-all ${
                     !prompt.trim() || isProcessing || countdown > 0
                       ? 'bg-indigo-300 cursor-not-allowed'
                       : 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200'
@@ -329,23 +329,23 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
                    )}
                    {result.spec?.yaml && (
                      <div className="mb-3">
-                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">YAML</div>
-                       <pre className="bg-slate-900 text-indigo-200 p-4 rounded-lg text-xs overflow-x-auto">
+                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">YAML</div>
+                       <pre className="bg-slate-100 text-indigo-700 p-4 rounded-lg text-xs overflow-x-auto">
                          {result.spec.yaml}
                        </pre>
                      </div>
                    )}
                    {parsedSpecJson && (
                      <div>
-                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">JSON</div>
-                       <pre className="bg-slate-900 text-indigo-200 p-4 rounded-lg text-xs overflow-x-auto">
+                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">JSON</div>
+                       <pre className="bg-slate-100 text-indigo-700 p-4 rounded-lg text-xs overflow-x-auto">
                          {typeof parsedSpecJson === 'string' ? parsedSpecJson : JSON.stringify(parsedSpecJson, null, 2)}
                        </pre>
                      </div>
                    )}
                    {Array.isArray(result.spec?.steps) && result.spec.steps.length > 0 && (
                      <div className="mt-3">
-                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Steps</div>
+                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">Steps</div>
                        <ul className="text-xs text-slate-600 list-disc pl-4 space-y-1">
                          {result.spec.steps.map((step: string, idx: number) => (
                            <li key={idx}>{step}</li>
@@ -364,21 +364,21 @@ const AiModal: React.FC<AiModalProps> = ({ isOpen, onClose, contextType, context
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
             <button 
                 onClick={() => setResult(null)}
-                className="text-sm text-slate-400 hover:text-slate-800 font-medium"
+                className="text-sm text-slate-600 hover:text-slate-800 font-medium"
             >
                 Start Over
             </button>
             <div className="flex gap-3">
                 <button 
                     onClick={onClose}
-                    className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
                 >
                     Cancel
                 </button>
                 <button 
                     onClick={applySpec}
                     disabled={isProcessing}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-slate-900 text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
                 >
                     Apply Changes
                     <ArrowRight size={16} />

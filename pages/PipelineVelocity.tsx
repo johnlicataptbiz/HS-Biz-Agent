@@ -82,10 +82,10 @@ const PipelineVelocity: React.FC = () => {
                Revenue Forecast
              </span>
           </div>
-          <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
             Pipeline <span className="gradient-text">Speed.</span>
           </h1>
-          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+          <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
             The speed at which qualified leads convert to revenue. Find out where deals are getting stuck.
           </p>
         </div>
@@ -93,8 +93,8 @@ const PipelineVelocity: React.FC = () => {
 
       {loading ? (
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="h-96 lg:col-span-2 glass-card animate-pulse bg-white/5" />
-            <div className="h-96 glass-card animate-pulse bg-white/5" />
+            <div className="h-96 lg:col-span-2 glass-card animate-pulse bg-slate-100" />
+            <div className="h-96 glass-card animate-pulse bg-slate-100" />
          </div>
       ) : (
          <>
@@ -109,28 +109,28 @@ const PipelineVelocity: React.FC = () => {
                            <div className="p-3 bg-violet-500/10 rounded-xl text-violet-400">
                               <Zap size={28} />
                            </div>
-                           <h3 className="text-xl font-bold text-white">Projected Velocity</h3>
+                           <h3 className="text-xl font-bold text-slate-900">Projected Velocity</h3>
                         </div>
 
                         <div className="flex items-baseline gap-4">
-                           <span className="text-7xl font-black text-white">
+                           <span className="text-7xl font-black text-slate-900">
                               {formatCurrency(data?.velocity.revenuePerMonth || 0)}
                            </span>
                            <span className="text-xl font-bold text-slate-500 uppercase tracking-widest">/ month</span>
                         </div>
-                        <p className="text-sm text-slate-400 mt-2">
+                        <p className="text-sm text-slate-600 mt-2">
                            Calculated revenue generation speed based on current pipeline, win rate, and cycle length.
                         </p>
                      </div>
 
-                     <div className="grid grid-cols-4 gap-4 mt-12 bg-white/5 rounded-2xl p-6 border border-white/5">
+                     <div className="grid grid-cols-4 gap-4 mt-12 bg-slate-100 rounded-2xl p-6 border border-slate-200">
                         <div>
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Open Opps</p>
-                           <p className="text-2xl font-black text-white">{data?.components.openOpportunities}</p>
+                           <p className="text-2xl font-black text-slate-900">{data?.components.openOpportunities}</p>
                         </div>
                          <div>
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Avg Value</p>
-                           <p className="text-2xl font-black text-white">{formatCurrency(data?.components.avgDealValue || 0)}</p>
+                           <p className="text-2xl font-black text-slate-900">{formatCurrency(data?.components.avgDealValue || 0)}</p>
                         </div>
                          <div>
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Win Rate</p>
@@ -145,11 +145,11 @@ const PipelineVelocity: React.FC = () => {
                </div>
 
                {/* 2. Formula Explanation / Insight */}
-               <div className="glass-card p-10 flex flex-col justify-center border-white/10">
-                  <h3 className="text-lg font-bold text-white mb-6">Speed Calculation</h3>
+               <div className="glass-card p-10 flex flex-col justify-center border-slate-200">
+                  <h3 className="text-lg font-bold text-slate-900 mb-6">Speed Calculation</h3>
                   <div className="space-y-6 font-mono text-sm">
-                     <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                        <div className="flex justify-between text-slate-400 mb-2">
+                     <div className="p-4 rounded-xl bg-slate-100 border border-slate-200">
+                        <div className="flex justify-between text-slate-600 mb-2">
                            <span>Total Pipeline Value</span>
                            <span>{formatCurrency(data?.components.totalPipeline || 0)}</span>
                         </div>
@@ -182,8 +182,8 @@ const PipelineVelocity: React.FC = () => {
                         <Clock size={20} />
                      </div>
                      <div>
-                        <h3 className="text-lg font-bold text-white">Deal Age Analysis</h3>
-                        <p className="text-xs text-slate-400 uppercase tracking-wider">Stalled Deals</p>
+                        <h3 className="text-lg font-bold text-slate-900">Deal Age Analysis</h3>
+                        <p className="text-xs text-slate-600 uppercase tracking-wider">Stalled Deals</p>
                      </div>
                   </div>
                </div>
@@ -208,11 +208,11 @@ const PipelineVelocity: React.FC = () => {
                   </ResponsiveContainer>
                </div>
 
-               <div className="grid grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/5">
+               <div className="grid grid-cols-4 gap-4 mt-8 pt-8 border-t border-slate-200">
                   {data?.aging.map((item, i) => (
                      <div key={i} className="text-center">
                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{item.bucket}</p>
-                        <p className="text-lg font-black text-white">{item.count} deals</p>
+                        <p className="text-lg font-black text-slate-900">{item.count} deals</p>
                         <p className={`text-xs font-bold ${i >= 2 ? 'text-rose-400' : 'text-emerald-400'}`}>
                            {formatCurrency(item.value)}
                         </p>

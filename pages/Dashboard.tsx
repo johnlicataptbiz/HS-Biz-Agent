@@ -143,24 +143,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         
         <div className="relative z-10">
           <div className="flex justify-between items-center mb-6">
-             <div className={`p-4 rounded-2xl bg-white/5 border border-white/10 text-white shadow-xl`}>
+             <div className={`p-4 rounded-2xl bg-slate-100 border border-slate-200 text-slate-900 shadow-xl`}>
                <Icon size={28} />
              </div>
-             <div className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">{active ? 'Live' : 'Cached'}</div>
+             <div className="text-[10px] font-bold text-slate-900/40 uppercase tracking-[0.2em]">{active ? 'Live' : 'Cached'}</div>
           </div>
           
           <div className="space-y-1">
-            <span className="text-4xl font-extrabold text-white tracking-tighter">{loading ? '...' : value}</span>
-            <h2 className="text-sm font-bold text-slate-400 mt-2 uppercase tracking-wider">{title}</h2>
+            <span className="text-4xl font-extrabold text-slate-900 tracking-tighter">{loading ? '...' : value}</span>
+            <h2 className="text-sm font-bold text-slate-600 mt-2 uppercase tracking-wider">{title}</h2>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+          <div className="mt-6 pt-6 border-t border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
                 <div className={`w-1.5 h-1.5 rounded-full ${colorClass}`}></div>
-                <p className="text-xs text-slate-400 font-bold">{sub}</p>
+                <p className="text-xs text-slate-600 font-bold">{sub}</p>
             </div>
             {onClick && (
-              <ArrowUpRight size={14} className="text-slate-400 group-hover:text-white group-hover:scale-125 transition-all" />
+              <ArrowUpRight size={14} className="text-slate-600 group-hover:text-slate-900 group-hover:scale-125 transition-all" />
             )}
           </div>
         </div>
@@ -186,10 +186,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-indigo-500 animate-pulse' : 'bg-slate-500'}`}></div>
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em]">Commercial Operations</span>
           </div>
-          <div className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+          <div className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
             Command <span className="gradient-text">Center.</span>
           </div>
-          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+          <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
             Unified view of your revenue architecture. Converting raw activity into strategic velocity.
           </p>
         </div>
@@ -263,13 +263,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         <div className="lg:col-span-2 glass-card p-10 flex flex-col space-y-8">
              <div className="flex justify-between items-center">
                 <div>
-                     <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Revenue <span className="gradient-text">Architecture.</span></h2>
-                     <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Pipeline Stage Distribution & Heatmap</p>
+                     <h2 className="text-2xl font-black text-slate-900 italic tracking-tighter uppercase">Revenue <span className="gradient-text">Architecture.</span></h2>
+                     <p className="text-slate-600 text-xs font-bold uppercase tracking-widest mt-1">Pipeline Stage Distribution & Heatmap</p>
                 </div>
                  <div className="flex gap-4">
                      <div className="text-right">
                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">Open Opps</span>
-                         <span className="text-lg font-black text-white">{metrics.velocity?.components?.openOpportunities || 0}</span>
+                         <span className="text-lg font-black text-slate-900">{metrics.velocity?.components?.openOpportunities || 0}</span>
                      </div>
                  </div>
             </div>
@@ -308,21 +308,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
              <div className="glass-card p-8 bg-indigo-500/5">
                 <div className="flex items-center gap-3 mb-4">
                     <Bot className="text-indigo-400" size={20} />
-                    <h3 className="font-black text-white text-sm uppercase tracking-widest italic">RevOps Audit</h3>
+                    <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest italic">RevOps Audit</h3>
                 </div>
                 <div className="space-y-4">
                     {metrics.revopsAudit?.bottlenecks?.slice(0, 2).map((b: any, i: number) => (
                         <div key={i} className="space-y-1">
                             <div className="flex items-center gap-2">
                                 <AlertTriangle size={10} className={b.impact === 'High' ? 'text-rose-500' : 'text-amber-500'} />
-                                <span className="text-[10px] font-black text-white uppercase tracking-tighter">{b.stage}</span>
+                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">{b.stage}</span>
                             </div>
-                            <p className="text-[10px] text-slate-400 leading-tight font-medium">{b.issue}</p>
+                            <p className="text-[10px] text-slate-600 leading-tight font-medium">{b.issue}</p>
                         </div>
                     ))}
                     <button 
                         onClick={() => setShowAuditModal(true)}
-                        className="w-full py-3 text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors border-t border-white/5 mt-4"
+                        className="w-full py-3 text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-slate-900 transition-colors border-t border-slate-200 mt-4"
                     >
                         Launch Full Audit →
                     </button>

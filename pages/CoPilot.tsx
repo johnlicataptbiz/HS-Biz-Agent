@@ -11,15 +11,15 @@ const CoPilot: React.FC = () => {
             <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-3xl animate-pulse"></div>
             <img src="/logo.png" alt="Heuristic Co-Pilot" className="w-16 h-16 object-contain relative z-10" />
             <div className="absolute -top-1 -right-1 w-6 h-6 premium-gradient rounded-full flex items-center justify-center border-4 border-[#0f172a] shadow-lg">
-                <Sparkles size={10} className="text-white" />
+                <Sparkles size={10} className="text-slate-900" />
             </div>
         </div>
         
         <div className="space-y-3">
-            <h1 className="text-6xl font-extrabold text-white tracking-tighter">
+            <h1 className="text-6xl font-extrabold text-slate-900 tracking-tighter">
                 Heuristic <span className="gradient-text">Co-Pilot.</span>
             </h1>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed font-medium">
                 Your autonomous RevOps engine. Trained on 10,000+ HubSpot enterprise deployments to audit, design, and optimize your growth stack.
             </p>
         </div>
@@ -55,28 +55,28 @@ const CoPilot: React.FC = () => {
         ].map((action, i) => (
             <button 
                 key={i} 
-                className="glass-card text-left p-10 group relative overflow-hidden transition-all duration-500 hover:-translate-y-2 border-white/5 hover:border-indigo-500/30"
+                className="glass-card text-left p-10 group relative overflow-hidden transition-all duration-500 hover:-translate-y-2 border-slate-200 hover:border-indigo-500/30"
                 title={`Initialize ${action.title} Module`}
             >
                 <div className={`absolute -right-10 -top-10 w-40 h-40 bg-${action.color}-500/5 rounded-full blur-[80px] group-hover:bg-${action.color}-500/10 transition-colors`}></div>
                 
                 <div className="flex items-center justify-between mb-8 relative z-10">
-                    <div className={`w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-${action.color}-400 group-hover:scale-110 transition-transform duration-500 shadow-xl`}>
+                    <div className={`w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-${action.color}-400 group-hover:scale-110 transition-transform duration-500 shadow-xl`}>
                         <action.icon size={32} />
                     </div>
                     <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Module v4.2</span>
+                        <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest leading-none">Module v4.2</span>
                         <div className="flex items-center gap-1 mt-2">
                             <div className={`w-1.5 h-1.5 rounded-full bg-${action.color}-500 shadow-[0_0_8px_rgba(var(--${action.color}-rgb),0.5)]`}></div>
-                            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest tracking-tighter">Ready</span>
+                            <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest tracking-tighter">Ready</span>
                         </div>
                     </div>
                 </div>
                 
-                <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{action.title}</h3>
-                <p className="text-slate-400 mb-8 font-medium leading-relaxed text-sm">{action.desc}</p>
+                <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{action.title}</h3>
+                <p className="text-slate-600 mb-8 font-medium leading-relaxed text-sm">{action.desc}</p>
                 
-                <div className="flex items-center text-xs font-extrabold text-indigo-400 gap-2 uppercase tracking-widest group-hover:gap-4 transition-all pt-6 border-t border-white/5">
+                <div className="flex items-center text-xs font-extrabold text-indigo-400 gap-2 uppercase tracking-widest group-hover:gap-4 transition-all pt-6 border-t border-slate-200">
                     Initialize Module <ArrowRight size={16} />
                 </div>
             </button>
@@ -85,22 +85,22 @@ const CoPilot: React.FC = () => {
       
       <div className="glass-card p-12 relative overflow-hidden flex flex-col items-center text-center space-y-6">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-transparent to-pink-500/5 pointer-events-none"></div>
-        <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-2">
-            <MessageSquare size={20} className="text-slate-400" />
+        <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mb-2">
+            <MessageSquare size={20} className="text-slate-600" />
         </div>
         <div>
-            <h3 className="text-xl font-bold text-white uppercase tracking-widest mb-2">Cognitive Query Interface</h3>
-            <p className="text-slate-400 text-sm font-medium max-w-xl mx-auto leading-relaxed">
+            <h3 className="text-xl font-bold text-slate-900 uppercase tracking-widest mb-2">Cognitive Query Interface</h3>
+            <p className="text-slate-600 text-sm font-medium max-w-xl mx-auto leading-relaxed">
                 Use the global chat matrix in the bottom right to execute complex custom commands or troubleshoot specific portal exceptions.
             </p>
         </div>
         <div className="flex items-center gap-4 pt-4">
-            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
                 <ShieldCheck size={14} className="text-emerald-500" />
                 No Data Training
             </div>
             <div className="w-1 h-1 rounded-full bg-slate-800"></div>
-            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
                 <Bot size={14} className="text-indigo-400" />
                 Gemini 2.0 Flash
             </div>

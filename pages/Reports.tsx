@@ -82,17 +82,17 @@ const Reports: React.FC = () => {
                   {analytics ? 'Database Synced' : 'API Only'}
                 </span>
               </div>
-              <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+              <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
               Performance <span className="gradient-text">Reports.</span>
               </h1>
-              <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+              <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
               Deep dive into your high-leverage assets. Data enhanced from local database.
               </p>
           </div>
           <button 
             onClick={loadData}
             disabled={isLoading}
-            className="p-3 glass-button border-white/5 text-slate-400 hover:text-white transition-all"
+            className="p-3 glass-button border-slate-200 text-slate-600 hover:text-slate-900 transition-all"
             title="Refresh data"
           >
             <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
@@ -103,20 +103,20 @@ const Reports: React.FC = () => {
         {analytics?.activity && (
           <div className="grid grid-cols-4 gap-6">
             <div className="glass-card p-6 text-center">
-              <p className="text-3xl font-black text-white">{analytics.activity.total.toLocaleString()}</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Total Contacts</p>
+              <p className="text-3xl font-black text-slate-900">{analytics.activity.total.toLocaleString()}</p>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-2">Total Contacts</p>
             </div>
             <div className="glass-card p-6 text-center border-emerald-500/20">
               <p className="text-3xl font-black text-emerald-400">{analytics.activity.last7Days.toLocaleString()}</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Active 7d</p>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-2">Active 7d</p>
             </div>
             <div className="glass-card p-6 text-center">
               <p className="text-3xl font-black text-indigo-400">{analytics.activity.last30Days.toLocaleString()}</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Active 30d</p>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-2">Active 30d</p>
             </div>
             <div className="glass-card p-6 text-center">
               <p className="text-3xl font-black text-amber-400">{analytics.activity.last90Days.toLocaleString()}</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Active 90d</p>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-2">Active 90d</p>
             </div>
           </div>
         )}
@@ -124,8 +124,8 @@ const Reports: React.FC = () => {
         {!isConnected && !analytics && (
             <div className="glass-card p-12 text-center space-y-6">
                 <ShieldCheck className="text-indigo-400 mx-auto" size={40} />
-                <h3 className="text-xl font-bold text-white">Connect HubSpot</h3>
-                <p className="text-slate-400">Reports require live data access.</p>
+                <h3 className="text-xl font-bold text-slate-900">Connect HubSpot</h3>
+                <p className="text-slate-600">Reports require live data access.</p>
             </div>
         )}
 
@@ -137,8 +137,8 @@ const Reports: React.FC = () => {
                         <BarChart3 size={24} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-white">Top Performing Lead Magnets</h3>
-                        <p className="text-xs text-slate-400 uppercase tracking-wider">
+                        <h3 className="text-lg font-bold text-slate-900">Top Performing Lead Magnets</h3>
+                        <p className="text-xs text-slate-600 uppercase tracking-wider">
                           Conversions {analytics ? '(DB Enhanced)' : '(API Only)'}
                         </p>
                     </div>
@@ -163,7 +163,7 @@ const Reports: React.FC = () => {
                             </BarChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-white/5 rounded-2xl">
+                        <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-2xl">
                             <BarChart3 size={32} className="mb-2 opacity-50" />
                             <p className="font-bold">No Data Available</p>
                             <p className="text-xs mt-1 text-slate-600 px-10 text-center">
@@ -181,8 +181,8 @@ const Reports: React.FC = () => {
                         <Database size={24} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-white">Lead Sources</h3>
-                        <p className="text-xs text-slate-400 uppercase tracking-wider">From Database JSONB</p>
+                        <h3 className="text-lg font-bold text-slate-900">Lead Sources</h3>
+                        <p className="text-xs text-slate-600 uppercase tracking-wider">From Database JSONB</p>
                     </div>
                 </div>
                 
@@ -211,7 +211,7 @@ const Reports: React.FC = () => {
                             </RechartsPie>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-white/5 rounded-2xl">
+                        <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-2xl">
                             <PieChart size={32} className="mb-2 opacity-50" />
                             <p className="font-bold">No Source Data</p>
                             <p className="text-xs mt-1 text-slate-600 text-center">
@@ -227,8 +227,8 @@ const Reports: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
              <div className="glass-card p-6 flex items-center justify-between group hover:border-indigo-500/30 transition-all">
                 <div>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Total Lead Magnets</p>
-                    <h2 className="text-4xl font-extrabold text-white mt-2">{leadMagnets.length}</h2>
+                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">Total Lead Magnets</p>
+                    <h2 className="text-4xl font-extrabold text-slate-900 mt-2">{leadMagnets.length}</h2>
                 </div>
                 <div className="w-12 h-12 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
                     <Download size={24} />
@@ -237,8 +237,8 @@ const Reports: React.FC = () => {
 
              <div className="glass-card p-6 flex items-center justify-between group hover:border-emerald-500/30 transition-all">
                 <div>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Active Forms</p>
-                    <h2 className="text-4xl font-extrabold text-white mt-2">{forms.length}</h2>
+                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">Active Forms</p>
+                    <h2 className="text-4xl font-extrabold text-slate-900 mt-2">{forms.length}</h2>
                 </div>
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
                     <TrendingUp size={24} />

@@ -79,10 +79,10 @@ const Organization: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em]">CRM Structural Intelligence</span>
                     </div>
-                    <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+                    <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
                         Object <span className="gradient-text">Architecture.</span>
                     </h1>
-                    <p className="text-slate-400 max-w-lg font-medium">
+                    <p className="text-slate-600 max-w-lg font-medium">
                         Deep structural audit of your HubSpot schema, associations, and segment logic.
                     </p>
                 </div>
@@ -100,7 +100,7 @@ const Organization: React.FC = () => {
             {loading ? (
                 <div className="glass-card p-20 flex flex-col items-center justify-center space-y-4">
                     <RefreshCw className="animate-spin text-indigo-500" size={48} />
-                    <p className="text-slate-400 font-bold uppercase tracking-widest animate-pulse">Deconstructing CRM Schema...</p>
+                    <p className="text-slate-600 font-bold uppercase tracking-widest animate-pulse">Deconstructing CRM Schema...</p>
                 </div>
             ) : scanData && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -112,8 +112,8 @@ const Organization: React.FC = () => {
                         {scanData.schemas.map(s => (
                             <div key={s.objectType} className="glass-card p-6 space-y-4 group hover:border-indigo-500/30 transition-all">
                                 <div className="flex justify-between items-start">
-                                    <h3 className="font-bold text-white uppercase italic tracking-tight underline decoration-indigo-500/30 underline-offset-4">{s.objectType}</h3>
-                                    <span className="text-[9px] font-black px-2 py-1 bg-white/5 rounded text-slate-400 uppercase tracking-widest">{s.totalProperties} Props</span>
+                                    <h3 className="font-bold text-slate-900 uppercase italic tracking-tight underline decoration-indigo-500/30 underline-offset-4">{s.objectType}</h3>
+                                    <span className="text-[9px] font-black px-2 py-1 bg-slate-100 rounded text-slate-600 uppercase tracking-widest">{s.totalProperties} Props</span>
                                 </div>
                                 
                                 {s.redundantProperties.length > 0 ? (
@@ -143,7 +143,7 @@ const Organization: React.FC = () => {
                         </h2>
                         {scanData.associations.map((a, i) => (
                             <div key={i} className="glass-card p-6 space-y-6">
-                                <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <div className="flex justify-between items-center text-[10px] font-black text-slate-600 uppercase tracking-widest">
                                     <span>{a.fromObject}</span>
                                     <GitBranch size={12} className="text-indigo-500" />
                                     <span>{a.toObject}</span>
@@ -151,7 +151,7 @@ const Organization: React.FC = () => {
                                 <div className="space-y-1">
                                     <div className="flex justify-between items-end">
                                         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Association Health</span>
-                                        <span className="text-2xl font-black text-white">84%</span>
+                                        <span className="text-2xl font-black text-slate-900">84%</span>
                                     </div>
                                     <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                                         <div className="h-full bg-indigo-500 w-[84%] shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
@@ -160,7 +160,7 @@ const Organization: React.FC = () => {
                                 <button 
                                     onClick={handleRepair}
                                     disabled={isRepairing}
-                                    className="w-full py-3 rounded-xl border border-white/10 text-[9px] font-black uppercase tracking-widest hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-3 rounded-xl border border-slate-200 text-[9px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
                                 >
                                     {isRepairing ? <RefreshCw size={12} className="animate-spin" /> : 'Repair Orphans'}
                                 </button>
@@ -175,14 +175,14 @@ const Organization: React.FC = () => {
                         </h2>
                         <div className="glass-card p-6 space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Indexed Lists</span>
-                                <span className="text-xl font-black text-white">{scanData.lists.length}</span>
+                                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Total Indexed Lists</span>
+                                <span className="text-xl font-black text-slate-900">{scanData.lists.length}</span>
                             </div>
-                            <div className="space-y-3 pt-4 border-t border-white/5">
+                            <div className="space-y-3 pt-4 border-t border-slate-200">
                                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Naming Consistency</p>
                                 <div className="flex items-center gap-3">
                                     <ShieldAlert className="text-amber-500" size={16} />
-                                    <p className="text-[10px] text-slate-400 leading-tight">Detected 12 lists with inconsistent naming conventions (e.g., lowercase vs camelCase).</p>
+                                    <p className="text-[10px] text-slate-600 leading-tight">Detected 12 lists with inconsistent naming conventions (e.g., lowercase vs camelCase).</p>
                                 </div>
                             </div>
                         </div>
@@ -199,8 +199,8 @@ const Organization: React.FC = () => {
                 <div className="relative z-10 space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
                         <div className="space-y-4">
-                            <h2 className="text-3xl font-black text-white tracking-tighter italic">Persona <span className="gradient-text">Discovery Hub.</span></h2>
-                            <p className="text-slate-400 font-medium leading-relaxed">
+                            <h2 className="text-3xl font-black text-slate-900 tracking-tighter italic">Persona <span className="gradient-text">Discovery Hub.</span></h2>
+                            <p className="text-slate-600 font-medium leading-relaxed">
                                 Use semantic clustering to identify hidden sales segments in your CRM. 
                                 Antigravity will analyze your job titles and industries to suggest ideal target personas.
                             </p>
@@ -217,18 +217,18 @@ const Organization: React.FC = () => {
                         {personas.length > 0 && (
                             <div className="grid grid-cols-1 gap-4">
                                 {personas.map((p, i) => (
-                                    <div key={i} className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3 hover:border-indigo-500/30 transition-all group/p">
+                                    <div key={i} className="p-5 rounded-2xl bg-slate-100 border border-slate-200 space-y-3 hover:border-indigo-500/30 transition-all group/p">
                                         <div className="flex justify-between items-center">
-                                            <h4 className="font-bold text-white text-sm uppercase tracking-tight italic underline decoration-indigo-500/50">{p.name}</h4>
+                                            <h4 className="font-bold text-slate-900 text-sm uppercase tracking-tight italic underline decoration-indigo-500/50">{p.name}</h4>
                                             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">High Intent</span>
                                         </div>
-                                        <p className="text-[10px] text-slate-400 leading-relaxed font-medium">{p.description}</p>
-                                        <div className="pt-3 border-t border-white/5 flex justify-between items-center">
+                                        <p className="text-[10px] text-slate-600 leading-relaxed font-medium">{p.description}</p>
+                                        <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
                                             <span className="text-[9px] font-bold text-indigo-500/70 uppercase">Criteria: {p.targetListCriteria.slice(0, 30)}...</span>
                                             <button 
                                                 onClick={() => handleCreateList(p, i)}
                                                 disabled={creatingListFor !== null}
-                                                className="text-[9px] font-black text-white hover:text-indigo-400 uppercase tracking-widest transition-colors flex items-center gap-2"
+                                                className="text-[9px] font-black text-slate-900 hover:text-indigo-400 uppercase tracking-widest transition-colors flex items-center gap-2"
                                             >
                                                 {creatingListFor === i ? <RefreshCw className="animate-spin" size={10} /> : null}
                                                 {creatingListFor === i ? 'Creating...' : 'Create List'}

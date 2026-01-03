@@ -1,6 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
 
 const Workflows = lazy(() => import('./pages/Workflows'));
 const Sequences = lazy(() => import('./pages/Sequences'));
@@ -25,7 +24,7 @@ const AiChat = lazy(() => import('./components/AiChat'));
 const AiModal = lazy(() => import('./components/AiModal'));
 import { ChatResponse } from './types';
 import { hubSpotService } from './services/hubspotService';
-import { User, Bell, Search } from 'lucide-react';
+import { User, Bell, Search, Menu, ChevronLeft } from 'lucide-react';
 import AppTour from './components/AppTour';
 import SettingsModal from './components/SettingsModal';
 
@@ -37,7 +36,10 @@ interface GlobalModalState {
 }
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('active_tab') || 'dashboard');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('active_tab') || 'contacts');
+  const [isSidebarHidden, setIsSidebarHidden] = useState(
+    () => localStorage.getItem('sidebar_hidden') === 'true'
+  );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
@@ -77,11 +79,12 @@ const App: React.FC = () => {
   useEffect(() => {
     console.log("🚀 HS-Biz-Agent: Sprint 6 RevOps - Version 1.0.1 Loaded");
     localStorage.setItem('active_tab', activeTab);
+    localStorage.setItem('sidebar_hidden', String(isSidebarHidden));
     const url = new URL(window.location.href);
     if (url.pathname !== `/${activeTab}` && activeTab !== 'dashboard') {
         window.history.pushState({}, '', `/${activeTab}${url.search}`);
     }
-  }, [activeTab]);
+  }, [activeTab, isSidebarHidden]);
 
   useEffect(() => {
     // Handle deep linking on initial load
@@ -89,6 +92,8 @@ const App: React.FC = () => {
     const validTabs = ['dashboard', 'reports', 'copilot', 'workflows', 'sequences', 'campaigns', 'contacts', 'datamodel', 'breezetools', 'journey', 'organization', 'revops', 'database', 'data-quality', 'attribution', 'segments', 'assets', 'win-loss', 'velocity'];
     if (path && validTabs.includes(path)) {
         setActiveTab(path);
+    } else if (!path) {
+        setActiveTab('contacts');
     }
     
     // Check for first-time user tour (Intelligence Engine version)
@@ -186,13 +191,14 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard onNavigate={setActiveTab} />;
+      case 'dashboard':
+      case 'contacts':
+        return <ContactsExplorer />;
       case 'reports': return <Reports />;
       case 'copilot': return <CoPilot />;
       case 'workflows': return <Workflows />;
       case 'sequences': return <Sequences />;
       case 'campaigns': return <Campaigns />;
-      case 'contacts': return <ContactsExplorer />;
       case 'datamodel': return <DataModel />;
       case 'breezetools': return <BreezeTools />;
       case 'journey': return <JourneyMap />;
@@ -205,27 +211,37 @@ const App: React.FC = () => {
       case 'assets': return <AssetIntelligence onNavigate={setActiveTab} />;
       case 'win-loss': return <WinLoss />;
       case 'velocity': return <PipelineVelocity />;
-      default: return <Dashboard onNavigate={setActiveTab} />;
+      default: return <ContactsExplorer />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 flex font-['Outfit']">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex font-['Outfit'] overflow-x-hidden">
       {/* Sidebar */}
-      <Sidebar 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
-        onSettingsClick={() => setIsSettingsOpen(true)}
-        onTourClick={() => setIsTourOpen(true)}
-      />
+      {!isSidebarHidden && (
+        <Sidebar 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+          onSettingsClick={() => setIsSettingsOpen(true)}
+          onTourClick={() => setIsTourOpen(true)}
+        />
+      )}
 
       {/* Main Content Area */}
-      <div className="flex-1 ml-72 flex flex-col min-h-screen">
+      <div className={`flex-1 flex flex-col min-h-screen min-w-0 overflow-x-hidden ${isSidebarHidden ? 'pl-0' : 'pl-72'}`}>
         {/* Top Floating Header */}
         <header className="h-24 sticky top-0 z-40 px-10 flex items-center justify-between">
             <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setIsSidebarHidden((prev) => !prev)}
+                  className="glass-button p-2 text-slate-600 hover:text-slate-900 transition-colors"
+                  aria-label={isSidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
+                  title={isSidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
+                >
+                  {isSidebarHidden ? <Menu size={16} /> : <ChevronLeft size={16} />}
+                </button>
                 <div className="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
-                <h1 id="active-tab-heading" className="text-sm font-extrabold uppercase tracking-[0.4em] text-slate-400">
+                <h1 id="active-tab-heading" className="text-sm font-extrabold uppercase tracking-[0.4em] text-slate-500">
                   {activeTab.replace(/([A-Z])/g, ' $1').trim()}
                 </h1>
             </div>
@@ -233,7 +249,7 @@ const App: React.FC = () => {
             <div className="flex items-center gap-6">
               <button 
                 id="global-search-btn"
-                className="hidden md:flex items-center gap-2 glass-button px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                className="hidden md:flex items-center gap-2 glass-button px-4 py-2 text-slate-600 hover:text-slate-900 transition-colors"
                 aria-label="Search heuristics"
               >
                 <Search size={16} />
@@ -241,17 +257,17 @@ const App: React.FC = () => {
               </button>
               
               <div className="relative">
-                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-[#0f172a] z-10"></div>
-                <button className="p-2.5 glass-button border-white/5 text-slate-400 hover:text-white transition-colors" title="View Notifications" aria-label="View notifications">
+                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-[#f8fafc] z-10"></div>
+                <button className="p-2.5 glass-button border-slate-200 text-slate-600 hover:text-slate-900 transition-colors" title="View Notifications" aria-label="View notifications">
                   <Bell size={18} />
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 glass-button px-3 py-1.5 pr-4 border-white/5">
+              <div className="flex items-center gap-3 glass-button px-3 py-1.5 pr-4 border-slate-200">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-indigo-500/20">
                   <User size={16} />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Admin Console</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Admin Console</span>
               </div>
 
               <div className="ml-3">
@@ -259,7 +275,7 @@ const App: React.FC = () => {
               </div>
             </div>
           </header>
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
           {oauthError && (
             <div className="bg-red-700 text-white px-4 py-2 text-center font-bold z-50">
               OAuth Error: {oauthError}
@@ -268,9 +284,9 @@ const App: React.FC = () => {
 
           {oauthFallbackUrl && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-              <div className="bg-[#0b1220] rounded-lg p-6 w-full max-w-lg border border-white/5">
+              <div className="bg-white rounded-lg p-6 w-full max-w-lg border border-slate-200 shadow-xl">
                 <h3 className="text-lg font-bold mb-2">OAuth Fallback</h3>
-                <p className="text-sm text-slate-300 mb-4">Your browser blocked the popup. You can open the OAuth link manually or retry connecting.</p>
+                <p className="text-sm text-slate-600 mb-4">Your browser blocked the popup. You can open the OAuth link manually or retry connecting.</p>
                 <div className="flex gap-3">
                   <a href={oauthFallbackUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-indigo-600 text-white rounded">Open OAuth Link</a>
                   <button onClick={() => { localStorage.removeItem('hubspot_oauth_auth_url'); setOauthFallbackUrl(null); handleConnect(false); }} className="px-4 py-2 bg-green-600 text-white rounded">Retry</button>

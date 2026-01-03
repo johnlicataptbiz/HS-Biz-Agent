@@ -366,7 +366,8 @@ export class HubSpotService {
   public async request(
     endpoint: string,
     options: RequestInit = {},
-    isRetry = false
+    isRetry = false,
+    rateLimitRetries = 0
   ): Promise<Response> {
     const token = this.getToken();
     if (!token) throw new Error("Authentication required");
@@ -388,6 +389,19 @@ export class HubSpotService {
     headers.set("Authorization", `Bearer ${token}`);
 
     const response = await fetch(url, { ...options, headers });
+
+    // Rate limit handling (HubSpot returns 429)
+    if (response.status === 429 && rateLimitRetries < 2) {
+      const retryAfterHeader = response.headers.get("retry-after");
+      const retryAfterSeconds = retryAfterHeader
+        ? Number(retryAfterHeader)
+        : NaN;
+      const delayMs = Number.isFinite(retryAfterSeconds)
+        ? Math.max(1000, retryAfterSeconds * 1000)
+        : 1500 + rateLimitRetries * 1500;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return this.request(endpoint, options, isRetry, rateLimitRetries + 1);
+    }
 
     // Automatic Token Refresh on 401
     if (response.status === 401 && !isRetry) {
@@ -710,28 +724,27 @@ export class HubSpotService {
           "🧩 Initial sequence data is thin, performing deep scan on top 10 sequences..."
         );
         const deepScanLimit = Math.min(sequences.length, 10);
-        const detailedSeqs = await Promise.all(
-          sequences.slice(0, deepScanLimit).map(async (s: any) => {
-            try {
-              // Try V2 detail endpoint first, then V4
-              let detailResp = await this.request(
-                `/automation/v2/sequences/${s.id || s.hs_id || s.guid}`
+        const detailedSeqs: any[] = [];
+        for (const s of sequences.slice(0, deepScanLimit)) {
+          try {
+            // Try V2 detail endpoint first, then V4
+            let detailResp = await this.request(
+              `/automation/v2/sequences/${s.id || s.hs_id || s.guid}`
+            );
+            if (!detailResp.ok) {
+              detailResp = await this.request(
+                `/automation/v4/sequences/${s.id || s.hs_id || s.guid}`
               );
-              if (!detailResp.ok) {
-                detailResp = await this.request(
-                  `/automation/v4/sequences/${s.id || s.hs_id || s.guid}`
-                );
-              }
-              return detailResp.ok ? await detailResp.json() : s;
-            } catch (e) {
-              console.warn(
-                `Failed to deep scan sequence ${s.id || s.hs_id || s.guid}:`,
-                e
-              );
-              return s;
             }
-          })
-        );
+            detailedSeqs.push(detailResp.ok ? await detailResp.json() : s);
+          } catch (e) {
+            console.warn(
+              `Failed to deep scan sequence ${s.id || s.hs_id || s.guid}:`,
+              e
+            );
+            detailedSeqs.push(s);
+          }
+        }
         sequences = [...detailedSeqs, ...sequences.slice(deepScanLimit)];
       }
 
@@ -1601,6 +1614,7 @@ export class HubSpotService {
     const lastEmail = props.hs_email_last_open_date
       ? new Date(props.hs_email_last_open_date).getTime()
       : 0;
+    const email = (props.email || "").toLowerCase();
 
     const daysSinceCreate = (now - created) / (1000 * 60 * 60 * 24);
     const daysSinceVisit = lastVisit
@@ -1621,10 +1635,44 @@ export class HubSpotService {
     );
     const hasEverCommunicated = lastAct > 0 || lastEmail > 0 || lastVisit > 0;
 
+    const pageViews = Number(props.hs_analytics_num_page_views || 0);
+    const emailOpens = Number(props.hs_email_open_count || 0);
+    const emailClicks = Number(props.hs_email_click_count || 0);
+    const conversions = Number(props.num_conversion_events || 0);
+    const dealCount = Number(props.num_associated_deals || 0);
+
+    const engagementScore = (() => {
+      let score = 0;
+      if (pageViews >= 50) score += 25;
+      else if (pageViews >= 20) score += 15;
+      else if (pageViews >= 5) score += 5;
+
+      if (emailOpens >= 30) score += 15;
+      else if (emailOpens >= 10) score += 8;
+      else if (emailOpens >= 3) score += 4;
+
+      if (emailClicks >= 10) score += 15;
+      else if (emailClicks >= 3) score += 8;
+      else if (emailClicks >= 1) score += 4;
+
+      if (conversions >= 3) score += 25;
+      else if (conversions >= 2) score += 15;
+      else if (conversions >= 1) score += 8;
+
+      if (dealCount > 0) score += 15;
+
+      if (daysSinceEngagement < 7) score += 10;
+      else if (daysSinceEngagement < 30) score += 6;
+      else if (daysSinceEngagement < 90) score += 3;
+
+      return Math.min(100, score);
+    })();
+
     // Normalize lifecycle stage
     const stage = (props.lifecyclestage || "").toLowerCase();
     const memType = (props.membership_type || "").toLowerCase();
     const memStatus = (props.membership_status || "").toLowerCase();
+    const isEmployee = email.endsWith("@physicaltherapybiz.com");
 
     // MM member, CRM member, or standard HubSpot Customer/Evangelist
     const isActiveClient =
@@ -1638,22 +1686,27 @@ export class HubSpotService {
       memStatus.includes("member") ||
       ["customer", "evangelist", "subscriber"].includes(stage);
 
-    // 1. TRASH (Bounces or obvious test accounts)
+    // 1. EMPLOYEE (internal accounts should be cordoned off)
+    if (isEmployee) {
+      return "Employee";
+    }
+
+    // 2. TRASH (Bounces or obvious test accounts)
     if (
       props.hs_email_bounce > 0 ||
       (props.firstname || "").toLowerCase().includes("test") ||
-      (props.email || "").includes("example.com")
+      email.includes("example.com")
     ) {
       return "Trash";
     }
 
-    // 2. ACTIVE CLIENT
+    // 3. ACTIVE CLIENT
     if (isActiveClient) {
       // If customer, never return 'Hot' or other lead status
       return "Active Client";
     }
 
-    // 3. PAST CLIENT - Was a customer/member but no longer (stage changed away from active)
+    // 4. PAST CLIENT - Was a customer/member but no longer (stage changed away from active)
     // Detected by: lifecyclestage is 'lead' or 'opportunity' but they have historical engagement patterns
     if (
       (stage === "lead" ||
@@ -1667,12 +1720,12 @@ export class HubSpotService {
       return "Past Client";
     }
 
-    // 4. REJECTED (Explicitly marked)
+    // 5. REJECTED (Explicitly marked)
     if (props.hs_lead_status === "Rejected" || stage === "other") {
       return "Rejected";
     }
 
-    // 5. UNQUALIFIED - New leads that didn't respond after 10 days, or we don't know their status
+    // 6. UNQUALIFIED - New leads that didn't respond after 10 days, or we don't know their status
     if (
       props.hs_lead_status === "Unqualified" ||
       props.hs_lead_status === "Bad Timing"
@@ -1683,28 +1736,28 @@ export class HubSpotService {
       return "Unqualified"; // No response after 10 days
     }
 
-    // 6. NEW - Never communicated or just created
-    if (!hasEverCommunicated || daysSinceCreate <= 7) {
-      return "New";
-    }
-
-    // ENGAGED LEADS - Classify by sales velocity/timeline
-    // 7. HOT - Will buy in 0-1 month (weekly follow up needed)
-    // Recent engagement (within 30 days) OR has open deals
-    // Only if NOT an active client/customer
+    // 7. HOT - Strong engagement intensity + recent activity
+    // Weighted by behavioral signals (views, opens, clicks, conversions)
     if (
       !isActiveClient &&
-      (daysSinceEngagement < 30 || Number(props.num_associated_deals) > 0)
+      ((engagementScore >= 60 && daysSinceEngagement <= 45) ||
+        (conversions >= 2 && daysSinceEngagement <= 90) ||
+        (dealCount > 0 && daysSinceEngagement <= 90))
     ) {
       return "Hot";
     }
 
-    // 8. NURTURE - Will buy in 1-3 months (monthly follow up needed)
+    // 8. NEW - Never communicated or just created
+    if (!hasEverCommunicated || daysSinceCreate <= 7) {
+      return "New";
+    }
+
+    // 9. NURTURE - Will buy in 1-3 months (monthly follow up needed)
     if (daysSinceEngagement >= 30 && daysSinceEngagement < 90) {
       return "Nurture";
     }
 
-    // 9. WATCH - Will buy in 3-12 months (quarterly follow up needed)
+    // 10. WATCH - Will buy in 3-12 months (quarterly follow up needed)
     if (daysSinceEngagement >= 90 && daysSinceEngagement < 365) {
       return "Watch";
     }
@@ -1734,7 +1787,8 @@ export class HubSpotService {
         "lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status," +
         "hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated," +
         "associatedcompanyid,firstname,email,hs_email_last_open_date,membership_type,membership_status," +
-        "num_conversion_events,hs_analytics_num_page_views,hs_latest_source_data_1";
+        "num_conversion_events,hs_analytics_num_page_views,hs_latest_source_data_1," +
+        "hs_email_open_count,hs_email_click_count";
 
       let after: string | null = null;
       let contacts: any[] = [];
@@ -1780,6 +1834,7 @@ export class HubSpotService {
         Unqualified: 0,
         "Past Client": 0,
         "Active Client": 0,
+        Employee: 0,
         Rejected: 0,
         Trash: 0,
         Unclassified: 0,
@@ -1843,6 +1898,7 @@ export class HubSpotService {
           Unqualified: 0,
           "Past Client": 0,
           "Active Client": 0,
+          Employee: 0,
           Rejected: 0,
           Trash: 0,
           Unclassified: 0,

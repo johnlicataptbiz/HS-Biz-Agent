@@ -64,7 +64,7 @@ const Campaigns: React.FC = () => {
     switch (status?.toUpperCase()) {
       case 'ACTIVE': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
       case 'PAUSED': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-      case 'COMPLETED': return 'text-slate-400 bg-white/5 border-white/10';
+      case 'COMPLETED': return 'text-slate-600 bg-slate-100 border-slate-200';
       default: return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20';
     }
   };
@@ -122,25 +122,25 @@ const Campaigns: React.FC = () => {
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-500'}`}></div>
             <span className="text-[10px] font-bold text-rose-400 uppercase tracking-[0.3em]">Marketing Intelligence</span>
           </div>
-          <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
             Campaign <span className="gradient-text">Intelligence.</span>
           </h1>
-          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+          <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
             Monitor campaign performance, ROI, and lead capture assets.
           </p>
         </div>
         
         <div className="flex gap-4">
-            <div className="flex bg-white/5 rounded-xl p-1 border border-white/5">
+            <div className="flex bg-slate-100 rounded-xl p-1 border border-slate-200">
                 <button 
                   onClick={() => setActiveTab('campaigns')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'campaigns' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'campaigns' ? 'bg-rose-500 text-slate-900 shadow-lg' : 'text-slate-600 hover:text-slate-900'}`}
                 >
                     Campaigns
                 </button>
                 <button 
                   onClick={() => setActiveTab('forms')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'forms' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'forms' ? 'bg-rose-500 text-slate-900 shadow-lg' : 'text-slate-600 hover:text-slate-900'}`}
                 >
                     Lead Magnets
                 </button>
@@ -148,14 +148,14 @@ const Campaigns: React.FC = () => {
 
           <button 
             onClick={loadData}
-            className="p-3 glass-button border-white/5 text-slate-400 hover:text-white transition-all active:scale-90"
+            className="p-3 glass-button border-slate-200 text-slate-600 hover:text-slate-900 transition-all active:scale-90"
             title="Refresh Data"
           >
             <RefreshCw size={20} className={`${isLoading ? 'animate-spin text-rose-400' : ''}`} />
           </button>
           <button 
             onClick={() => setAiModal({ isOpen: true, contextName: 'Strategy', initialPrompt: 'Help me plan a new high-leverage marketing strategy...', contextType: 'workflow' })}
-            className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
+            className="px-8 py-3 premium-gradient text-slate-900 rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
           >
               <Sparkles size={18} />
               Plan Strategy
@@ -169,10 +169,10 @@ const Campaigns: React.FC = () => {
                  <ShieldCheck className="text-rose-400" size={32} />
              </div>
               <div className="max-w-md mx-auto">
-                 <h3 className="text-xl font-bold text-white uppercase tracking-wider">
+                 <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider">
                      {(validationError === "Authentication Expired" || validationError === "Authentication required") ? "Authorization Required" : "Marketing Hub Required"}
                  </h3>
-                 <p className="text-slate-400 mt-2 font-medium">
+                 <p className="text-slate-600 mt-2 font-medium">
                      {(validationError === "Authentication Expired" || validationError === "Authentication required" || validationError === "Insufficient Permissions") 
                         ? "Your connection to HubSpot has expired or lacks required scopes. Please re-authorize to continue." 
                         : "Connect your HubSpot instance to view campaigns and forms."}
@@ -180,7 +180,7 @@ const Campaigns: React.FC = () => {
                                  {(validationError === "Authentication Expired" || validationError === "Authentication required" || validationError === "Insufficient Permissions") && (
                      <button 
                         onClick={() => hubSpotService.initiateOAuth()}
-                        className="mt-6 px-8 py-3 premium-gradient text-white rounded-xl text-sm font-bold hover:scale-105 active:scale-95 transition-all shadow-lg mx-auto flex items-center gap-2"
+                        className="mt-6 px-8 py-3 premium-gradient text-slate-900 rounded-xl text-sm font-bold hover:scale-105 active:scale-95 transition-all shadow-lg mx-auto flex items-center gap-2"
                      >
                          <ShieldCheck size={18} />
                          Reconnect HubSpot
@@ -197,8 +197,8 @@ const Campaigns: React.FC = () => {
                    <AlertTriangle size={32} />
                </div>
                <div className="flex-1">
-                   <h4 className="font-bold text-white">Action Required: Scopes Missing</h4>
-                   <p className="text-sm text-slate-400 mt-1">
+                   <h4 className="font-bold text-slate-900">Action Required: Scopes Missing</h4>
+                   <p className="text-sm text-slate-600 mt-1">
                        We couldn't load your forms. Ensure your Connected App has the <code className="text-amber-400 px-1">forms</code> and <code className="text-amber-400 px-1">automation</code> scopes enabled.
                    </p>
                </div>
@@ -206,7 +206,7 @@ const Campaigns: React.FC = () => {
                 href="https://developers.hubspot.com/docs/apps/developer-platform/build-apps/manage-apps-in-hubspot" 
                 target="_blank" 
                 rel="noreferrer"
-                className="px-4 py-2 glass-button text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-slate-300 hover:text-white whitespace-nowrap"
+                className="px-4 py-2 glass-button text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-slate-300 hover:text-slate-900 whitespace-nowrap"
                >
                    Setup Scopes
                    <ExternalLink size={14} />
@@ -221,15 +221,15 @@ const Campaigns: React.FC = () => {
                 <>
 	                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 	                {pagedCampaigns.map((camp) => (
-	                    <div key={camp.id} className="glass-card p-8 group hover:-translate-y-1 transition-all duration-500 border-white/5 hover:border-rose-500/20">
+	                    <div key={camp.id} className="glass-card p-8 group hover:-translate-y-1 transition-all duration-500 border-slate-200 hover:border-rose-500/20">
                     <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-400 border border-rose-500/20">
                             <Megaphone size={24} />
                         </div>
                         <div className="overflow-hidden">
-                            <h3 className="text-lg font-bold text-white group-hover:text-rose-400 transition-colors truncate w-full" title={camp.name}>{camp.name}</h3>
-                            <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mt-1">ID: {camp.id}</p>
+                            <h3 className="text-lg font-bold text-slate-900 group-hover:text-rose-500 transition-colors truncate w-full" title={camp.name}>{camp.name}</h3>
+                            <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mt-1">ID: {camp.id}</p>
                         </div>
                         </div>
                         <div className={`text-xl font-black ${getScoreColor(camp.aiScore || 0)}`}>
@@ -239,34 +239,34 @@ const Campaigns: React.FC = () => {
 
                     <div className="space-y-4 mb-6">
                         <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
-                            <span className="text-slate-400">Status</span>
+                            <span className="text-slate-500">Status</span>
                             <span className={`px-3 py-1 rounded-lg border ${getStatusColor(camp.status)}`}>{camp.status || 'Unknown'}</span>
                         </div>
                         <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
-                            <span className="text-slate-400">Volume</span>
-                            <span className="text-white">{camp.contacts || 0} Sent</span>
+                            <span className="text-slate-500">Volume</span>
+                            <span className="text-slate-900">{camp.contacts || 0} Sent</span>
                         </div>
                         <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
-                            <span className="text-slate-400">Revenue Influence</span>
+                            <span className="text-slate-500">Revenue Influence</span>
                             <span className="text-emerald-400 font-black">${(camp.revenue || 0).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
-                            <span className="text-slate-400">Calculated ROI</span>
-                            <span className="text-white">
+                            <span className="text-slate-500">Calculated ROI</span>
+                            <span className="text-slate-900">
                                 {camp.revenue && camp.budget ? `${Math.round(((camp.revenue - camp.budget) / camp.budget) * 100)}%` : 'N/A'}
                             </span>
                         </div>
                     </div>
 
-                    <div className="pt-6 border-t border-white/5 flex gap-2">
+                    <div className="pt-6 border-t border-slate-200 flex gap-2">
                         <button 
                             onClick={() => triggerOptimize(camp, 'campaign')}
-                            className="flex-1 py-3 premium-gradient rounded-xl text-[10px] font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all text-white"
+                            className="flex-1 py-3 premium-gradient rounded-xl text-[10px] font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all text-slate-900"
                         >
                             <Sparkles size={14} />
                             Optimize
                         </button>
-                        <button className="w-12 h-11 glass-button flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                        <button className="w-12 h-11 glass-button flex items-center justify-center text-slate-600 hover:text-slate-900 transition-all">
                             <TrendingUp size={16} />
                         </button>
                     </div>
@@ -288,12 +288,12 @@ const Campaigns: React.FC = () => {
                 </>
 	            ) : (
 	                <div className="glass-card p-20 text-center space-y-6">
-                    <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10">
-                        <Megaphone className="text-slate-400" size={40} />
+                    <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto border border-slate-200">
+                        <Megaphone className="text-slate-500" size={40} />
                     </div>
                     <div className="max-w-md mx-auto">
-                        <h3 className="text-2xl font-bold text-white tracking-tight">No Campaigns Found</h3>
-                        <p className="text-slate-400 mt-3 font-medium text-sm leading-relaxed">
+                        <h3 className="text-2xl font-bold text-slate-900 tracking-tight">No Campaigns Found</h3>
+                        <p className="text-slate-600 mt-3 font-medium text-sm leading-relaxed">
                         No marketing campaigns were detected. Create campaigns in HubSpot Marketing Hub to see them here.
                         </p>
                     </div>
@@ -309,15 +309,15 @@ const Campaigns: React.FC = () => {
 	              {leadMagnets.length > 0 && (
 	                  <div className="space-y-4">
                       <div className="flex items-center gap-3">
-                          <Download className="text-rose-400" size={20} />
-                          <h3 className="text-xl font-bold text-white">Detected Lead Magnets</h3>
+                          <Download className="text-rose-500" size={20} />
+                          <h3 className="text-xl font-bold text-slate-900">Detected Lead Magnets</h3>
 	                      </div>
 	                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 	                          {pagedLeadMagnets.map(form => (
 	                              <div key={form.id} className="glass-card p-6 border-rose-500/20 bg-rose-500/5 group">
                                   <div className="flex items-start justify-between">
-                                      <div className="p-3 bg-white/5 rounded-xl">
-                                          <FileText className="text-rose-400" size={20} />
+                                      <div className="p-3 bg-slate-100 rounded-xl border border-slate-200">
+                                          <FileText className="text-rose-500" size={20} />
                                       </div>
                                       <div className="flex flex-col items-end gap-1">
                                         <div className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
@@ -329,15 +329,15 @@ const Campaigns: React.FC = () => {
                                       </div>
                                   </div>
                                   <div className="mt-4">
-                                      <h4 className="font-bold text-white text-lg leading-tight truncate">{form.name}</h4>
+                                      <h4 className="font-bold text-slate-900 text-lg leading-tight truncate">{form.name}</h4>
                                       <p className="text-[10px] text-slate-500 mt-2 font-mono uppercase tracking-widest">{form.id?.slice(0, 12)}</p>
                                   </div>
-                                  <div className="mt-6 pt-6 border-t border-white/5">
+                                  <div className="mt-6 pt-6 border-t border-slate-200">
                                       <button 
                                         onClick={() => triggerOptimize(form, 'form')}
-                                        className="w-full py-3 glass-button text-[10px] font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-500/10 transition-all text-slate-300 hover:text-white"
+                                        className="w-full py-3 glass-button text-[10px] font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-500/10 transition-all text-slate-600 hover:text-slate-900"
                                       >
-                                        <Sparkles size={14} className="text-rose-400" />
+                                        <Sparkles size={14} className="text-rose-500" />
                                         Improve Performance
                                       </button>
                                   </div>
@@ -361,26 +361,26 @@ const Campaigns: React.FC = () => {
 
               {/* All Forms Table */}
               <div className="glass-card overflow-hidden">
-                  <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                  <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                          <FileText className="text-slate-400" size={20} />
-                          <h3 className="text-xl font-bold text-white">All Active Forms</h3>
+                          <FileText className="text-slate-500" size={20} />
+                          <h3 className="text-xl font-bold text-slate-900">All Active Forms</h3>
                       </div>
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{forms.length} Total</span>
                   </div>
 	                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-white/5 border-b border-white/5 text-[10px] uppercase text-slate-400 font-extrabold tracking-[0.2em]">
+                      <tr className="bg-slate-100 border-b border-slate-200 text-[10px] uppercase text-slate-500 font-extrabold tracking-[0.2em]">
                         <th className="px-8 py-6">Form Name</th>
                         <th className="px-8 py-6">Intelligence</th>
                         <th className="px-8 py-6 text-right">Created</th>
                       </tr>
 	                    </thead>
-	                    <tbody className="divide-y divide-white/5">
+	                    <tbody className="divide-y divide-slate-200">
 	                      {pagedForms.map((form) => (
-	                        <tr key={form.id} className="hover:bg-white/5 transition-all group">
+	                        <tr key={form.id} className="hover:bg-slate-50 transition-all group">
                           <td className="px-8 py-6">
-                            <div className="font-bold text-white flex items-center gap-2">
+                            <div className="font-bold text-slate-900 flex items-center gap-2">
                                 {form.name}
                                 {form.leadMagnet && <Sparkles size={12} className="text-amber-400" />}
                             </div>
@@ -391,25 +391,25 @@ const Campaigns: React.FC = () => {
                                   <div className={`text-sm font-black w-10 ${getScoreColor(form.aiScore || 0)}`}>{form.aiScore}%</div>
                                   <button 
                                     onClick={() => triggerOptimize(form, 'form')}
-                                    className="p-1.5 opacity-0 group-hover:opacity-100 bg-white/5 rounded-lg text-slate-400 hover:text-rose-400 transition-all"
+                                    className="p-1.5 opacity-0 group-hover:opacity-100 bg-slate-100 rounded-lg text-slate-600 hover:text-rose-500 transition-all"
                                   >
                                       <Sparkles size={14} />
                                   </button>
                               </div>
                           </td>
-                          <td className="px-8 py-6 text-right text-sm text-slate-400 font-medium">
+                          <td className="px-8 py-6 text-right text-sm text-slate-600 font-medium">
                             {new Date(form.createdAt).toLocaleDateString()}
                           </td>
 	                        </tr>
 	                      ))}
                       {forms.length === 0 && (
                           <tr>
-                              <td colSpan={3} className="px-8 py-12 text-center text-slate-400">No forms found or permission denied.</td>
+                              <td colSpan={3} className="px-8 py-12 text-center text-slate-600">No forms found or permission denied.</td>
                           </tr>
                       )}
 	                    </tbody>
 	                  </table>
-                    <div className="p-6 border-t border-white/5">
+                    <div className="p-6 border-t border-slate-200">
                       <Pagination
                         page={currentFormPage}
                         pageSize={formPageSize}

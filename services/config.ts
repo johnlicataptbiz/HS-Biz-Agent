@@ -1,9 +1,18 @@
 /**
  * Utility to determine the correct API base URL.
- * In production (Surge), we point to the Vercel hosted backend.
+ * In production (Surge), point at the dedicated backend (e.g. Railway).
  */
 export const getApiUrl = (path: string): string => {
-  // Always route API calls to the Railway backend regardless of deployment environment.
-  const apiBase = 'https://web-production-249d7e.up.railway.app';
-  return `${apiBase}${path}`;
+  const rawBase =
+    import.meta.env.VITE_API_BASE ||
+    import.meta.env.VITE_API_URL ||
+    '';
+  const apiBase = rawBase ? rawBase.replace(/\/+$/, '') : '';
+
+  if (apiBase) {
+    return `${apiBase}${path}`;
+  }
+
+  // Default to same-origin if no explicit backend is configured.
+  return `${window.location.origin}${path}`;
 };

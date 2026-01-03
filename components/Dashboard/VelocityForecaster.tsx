@@ -12,7 +12,7 @@ export const VelocityForecaster: React.FC<VelocityForecasterProps> = ({ velocity
   const velocityColor = velocityScore > 80 ? 'text-emerald-400' : velocityScore > 50 ? 'text-blue-400' : 'text-amber-400';
   
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm relative overflow-hidden group">
+    <div className="bg-white border border-slate-200 rounded-xl p-6 backdrop-blur-sm relative overflow-hidden group">
       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
         <TrendingUp size={80} className={velocityColor} />
       </div>
@@ -21,14 +21,14 @@ export const VelocityForecaster: React.FC<VelocityForecasterProps> = ({ velocity
         <div className={`p-2 rounded-lg bg-slate-800 ${velocityColor}`}>
           <Zap size={20} />
         </div>
-        <h3 className="text-lg font-semibold text-white">Revenue Velocity Forecast</h3>
+        <h3 className="text-lg font-semibold text-slate-900">Revenue Velocity Forecast</h3>
       </div>
 
       <div className="space-y-4">
         <div>
-          <p className="text-slate-400 text-sm">30-Day Projection</p>
+          <p className="text-slate-600 text-sm">30-Day Projection</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white">${projection.toLocaleString()}</span>
+            <span className="text-3xl font-bold text-slate-900">${projection.toLocaleString()}</span>
             <span className={`text-sm font-medium ${velocityColor}`}>
               {velocityScore > 75 ? '↑ High Momentum' : '→ Stable'}
             </span>
@@ -38,11 +38,11 @@ export const VelocityForecaster: React.FC<VelocityForecasterProps> = ({ velocity
         <div className="grid grid-cols-2 gap-4 pt-2">
           <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-800">
             <p className="text-slate-500 text-xs mb-1">Velocity Score</p>
-            <p className="text-lg font-mono font-bold text-white">{velocityScore}/100</p>
+            <p className="text-lg font-mono font-bold text-slate-900">{velocityScore}/100</p>
           </div>
           <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-800">
             <p className="text-slate-500 text-xs mb-1">Pipeline Health</p>
-            <p className="text-lg font-mono font-bold text-white">Optimized</p>
+            <p className="text-lg font-mono font-bold text-slate-900">Optimized</p>
           </div>
         </div>
 

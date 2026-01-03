@@ -78,7 +78,7 @@ const AssetIntelligence: React.FC<{ onNavigate: (tab: string) => void }> = ({ on
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
     if (score >= 50) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-    return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+    return 'text-slate-600 bg-slate-500/10 border-slate-500/20';
   };
 
   return (
@@ -92,10 +92,10 @@ const AssetIntelligence: React.FC<{ onNavigate: (tab: string) => void }> = ({ on
                Content Performance
              </span>
           </div>
-          <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
             Asset <span className="gradient-text">Intelligence.</span>
           </h1>
-          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+          <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
             Analyze your Lead Magnets and Entry Points. Identify which assets attract the highest quality, highest value leads.
           </p>
         </div>
@@ -107,19 +107,19 @@ const AssetIntelligence: React.FC<{ onNavigate: (tab: string) => void }> = ({ on
               placeholder="Search assets..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 outline-none focus:ring-2 focus:ring-pink-500/30 focus:border-pink-500/30 transition-all w-80 text-sm font-medium text-white placeholder:text-slate-600"
+              className="bg-slate-100 border border-slate-200 rounded-2xl pl-12 pr-6 py-4 outline-none focus:ring-2 focus:ring-pink-500/30 focus:border-pink-500/30 transition-all w-80 text-sm font-medium text-slate-900 placeholder:text-slate-600"
             />
         </div>
       </div>
 
       {loading ? (
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1,2,3,4,5,6].map(i => <div key={i} className="h-64 glass-card animate-pulse bg-white/5" />)}
+            {[1,2,3,4,5,6].map(i => <div key={i} className="h-64 glass-card animate-pulse bg-slate-100" />)}
          </div>
       ) : filteredAssets.length === 0 ? (
-         <div className="text-center py-20 border-2 border-dashed border-white/5 rounded-3xl">
+         <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-3xl">
             <FileText size={48} className="mx-auto text-slate-600 mb-4" />
-            <h3 className="text-xl font-bold text-white">No Assets Found</h3>
+            <h3 className="text-xl font-bold text-slate-900">No Assets Found</h3>
             <p className="text-slate-500 mt-2">Try adjusting your search or sync more data.</p>
          </div>
       ) : (
@@ -140,14 +140,14 @@ const AssetIntelligence: React.FC<{ onNavigate: (tab: string) => void }> = ({ on
                         </div>
                      </div>
                      
-                     <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 leading-tight group-hover:text-pink-200 transition-colors" title={asset.form_name}>
+                     <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2 leading-tight group-hover:text-pink-200 transition-colors" title={asset.form_name}>
                         {asset.form_name}
                      </h3>
                      
                      <div className="grid grid-cols-2 gap-4 mt-6">
                         <div>
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Volume</p>
-                           <p className="text-2xl font-black text-white">{asset.total_contacts}</p>
+                           <p className="text-2xl font-black text-slate-900">{asset.total_contacts}</p>
                         </div>
                         <div>
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Revenue</p>
@@ -157,7 +157,7 @@ const AssetIntelligence: React.FC<{ onNavigate: (tab: string) => void }> = ({ on
                   </div>
 
                   {/* Footer Stats */}
-                  <div className="bg-white/5 px-6 py-4 flex items-center justify-between border-t border-white/5">
+                  <div className="bg-slate-100 px-6 py-4 flex items-center justify-between border-t border-slate-200">
                      <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1.5" title="Conversion Rate">
                            <Users size={14} className="text-slate-500" />

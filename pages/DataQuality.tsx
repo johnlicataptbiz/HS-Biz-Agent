@@ -148,7 +148,7 @@ const DataQuality: React.FC = () => {
     switch (severity) {
       case 'critical': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
       case 'warning': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-      default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+      default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
     }
   };
 
@@ -156,14 +156,14 @@ const DataQuality: React.FC = () => {
     switch (type) {
       case 'missing_email': return <Mail size={16} className="text-rose-400" />;
       case 'missing_owner': return <User size={16} className="text-amber-400" />;
-      case 'stale_record': return <Clock size={16} className="text-slate-400" />;
+      case 'stale_record': return <Clock size={16} className="text-slate-600" />;
       case 'ghost_opp': return <Ghost size={16} className="text-purple-400" />;
       default: return <AlertTriangle size={16} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white p-10">
+    <div className="min-h-screen bg-white text-slate-900 p-10">
       {/* Header */}
       <header className="flex justify-between items-end mb-12">
         <div>
@@ -173,13 +173,13 @@ const DataQuality: React.FC = () => {
             <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Quality Engine</span>
           </div>
           <h1 className="text-6xl font-black tracking-tighter leading-none mb-4 uppercase">Data Quality</h1>
-          <p className="text-slate-400 text-sm max-w-lg">Identify and resolve data hygiene issues across your CRM. Maintain architectural integrity for high-velocity automation.</p>
+          <p className="text-slate-600 text-sm max-w-lg">Identify and resolve data hygiene issues across your CRM. Maintain architectural integrity for high-velocity automation.</p>
         </div>
 
         <button
           onClick={runQualityScan}
           disabled={scanning}
-          className="flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all disabled:opacity-50"
+          className="flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all disabled:opacity-50"
         >
           {scanning ? <RefreshCw size={18} className="animate-spin" /> : <Zap size={18} />}
           {scanning ? 'Scanning...' : 'Run Quality Scan'}
@@ -189,7 +189,7 @@ const DataQuality: React.FC = () => {
       {/* Metrics Grid */}
       {metrics && (
         <div className="grid grid-cols-6 gap-6 mb-12">
-          <div className="col-span-2 glass-panel p-8 border-white/5 bg-gradient-to-br from-indigo-500/5 to-transparent">
+          <div className="col-span-2 glass-panel p-8 border-slate-200 bg-gradient-to-br from-indigo-500/5 to-transparent">
             <div className="flex items-center justify-between mb-6">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Health Index</span>
               <ShieldCheck size={20} className="text-indigo-400" />
@@ -201,7 +201,7 @@ const DataQuality: React.FC = () => {
               }`}>{metrics.overallScore}</span>
               <span className="text-slate-500 font-bold mb-2">/ 100</span>
             </div>
-            <div className="mt-4 h-2 w-full bg-white/5 rounded-full overflow-hidden">
+            <div className="mt-4 h-2 w-full bg-slate-100 rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all duration-1000 ${
                   metrics.overallScore >= 80 ? 'bg-emerald-500' :
@@ -212,27 +212,27 @@ const DataQuality: React.FC = () => {
             </div>
           </div>
 
-          <div className="glass-panel p-6 border-white/5 hover:border-rose-500/30 transition-all cursor-pointer" onClick={() => setActiveFilter('missing_email')}>
+          <div className="glass-panel p-6 border-slate-200 hover:border-rose-500/30 transition-all cursor-pointer" onClick={() => setActiveFilter('missing_email')}>
             <Mail size={20} className="text-rose-400 mb-4" />
-            <span className="text-3xl font-black text-white">{metrics.missingEmails}</span>
+            <span className="text-3xl font-black text-slate-900">{metrics.missingEmails}</span>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Missing Emails</p>
           </div>
 
-          <div className="glass-panel p-6 border-white/5 hover:border-amber-500/30 transition-all cursor-pointer" onClick={() => setActiveFilter('missing_owner')}>
+          <div className="glass-panel p-6 border-slate-200 hover:border-amber-500/30 transition-all cursor-pointer" onClick={() => setActiveFilter('missing_owner')}>
             <User size={20} className="text-amber-400 mb-4" />
-            <span className="text-3xl font-black text-white">{metrics.missingOwners}</span>
+            <span className="text-3xl font-black text-slate-900">{metrics.missingOwners}</span>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">No Owner</p>
           </div>
 
-          <div className="glass-panel p-6 border-white/5 hover:border-purple-500/30 transition-all cursor-pointer" onClick={() => setActiveFilter('ghost_opp')}>
+          <div className="glass-panel p-6 border-slate-200 hover:border-purple-500/30 transition-all cursor-pointer" onClick={() => setActiveFilter('ghost_opp')}>
             <Ghost size={20} className="text-purple-400 mb-4" />
-            <span className="text-3xl font-black text-white">{metrics.ghostOpps}</span>
+            <span className="text-3xl font-black text-slate-900">{metrics.ghostOpps}</span>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Ghost Opps 👻</p>
           </div>
 
-          <div className="glass-panel p-6 border-white/5 hover:border-slate-500/30 transition-all cursor-pointer" onClick={() => setActiveFilter('stale_record')}>
-            <Clock size={20} className="text-slate-400 mb-4" />
-            <span className="text-3xl font-black text-white">{metrics.staleRecords}</span>
+          <div className="glass-panel p-6 border-slate-200 hover:border-slate-500/30 transition-all cursor-pointer" onClick={() => setActiveFilter('stale_record')}>
+            <Clock size={20} className="text-slate-600 mb-4" />
+            <span className="text-3xl font-black text-slate-900">{metrics.staleRecords}</span>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Stale Records</p>
           </div>
         </div>
@@ -247,8 +247,8 @@ const DataQuality: React.FC = () => {
             onClick={() => setActiveFilter(filter)}
             className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
               activeFilter === filter 
-                ? 'bg-indigo-600 text-white' 
-                : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                ? 'bg-indigo-600 text-slate-900' 
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             {filter === 'all' ? 'All Issues' : filter.replace(/_/g, ' ')}
@@ -257,11 +257,11 @@ const DataQuality: React.FC = () => {
       </div>
 
       {/* Issues Table */}
-      <div className="glass-panel border-white/5 overflow-hidden">
+      <div className="glass-panel border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-white/[0.02] border-b border-white/5">
+              <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="px-8 py-6 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Type</th>
                 <th className="px-8 py-6 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Contact</th>
                 <th className="px-8 py-6 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Issue</th>
@@ -273,7 +273,7 @@ const DataQuality: React.FC = () => {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={5} className="px-8 py-8 bg-white/5" />
+                    <td colSpan={5} className="px-8 py-8 bg-slate-100" />
                   </tr>
                 ))
               ) : filteredIssues.length === 0 ? (
@@ -285,21 +285,21 @@ const DataQuality: React.FC = () => {
                 </tr>
               ) : (
                 filteredIssues.slice(0, 50).map((issue) => (
-                  <tr key={issue.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={issue.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-8 py-6">
-                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
                         {getTypeIcon(issue.type)}
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="font-bold text-white">{issue.contactName}</span>
+                      <span className="font-bold text-slate-900">{issue.contactName}</span>
                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">ID: {issue.contactId}</p>
                     </td>
                     <td className="px-8 py-6">
                       <span className="text-sm text-slate-300">{issue.description}</span>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="text-xs text-slate-400">{issue.recommendation}</span>
+                      <span className="text-xs text-slate-600">{issue.recommendation}</span>
                     </td>
                     <td className="px-8 py-6">
                       <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${getSeverityColor(issue.severity)}`}>
@@ -314,7 +314,7 @@ const DataQuality: React.FC = () => {
         </div>
         
         {filteredIssues.length > 50 && (
-          <div className="px-8 py-4 bg-white/[0.02] border-t border-white/5 text-center">
+          <div className="px-8 py-4 bg-slate-50 border-t border-slate-200 text-center">
             <span className="text-xs text-slate-500 font-bold">Showing 50 of {filteredIssues.length} issues</span>
           </div>
         )}

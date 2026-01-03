@@ -312,22 +312,22 @@ const AppTour: React.FC<AppTourProps> = ({ isOpen, onClose, onComplete, onNaviga
         className="absolute transition-all duration-500 ease-in-out w-[320px]"
         style={getPopoverStyle()}
       >
-        <div className="glass-card border border-white/10 shadow-[0_0_50px_rgba(99,102,241,0.2)] p-6 relative overflow-hidden bg-[#0a0f1d]/90 backdrop-blur-xl">
+        <div className="glass-card border border-slate-200 shadow-[0_0_50px_rgba(99,102,241,0.2)] p-6 relative overflow-hidden bg-white/90 backdrop-blur-xl">
            {/* Background Deco */}
            <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl"></div>
 
            <div className="relative z-10">
                <div className="flex justify-between items-start mb-4">
-                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-slate-900 shadow-lg">
                        <BrainCircuit size={20} />
                    </div>
-                   <button onClick={onClose} title="Dismiss Tour" className="text-slate-500 hover:text-white transition-colors">
+                   <button onClick={onClose} title="Dismiss Tour" className="text-slate-500 hover:text-slate-900 transition-colors">
                        <X size={16} />
                    </button>
                </div>
 
-               <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
-               <p className="text-slate-400 text-sm leading-relaxed mb-6">
+               <h3 className="text-xl font-bold text-slate-900 mb-2">{step.title}</h3>
+               <p className="text-slate-600 text-sm leading-relaxed mb-6">
                    {step.description}
                </p>
 

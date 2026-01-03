@@ -43,11 +43,11 @@ const SyncStatus: React.FC = () => {
     }, [isSyncing]);
 
     return (
-        <div className="p-4 glass-card bg-white/5 border-white/5 mx-4 mb-4">
+        <div className="p-4 glass-card bg-slate-100 border-slate-200 mx-4 mb-4">
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                     <Database size={14} className="text-indigo-400" />
-                    <span className="text-[10px] font-black text-white uppercase tracking-widest italic">Lead Mirror</span>
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic">Lead Mirror</span>
                 </div>
                 {isSyncing ? (
                     <div className="flex items-center gap-2">
@@ -62,7 +62,7 @@ const SyncStatus: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
                     <div 
                         className={`h-full bg-indigo-500 transition-all duration-1000 ${isSyncing ? 'animate-pulse' : ''}`}
                         style={{ width: `${status.status === 'completed' ? 100 : isSyncing ? 40 : 10}%` }}
@@ -73,7 +73,7 @@ const SyncStatus: React.FC = () => {
                     <button 
                         onClick={startSync}
                         disabled={isSyncing}
-                        className="text-[9px] font-black text-indigo-400 hover:text-white uppercase tracking-widest transition-colors"
+                        className="text-[9px] font-black text-indigo-400 hover:text-slate-900 uppercase tracking-widest transition-colors"
                     >
                         {isSyncing ? 'Syncing...' : 'Deep Refresh'}
                     </button>

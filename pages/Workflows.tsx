@@ -61,7 +61,7 @@ const Workflows: React.FC = () => {
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
     if (score >= 60) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-    if (score === 0) return 'text-slate-400 bg-white/5 border-white/10';
+    if (score === 0) return 'text-slate-600 bg-slate-100 border-slate-200';
     return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
   };
 
@@ -73,10 +73,10 @@ const Workflows: React.FC = () => {
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : 'bg-slate-500'}`}></div>
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em]">Operational Logic</span>
           </div>
-          <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
             Automation <span className="gradient-text">Workflows.</span>
           </h1>
-          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+          <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
             Architectural oversight of your business logic. identifies stall points and unoptimized branch paths.
           </p>
         </div>
@@ -85,7 +85,7 @@ const Workflows: React.FC = () => {
           <button 
             id="refresh-logic-btn"
             onClick={loadData}
-            className="p-3 glass-button border-white/5 text-slate-400 hover:text-white transition-all active:scale-90"
+            className="p-3 glass-button border-slate-200 text-slate-600 hover:text-slate-900 transition-all active:scale-90"
             title="Refresh Logic Sync"
             aria-label="Refresh workflows from HubSpot"
           >
@@ -95,7 +95,7 @@ const Workflows: React.FC = () => {
             id="draft-workflow-btn"
             onClick={() => setShowGeneralAi(true)}
             aria-label="Architect new flow with AI"
-            className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
+            className="px-8 py-3 premium-gradient text-slate-900 rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
           >
               <Sparkles size={18} />
               Architect New Flow
@@ -109,34 +109,34 @@ const Workflows: React.FC = () => {
                 <ShieldCheck className="text-indigo-400" size={32} />
             </div>
             <div className="max-w-md mx-auto">
-                <h3 className="text-xl font-bold text-white uppercase tracking-wider">Sync Required</h3>
-                <p className="text-slate-400 mt-2 font-medium">Connect your HubSpot instance to visualize and optimize your active automation workflows.</p>
+                <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider">Sync Required</h3>
+                <p className="text-slate-600 mt-2 font-medium">Connect your HubSpot instance to visualize and optimize your active automation workflows.</p>
             </div>
          </div>
       )}
 
       {isConnected && workflows.length === 0 && !isLoading && (
         <div className="glass-card p-20 text-center space-y-6">
-            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10">
-                <GitFork className="text-slate-400" size={40} />
+            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto border border-slate-200">
+                <GitFork className="text-slate-600" size={40} />
             </div>
             <div className="max-w-md mx-auto">
-                <h3 className="text-2xl font-bold text-white tracking-tight">Zero Logic Detected</h3>
-                <p className="text-slate-400 mt-3 font-medium text-sm leading-relaxed">
+                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Zero Logic Detected</h3>
+                <p className="text-slate-600 mt-3 font-medium text-sm leading-relaxed">
                   We scanned for workflows but found an empty registry. Check your HubSpot App permissions for <span className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">automation</span> scopes.
                 </p>
                 <div className="pt-8">
-                   <button onClick={loadData} className="px-6 py-2 glass-button text-xs font-bold text-slate-300 hover:text-white">Heuristic Rerun</button>
+                   <button onClick={loadData} className="px-6 py-2 glass-button text-xs font-bold text-slate-300 hover:text-slate-900">Heuristic Rerun</button>
                 </div>
             </div>
         </div>
       )}
 
 	      {workflows.length > 0 && (
-	        <div className="glass-card overflow-hidden border-white/5 shadow-2xl">
+	        <div className="glass-card overflow-hidden border-slate-200 shadow-2xl">
 	          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/5 border-b border-white/5 text-[10px] uppercase text-slate-400 font-extrabold tracking-[0.2em]">
+              <tr className="bg-slate-100 border-b border-slate-200 text-[10px] uppercase text-slate-600 font-extrabold tracking-[0.2em]">
                 <th className="px-8 py-6">Architectural Node</th>
                 <th className="px-8 py-6">Object Model</th>
                 <th className="px-8 py-6">Volume</th>
@@ -147,11 +147,11 @@ const Workflows: React.FC = () => {
 	            </thead>
 	            <tbody className="divide-y divide-white/5">
 	              {pagedWorkflows.map((wf) => (
-	                <tr key={wf.id} className="hover:bg-white/5 transition-all group">
+	                <tr key={wf.id} className="hover:bg-slate-100 transition-all group">
                   <td className="px-8 py-6">
-                    <div className="font-bold text-white group-hover:text-indigo-400 transition-colors text-base tracking-tight">{wf.name}</div>
+                    <div className="font-bold text-slate-900 group-hover:text-indigo-400 transition-colors text-base tracking-tight">{wf.name}</div>
                     <div className="flex flex-col gap-1 mt-1">
-                        <div className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Node ID: {wf.id}</div>
+                        <div className="text-[10px] text-slate-600 font-bold tracking-widest uppercase">Node ID: {wf.id}</div>
                         {wf.issues && wf.issues.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                                 {wf.issues.map((issue, idx) => (
@@ -165,7 +165,7 @@ const Workflows: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                      <div className="flex items-center gap-2 py-1.5 px-3 bg-white/5 rounded-xl border border-white/5 w-fit">
+                      <div className="flex items-center gap-2 py-1.5 px-3 bg-slate-100 rounded-xl border border-slate-200 w-fit">
                         <Database size={12} className="text-indigo-400" />
                         <span className="text-[10px] text-slate-300 font-extrabold uppercase tracking-widest">
                             {wf.objectType}
@@ -174,14 +174,14 @@ const Workflows: React.FC = () => {
                   </td>
                   <td className="px-8 py-6 text-sm font-bold text-slate-300 tracking-tight">
                     <div className="flex items-center gap-2">
-                        <Activity size={12} className="text-slate-400" />
+                        <Activity size={12} className="text-slate-600" />
                         {wf.enrolledCount.toLocaleString()}
                     </div>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex justify-center">
                         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-extrabold uppercase tracking-widest ${getScoreColor(wf.aiScore)} shadow-sm`}>
-                          {wf.aiScore === 0 ? <RefreshCw size={14} className="text-slate-400" /> : (wf.aiScore < 80 ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />)}
+                          {wf.aiScore === 0 ? <RefreshCw size={14} className="text-slate-600" /> : (wf.aiScore < 80 ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />)}
                           {wf.aiScore === 0 ? 'PENDING' : `${wf.aiScore}%`}
                         </div>
                     </div>
@@ -189,7 +189,7 @@ const Workflows: React.FC = () => {
                   <td className="px-8 py-6">
                       <div className="flex items-center gap-3">
                           <div className={`w-2.5 h-2.5 rounded-full ${wf.enabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-700'}`}></div>
-                          <span className={`text-[10px] font-extrabold uppercase tracking-widest ${wf.enabled ? 'text-white' : 'text-slate-400'}`}>
+                          <span className={`text-[10px] font-extrabold uppercase tracking-widest ${wf.enabled ? 'text-slate-900' : 'text-slate-600'}`}>
                             {wf.enabled ? 'Active Logic' : 'Standby'}
                           </span>
                       </div>
@@ -199,7 +199,7 @@ const Workflows: React.FC = () => {
                       {wf.issues && wf.issues.length > 0 ? (
                            <button 
                              onClick={() => openFixModal(wf)}
-                             className="px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-xl transition-all text-[10px] font-extrabold uppercase tracking-widest shadow-lg shadow-rose-500/20 active:scale-95 flex items-center gap-2 animate-pulse"
+                             className="px-4 py-2 bg-rose-500 text-slate-900 hover:bg-rose-600 rounded-xl transition-all text-[10px] font-extrabold uppercase tracking-widest shadow-lg shadow-rose-500/20 active:scale-95 flex items-center gap-2 animate-pulse"
                            >
                                <Sparkles size={14} />
                                Fix Issue
@@ -210,14 +210,14 @@ const Workflows: React.FC = () => {
                                   setFixPrompt('');
                                   setSelectedWf(wf);
                               }}
-                              className="px-4 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white rounded-xl transition-all text-[10px] font-extrabold uppercase tracking-widest border border-indigo-500/20 active:scale-95 flex items-center gap-2 shadow-lg hover:shadow-indigo-500/20"
+                              className="px-4 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-slate-900 rounded-xl transition-all text-[10px] font-extrabold uppercase tracking-widest border border-indigo-500/20 active:scale-95 flex items-center gap-2 shadow-lg hover:shadow-indigo-500/20"
                           >
                               <Sparkles size={14} />
                               Analyze
                           </button>
                       )}
                       
-                      <button className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors" title="More Options">
+                      <button className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors" title="More Options">
                           <MoreHorizontal size={18} />
                       </button>
                     </div>
@@ -226,7 +226,7 @@ const Workflows: React.FC = () => {
 	              ))}
 	            </tbody>
 	          </table>
-              <div className="p-6 border-t border-white/5">
+              <div className="p-6 border-t border-slate-200">
                 <Pagination
                   page={currentPage}
                   pageSize={pageSize}

@@ -83,22 +83,22 @@ const RevOps: React.FC = () => {
                 <Lock size={12} className="text-indigo-400" />
                 <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Admin Access</span>
             </div>
-            <div className="h-px w-12 bg-white/10"></div>
+            <div className="h-px w-12 bg-slate-200"></div>
             <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 scale-animation"></div>
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">All Systems Go</span>
             </div>
           </div>
-          <h1 className="text-6xl font-black text-white italic tracking-tighter leading-none">
+          <h1 className="text-6xl font-black text-slate-900 italic tracking-tighter leading-none">
             Operations <span className="gradient-text">Control.</span>
           </h1>
-          <p className="text-slate-400 max-w-xl font-bold uppercase tracking-widest text-[11px] leading-relaxed">
+          <p className="text-slate-600 max-w-xl font-bold uppercase tracking-widest text-[11px] leading-relaxed">
             Automatic monitoring of your sales pipeline and team performance.
           </p>
         </div>
         <button 
           onClick={loadData}
-          className="flex items-center gap-3 px-8 py-4 glass-card bg-white/5 border-white/10 hover:bg-white/10 text-white font-black uppercase tracking-widest text-xs transition-all"
+          className="flex items-center gap-3 px-8 py-4 glass-card bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900 font-black uppercase tracking-widest text-xs transition-all"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           Sync Data
@@ -106,10 +106,10 @@ const RevOps: React.FC = () => {
       </div>
 
       {!isConnected ? (
-        <div className="glass-card p-20 text-center space-y-8 border-dashed border-white/10">
+        <div className="glass-card p-20 text-center space-y-8 border-dashed border-slate-200">
             <ShieldAlert size={64} className="text-slate-800 mx-auto" />
             <div className="space-y-2">
-                <h3 className="text-2xl font-black text-white uppercase tracking-widest">Authentication Required</h3>
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-widest">Authentication Required</h3>
                 <p className="text-slate-500 font-medium">Link your HubSpot portal to start managing your business operations.</p>
             </div>
         </div>
@@ -121,7 +121,7 @@ const RevOps: React.FC = () => {
             <div className="glass-card p-8 border-l-4 border-indigo-500">
                 <div className="flex items-center gap-3 mb-8">
                     <Activity className="text-indigo-400" size={20} />
-                    <h3 className="font-black text-white text-xs uppercase tracking-widest italic">Health Score</h3>
+                    <h3 className="font-black text-slate-900 text-xs uppercase tracking-widest italic">Health Score</h3>
                 </div>
                 <div className="flex flex-col items-center justify-center space-y-4">
                     <div className="relative w-32 h-32 flex items-center justify-center">
@@ -137,17 +137,17 @@ const RevOps: React.FC = () => {
                                 className="transition-all duration-1000 ease-out"
                             />
                         </svg>
-                        <span className="absolute text-3xl font-black text-white italic">{audit?.ownershipHealth?.score || 0}%</span>
+                        <span className="absolute text-3xl font-black text-slate-900 italic">{audit?.ownershipHealth?.score || 0}%</span>
                     </div>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">System Health</p>
                 </div>
-                <div className="mt-8 pt-8 border-t border-white/5 space-y-4">
+                <div className="mt-8 pt-8 border-t border-slate-200 space-y-4">
                     <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase">Stalled Deals</span>
+                        <span className="text-[10px] text-slate-600 font-bold uppercase">Stalled Deals</span>
                         <span className="text-xs font-black text-rose-500">{ghostDeals.length}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase">Active Owners</span>
+                        <span className="text-[10px] text-slate-600 font-bold uppercase">Active Owners</span>
                         <span className="text-xs font-black text-indigo-400">{owners.length}</span>
                     </div>
                 </div>
@@ -156,19 +156,19 @@ const RevOps: React.FC = () => {
             <div className="glass-card p-8 bg-indigo-500/5">
                 <div className="flex items-center gap-3 mb-6">
                     <History className="text-indigo-400" size={20} />
-                    <h3 className="font-black text-white text-xs uppercase tracking-widest italic">Recent Audits</h3>
+                    <h3 className="font-black text-slate-900 text-xs uppercase tracking-widest italic">Recent Audits</h3>
                 </div>
                 <div className="space-y-4">
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
+                    <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between">
                         <div>
-                            <p className="text-[10px] font-black text-white uppercase tracking-tighter">Ownership Scan</p>
+                            <p className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">Ownership Scan</p>
                             <p className="text-[9px] text-slate-500 font-bold">2 HOURS AGO</p>
                         </div>
                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                     </div>
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
+                    <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between">
                         <div>
-                            <p className="text-[10px] font-black text-white uppercase tracking-tighter">Pipeline Activity</p>
+                            <p className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">Pipeline Activity</p>
                             <p className="text-[9px] text-slate-500 font-bold">5 HOURS AGO</p>
                         </div>
                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
@@ -184,13 +184,13 @@ const RevOps: React.FC = () => {
             <div className="glass-card p-10 flex flex-col space-y-10">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase underline decoration-indigo-500 decoration-4 underline-offset-8">Pipeline <span className="gradient-text">Visualizer.</span></h2>
-                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-3">See how deals flow through your stages</p>
+                        <h2 className="text-2xl font-black text-slate-900 italic tracking-tighter uppercase underline decoration-indigo-500 decoration-4 underline-offset-8">Pipeline <span className="gradient-text">Visualizer.</span></h2>
+                        <p className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] mt-3">See how deals flow through your stages</p>
                     </div>
                     <div className="flex gap-4">
-                        <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-right">
+                        <div className="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-right">
                             <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest block">Total Pipeline</span>
-                            <span className="text-sm font-black text-white italic">
+                            <span className="text-sm font-black text-slate-900 italic">
                                 ${Math.round(deals.reduce((acc, d) => acc + (d.amount || 0), 0) / 1000000)}M
                             </span>
                         </div>
@@ -235,18 +235,18 @@ const RevOps: React.FC = () => {
                         <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center shadow-lg shadow-indigo-500/10">
                             <AlertTriangle className="text-indigo-400" size={20} />
                         </div>
-                        <h3 className="text-lg font-black text-white tracking-tighter italic uppercase">Bottleneck <span className="text-indigo-400">Finder.</span></h3>
+                        <h3 className="text-lg font-black text-slate-900 tracking-tighter italic uppercase">Bottleneck <span className="text-indigo-400">Finder.</span></h3>
                     </div>
                     <div className="space-y-6">
                         {audit?.bottlenecks?.map((b: any, i: number) => (
-                            <div key={i} className="group p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/30 transition-all">
+                            <div key={i} className="group p-6 rounded-2xl bg-slate-100 border border-slate-200 hover:border-indigo-500/30 transition-all">
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="px-2 py-1 rounded bg-indigo-500/20 text-[9px] font-black text-indigo-400 uppercase tracking-widest">{b.stage}</span>
                                     <span className={`text-[9px] font-black uppercase tracking-widest ${b.impact === 'High' ? 'text-rose-500' : 'text-amber-500'}`}>{b.impact} Impact</span>
                                 </div>
-                                <p className="text-sm font-black text-white mb-2 leading-tight uppercase italic">{b.issue}</p>
+                                <p className="text-sm font-black text-slate-900 mb-2 leading-tight uppercase italic">{b.issue}</p>
                                 <p className="text-xs text-slate-500 font-medium mb-4">{b.recommendation}</p>
-                                <button className="flex items-center gap-2 text-[10px] font-black text-indigo-400 hover:text-white transition-all uppercase tracking-widest">
+                                <button className="flex items-center gap-2 text-[10px] font-black text-indigo-400 hover:text-slate-900 transition-all uppercase tracking-widest">
                                     Deploy Fix <ArrowRight size={10} />
                                 </button>
                             </div>
@@ -260,7 +260,7 @@ const RevOps: React.FC = () => {
                         <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center shadow-lg shadow-emerald-500/10">
                             <Users className="text-emerald-400" size={20} />
                         </div>
-                        <h3 className="text-lg font-black text-white tracking-tighter italic uppercase">Deal <span className="text-emerald-400">Ownership.</span></h3>
+                        <h3 className="text-lg font-black text-slate-900 tracking-tighter italic uppercase">Deal <span className="text-emerald-400">Ownership.</span></h3>
                     </div>
                     
                     <div className="flex items-center justify-center h-48">
@@ -283,17 +283,17 @@ const RevOps: React.FC = () => {
                     </div>
 
                     <div className="space-y-4">
-                        <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Ghost Deals Detected</span>
+                        <div className="p-4 rounded-xl bg-slate-100 border border-slate-200 flex justify-between items-center">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Ghost Deals Detected</span>
                             <span className="text-lg font-black text-rose-500 italic">{ghostDeals.length}</span>
                         </div>
-                        <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Strategy Priority</span>
+                        <div className="p-4 rounded-xl bg-slate-100 border border-slate-200 flex justify-between items-center">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Strategy Priority</span>
                             <span className="text-xs font-black text-indigo-400 uppercase tracking-tighter underline underline-offset-4">{audit?.strategicPriority}</span>
                         </div>
                     </div>
 
-                    <button className="w-full py-4 rounded-2xl premium-gradient text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                    <button className="w-full py-4 rounded-2xl premium-gradient text-slate-900 text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
                         <Target size={16} />
                         Fix Issues
                     </button>

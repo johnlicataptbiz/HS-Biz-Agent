@@ -136,12 +136,24 @@ export const getSyncProgress = async () => {
   try {
     const res = await pool.query("SELECT COUNT(*) as count FROM contacts");
     const state = await pool.query(
-      "SELECT value FROM sync_state WHERE key = $1",
+      "SELECT value, updated_at FROM sync_state WHERE key = $1",
       ["sync_status"]
     );
+    let status = state.rows[0]?.value || "idle";
+    const updatedAt = state.rows[0]?.updated_at
+      ? new Date(state.rows[0].updated_at)
+      : null;
+
+    if (status === "syncing" && updatedAt) {
+      const staleMs = 30 * 60 * 1000;
+      if (Date.now() - updatedAt.getTime() > staleMs) {
+        status = parseInt(res.rows[0].count) > 0 ? "completed" : "idle";
+        await updateSyncStatus(status);
+      }
+    }
     return {
       count: parseInt(res.rows[0].count),
-      status: state.rows[0]?.value || "idle",
+      status,
     };
   } catch (e) {
     console.error("Database query failed:", e.message);

@@ -33,7 +33,7 @@ const FunnelStage: React.FC<FunnelStageProps> = ({
         <div className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl pointer-events-none transition-opacity group-hover:opacity-20 bg-[var(--stage-accent)]"></div>
         
         <div className="flex justify-between items-start mb-6 relative z-10">
-          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform text-[var(--stage-accent)]">
+          <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200 group-hover:scale-110 transition-transform text-[var(--stage-accent)]">
             <Icon size={24} />
           </div>
           <div className="flex flex-col items-end">
@@ -45,24 +45,24 @@ const FunnelStage: React.FC<FunnelStageProps> = ({
         </div>
 
         <div className="space-y-1 mb-8 relative z-10">
-          <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">{title}</h3>
-          <p className="text-4xl font-extrabold text-white tracking-tighter">{count.toLocaleString()}</p>
+          <h3 className="text-sm font-black text-slate-600 uppercase tracking-widest">{title}</h3>
+          <p className="text-4xl font-extrabold text-slate-900 tracking-tighter">{count.toLocaleString()}</p>
         </div>
 
         <div className="mt-auto space-y-3 relative z-10">
-          <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white/5 px-3 py-2 rounded-lg border border-white/5">
+          <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 uppercase tracking-widest bg-slate-100 px-3 py-2 rounded-lg border border-slate-200">
             <div className="flex items-center gap-2">
                 <WorkflowIcon size={12} className="text-indigo-400" />
                 <span>Workflows</span>
             </div>
-            <span className="text-white">{workflows}</span>
+            <span className="text-slate-900">{workflows}</span>
           </div>
-          <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white/5 px-3 py-2 rounded-lg border border-white/5">
+          <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 uppercase tracking-widest bg-slate-100 px-3 py-2 rounded-lg border border-slate-200">
             <div className="flex items-center gap-2">
                 <SequenceIcon size={12} className="text-emerald-400" />
                 <span>Sequences</span>
             </div>
-            <span className="text-white">{sequences}</span>
+            <span className="text-slate-900">{sequences}</span>
           </div>
         </div>
       </div>

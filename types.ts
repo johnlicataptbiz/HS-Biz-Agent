@@ -9,6 +9,7 @@ export type LeadStatus =
   | 'Unqualified'
   | 'Past Client'
   | 'Active Client'
+  | 'Employee'
   | 'Rejected'
   | 'Trash'
   | 'Unclassified';

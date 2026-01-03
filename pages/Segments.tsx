@@ -88,15 +88,15 @@ const Segments: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate 
                             Intelligence Layers
                         </span>
                     </div>
-                    <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+                    <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
                         Smart <span className="gradient-text">Segments.</span>
                     </h1>
-                    <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+                    <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
                         Pre-computed views to instantly identify critical groups like Ghosted Opportunities, High Value Orphans, and more.
                     </p>
                 </div>
                 
-                <button className="glass-button px-6 py-3 flex items-center gap-2 text-slate-300 hover:text-white group">
+                <button className="glass-button px-6 py-3 flex items-center gap-2 text-slate-300 hover:text-slate-900 group">
                     <Plus size={16} className="group-hover:rotate-90 transition-transform" />
                     <span>Create Segment</span>
                 </button>
@@ -107,7 +107,7 @@ const Segments: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate 
                 {isLoading ? (
                     // Skeletons
                     [1,2,3].map(i => (
-                        <div key={i} className="h-48 glass-card animate-pulse bg-white/5" />
+                        <div key={i} className="h-48 glass-card animate-pulse bg-slate-100" />
                     ))
                 ) : (
                     segments.map(seg => {
@@ -123,21 +123,21 @@ const Segments: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate 
                                 </div>
 
                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 transition-colors ${
-                                    seg.is_system ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-700/30 text-slate-400'
+                                    seg.is_system ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-700/30 text-slate-600'
                                 }`}>
                                     <Icon size={24} />
                                 </div>
                                 
-                                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-200 transition-colors">
+                                <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-200 transition-colors">
                                     {seg.name}
                                 </h3>
-                                <p className="text-slate-400 text-sm leading-relaxed">
+                                <p className="text-slate-600 text-sm leading-relaxed">
                                     {seg.description}
                                 </p>
 
                                 {seg.is_system && (
                                     <div className="mt-6 flex items-center gap-2">
-                                        <div className="px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                        <div className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                             System Query
                                         </div>
                                     </div>

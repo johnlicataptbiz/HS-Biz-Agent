@@ -93,27 +93,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
       aria-labelledby="modal-title"
       aria-describedby="modal-description"
     >
-      <div className="absolute inset-0 bg-[#020617]/60 backdrop-blur-md transition-opacity duration-500" onClick={onClose}></div>
+      <div className="absolute inset-0 bg-white/60 backdrop-blur-md transition-opacity duration-500" onClick={onClose}></div>
 
-      <div className="relative glass-card border-white/10 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 shadow-[0_0_100px_rgba(79,70,229,0.2)]">
+      <div className="relative glass-card border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 shadow-[0_0_100px_rgba(79,70,229,0.2)]">
         <div className="premium-gradient h-1 w-full" />
         
         <div className="p-10 space-y-10">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-5">
               <div className={`p-5 rounded-[2.5rem] transition-all duration-500 shadow-2xl ${
-                connectionStatus === 'success' ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-white/5 text-white border border-white/10'
+                connectionStatus === 'success' ? 'bg-emerald-500 text-slate-900 shadow-emerald-500/20' : 'bg-slate-100 text-slate-900 border border-slate-200'
               }`}>
                   {connectionStatus === 'success' ? <ShieldCheck size={32} /> : <Lock size={32} />}
               </div>
               <div>
-                <h2 id="modal-title" className="text-3xl font-extrabold text-white tracking-tighter uppercase italic">Secure Tunnel</h2>
+                <h2 id="modal-title" className="text-3xl font-extrabold text-slate-900 tracking-tighter uppercase italic">Secure Tunnel</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <div className={`w-1.5 h-1.5 rounded-full ${
                     connectionStatus === 'success' ? 'bg-emerald-500 animate-pulse' :
                     connectionStatus === 'checking' ? 'bg-amber-500 animate-ping' : 'bg-slate-700'
                   }`} />
-                  <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-600">
                     {connectionStatus === 'success' ? 'Channel Encrypted' :
                      connectionStatus === 'checking' ? 'Synchronizing Nodes...' : 'Connection Inactive'}
                   </span>
@@ -124,7 +124,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
               id="close-settings-btn"
               onClick={onClose}
               title="Close Settings"
-              className="p-3 text-slate-400 hover:text-white glass-button border-transparent transition-all"
+              className="p-3 text-slate-600 hover:text-slate-900 glass-button border-transparent transition-all"
             >
               <X size={20} />
             </button>
@@ -133,15 +133,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
           {connectionStatus !== 'success' ? (
             <div className="space-y-8">
               <div className="space-y-4">
-                <p id="modal-description" className="text-slate-400 font-medium leading-relaxed italic">
+                <p id="modal-description" className="text-slate-600 font-medium leading-relaxed italic">
                   Launch the secure OAuth 2.0 PKCE handshake to bridge your production data with the AI Heuristic Engine.
                 </p>
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/5 border border-white/5 p-4 rounded-3xl">
+                    <div className="bg-slate-100 border border-slate-200 p-4 rounded-3xl">
                         <Globe size={18} className="text-indigo-400 mb-2" />
                         <p className="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">Global Sync</p>
                     </div>
-                    <div className="bg-white/5 border border-white/5 p-4 rounded-3xl">
+                    <div className="bg-slate-100 border border-slate-200 p-4 rounded-3xl">
                         <Shield size={18} className="text-emerald-400 mb-2" />
                         <p className="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">Audited Auth</p>
                     </div>
@@ -155,13 +155,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                   disabled={connectionStatus === 'checking'}
                   aria-label="Connect using Standard Optimizer OAuth"
                   title="Connect using Standard Optimizer OAuth"
-                  className="w-full py-6 px-8 premium-gradient text-white rounded-3xl font-extrabold uppercase tracking-[0.2em] text-sm shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all flex flex-col items-center justify-center gap-2 group"
+                  className="w-full py-6 px-8 premium-gradient text-slate-900 rounded-3xl font-extrabold uppercase tracking-[0.2em] text-sm shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all flex flex-col items-center justify-center gap-2 group"
                 >
                   <div className="flex items-center gap-4">
                      {connectionStatus === 'checking' ? <RefreshCw className="animate-spin" size={20} /> : "Standard Optimizer"}
                      <ExternalLink size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                   </div>
-                  <span className="text-[9px] text-white/70 font-bold normal-case tracking-normal">Recommended for full Dashboard, Workflows & Sequence Audits</span>
+                  <span className="text-[9px] text-slate-900/70 font-bold normal-case tracking-normal">Recommended for full Dashboard, Workflows & Sequence Audits</span>
                 </button>
 
                 <button 
@@ -187,13 +187,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                     <ShieldCheck size={100} className="text-emerald-500" />
                 </div>
                 <div className="mx-auto w-20 h-20 bg-emerald-500 rounded-[2rem] flex items-center justify-center shadow-xl shadow-emerald-500/20 relative z-10">
-                  <Check className="text-white" size={36} />
+                  <Check className="text-slate-900" size={36} />
                 </div>
                 <div className="relative z-10 space-y-2">
-                  <h3 className="text-2xl font-extrabold text-white uppercase tracking-tighter italic">Handshake Verified</h3>
+                  <h3 className="text-2xl font-extrabold text-slate-900 uppercase tracking-tighter italic">Handshake Verified</h3>
                   <div className="flex flex-col items-center gap-1">
                     <p className="text-xs font-bold text-emerald-500 uppercase tracking-[0.3em]">AI Stream Active</p>
-                    <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                    <p className="text-[10px] font-bold text-slate-900/60 uppercase tracking-widest">
                       Ident: {isMcpIdent ? 'MCP Bridge' : 'Standard Optimizer'}
                     </p>
                   </div>
@@ -205,7 +205,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                   id="terminate-link-btn"
                   onClick={() => setShowDisconnectConfirm(true)}
                   aria-label="Terminate portal link"
-                  className="w-full py-5 text-[10px] font-extrabold text-rose-400 hover:text-white glass-button border-rose-500/20 hover:bg-rose-500/20 transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
+                  className="w-full py-5 text-[10px] font-extrabold text-rose-400 hover:text-slate-900 glass-button border-rose-500/20 hover:bg-rose-500/20 transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
                 >
                   <LogOut size={16} />
                   Terminate Link
@@ -214,13 +214,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                 <div className="flex gap-3 animate-in fade-in zoom-in-95 duration-200">
                   <button 
                     onClick={handleDisconnect}
-                    className="flex-1 py-5 bg-rose-600 text-white rounded-2xl font-extrabold uppercase tracking-widest text-[10px] hover:bg-rose-700 transition-all shadow-lg shadow-rose-900/20"
+                    className="flex-1 py-5 bg-rose-600 text-slate-900 rounded-2xl font-extrabold uppercase tracking-widest text-[10px] hover:bg-rose-700 transition-all shadow-lg shadow-rose-900/20"
                   >
                     Confirm Termination
                   </button>
                   <button 
                     onClick={() => setShowDisconnectConfirm(false)}
-                    className="px-6 py-5 glass-button text-slate-400 font-extrabold uppercase tracking-widest text-[10px] hover:text-white"
+                    className="px-6 py-5 glass-button text-slate-600 font-extrabold uppercase tracking-widest text-[10px] hover:text-slate-900"
                   >
                     Cancel
                   </button>
@@ -238,13 +238,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
             </div>
           )}
 
-          <div className="pt-6 border-t border-white/5 space-y-4">
+          <div className="pt-6 border-t border-slate-200 space-y-4">
             <button 
               id="toggle-diagnostics-btn"
               onClick={() => setShowAdvanced(!showAdvanced)}
               aria-expanded={showAdvanced ? "true" : "false"}
               aria-controls="diagnostics-panel"
-              className="text-[10px] font-extrabold text-slate-400 hover:text-slate-200 uppercase tracking-[0.2em] transition-colors mx-auto block"
+              className="text-[10px] font-extrabold text-slate-600 hover:text-slate-200 uppercase tracking-[0.2em] transition-colors mx-auto block"
             >
               {showAdvanced ? 'Collapse Diagnostics' : 'Bypass OAuth or View Metadata?'}
             </button>
@@ -255,14 +255,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                 <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Database size={14} className="text-indigo-400" />
-                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">MCP Bridge Metadata</span>
+                    <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">MCP Bridge Metadata</span>
                   </div>
                   
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Bearer Token (For Inspector)</p>
+                      <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Bearer Token (For Inspector)</p>
                       <div className="flex gap-2">
-                        <div className="flex-1 px-3 py-2 bg-black/40 border border-white/5 rounded-xl font-mono text-[10px] text-indigo-300 truncate">
+                        <div className="flex-1 px-3 py-2 bg-black/40 border border-slate-200 rounded-xl font-mono text-[10px] text-indigo-300 truncate">
                           {hubSpotService.getToken() || 'None Detected'}
                         </div>
                         <button 
@@ -272,7 +272,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                             setCopiedField('token');
                             setTimeout(() => setCopiedField(null), 2000);
                           }}
-                          className={`p-2 glass-button border-white/5 transition-colors ${copiedField === 'token' ? 'text-emerald-400' : 'text-slate-400 hover:text-white'}`}
+                          className={`p-2 glass-button border-slate-200 transition-colors ${copiedField === 'token' ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-900'}`}
                           title="Copy Token"
                           aria-label="Copy bearer token"
                         >
@@ -282,9 +282,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                     </div>
 
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">MCP Client ID</p>
+                      <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">MCP Client ID</p>
                       <div className="flex gap-2">
-                        <div className="flex-1 px-3 py-2 bg-black/40 border border-white/5 rounded-xl font-mono text-[10px] text-slate-400">
+                        <div className="flex-1 px-3 py-2 bg-black/40 border border-slate-200 rounded-xl font-mono text-[10px] text-slate-600">
                           9d7c3c51-862a-4604-9668-cad9bf5aed93
                         </div>
                         <button 
@@ -293,7 +293,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                             setCopiedField('clientId');
                             setTimeout(() => setCopiedField(null), 2000);
                           }}
-                          className={`p-2 glass-button border-white/5 transition-colors ${copiedField === 'clientId' ? 'text-emerald-400' : 'text-slate-400 hover:text-white'}`}
+                          className={`p-2 glass-button border-slate-200 transition-colors ${copiedField === 'clientId' ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-900'}`}
                           title="Copy Client ID"
                         >
                           {copiedField === 'clientId' ? <Check size={14} /> : <Copy size={14} />}
@@ -326,20 +326,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                       onChange={(e) => setManualCode(e.target.value)}
                       placeholder="Private Access Token..."
                       aria-label="Enter Private Access Token for manual bridge"
-                      className="flex-1 px-5 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none text-xs text-indigo-300 font-mono font-bold focus:border-indigo-500/50 transition-all"
+                      className="flex-1 px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none text-xs text-indigo-300 font-mono font-bold focus:border-indigo-500/50 transition-all"
                     />
                     <button 
                       id="manual-bridge-btn"
                       onClick={handleManualCodeSubmit}
                       disabled={!manualCode.trim() || connectionStatus === 'checking'}
                       aria-label="Submit manual token"
-                      className="px-6 py-4 glass-button border-white/10 text-white text-[10px] font-extrabold uppercase tracking-widest disabled:opacity-50"
+                      className="px-6 py-4 glass-button border-slate-200 text-slate-900 text-[10px] font-extrabold uppercase tracking-widest disabled:opacity-50"
                     >
                       Bridge
                     </button>
                   </div>
                 </div>
-                <p className="text-[9px] text-slate-400 text-center leading-relaxed font-bold uppercase tracking-widest">
+                <p className="text-[9px] text-slate-600 text-center leading-relaxed font-bold uppercase tracking-widest">
                   Manual token entry bypasses the OAuth sequence if needed.
                 </p>
               </div>

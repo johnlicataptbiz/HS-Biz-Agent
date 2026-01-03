@@ -2,7 +2,7 @@
  * AI Health Score Calculation Service
  * 
  * Logic:
- * 1. Base Score: 50
+ * 1. Base Score: 5
  * 2. Engagement (Up to +30): Page views, visits, conversions
  * 3. Commercial (Up to +30): Active deals, lifecycle stage
  * 4. Create Recency (Up to +20): Form submission within 7 days
@@ -14,26 +14,44 @@
 export const classifyLead = (contact) => {
     const props = contact.properties || {};
     const now = new Date();
+    const email = (props.email || "").toLowerCase();
     
     // 1. TRASH/REJECTED
     if (props.hs_email_bounce > 0 || 
         (props.firstname || "").toLowerCase().includes("test") || 
-        (props.email || "").includes("example.com") ||
+        email.includes("example.com") ||
         props.hs_lead_status === 'Rejected') {
         return 'Trash';
     }
 
-    // 2. CUSTOMER
-    const stage = (props.lifecyclestage || "").toLowerCase();
-    if (['customer', 'evangelist', 'subscriber'].includes(stage)) {
-        return 'Customer';
+    // 2. EMPLOYEE
+    if (email.endsWith("@physicaltherapybiz.com")) {
+        return 'Employee';
     }
 
-    // 3. NEW
+    // 3. ACTIVE CLIENT
+    const stage = (props.lifecyclestage || "").toLowerCase();
+    const memType = (props.membership_type || "").toLowerCase();
+    const memStatus = (props.membership_status || "").toLowerCase();
+    if (
+        stage.includes("member") ||
+        stage.includes("mm") ||
+        stage.includes("crm") ||
+        memType.includes("member") ||
+        memType.includes("mm") ||
+        memType.includes("crm") ||
+        memStatus.includes("active") ||
+        memStatus.includes("member") ||
+        ['customer', 'evangelist', 'subscriber'].includes(stage)
+    ) {
+        return 'Active Client';
+    }
+
+    // 4. NEW
     const createDate = props.createdate ? new Date(props.createdate) : null;
     const daysSinceCreate = createDate ? (now.getTime() - createDate.getTime()) / (1000 * 60 * 60 * 24) : 999;
     
-    // 4. ENGAGEMENT RECENCY
+    // 5. ENGAGEMENT RECENCY
     const lastVisit = props.hs_analytics_last_visit_timestamp ? new Date(parseInt(props.hs_analytics_last_visit_timestamp)) : null;
     const lastEmail = props.hs_email_last_open_date ? new Date(props.hs_email_last_open_date) : null;
     const lastInteraction = lastVisit && lastEmail ? (lastVisit > lastEmail ? lastVisit : lastEmail) : (lastVisit || lastEmail);
@@ -41,7 +59,7 @@ export const classifyLead = (contact) => {
 
     if (daysSinceCreate <= 7 && daysSinceInteraction > 30) return 'New';
 
-    // 5. UNQUALIFIED / BAD TIMING
+    // 6. UNQUALIFIED / BAD TIMING
     if (props.hs_lead_status === 'Unqualified' || 
         props.hs_lead_status === 'Bad Timing' || 
         (daysSinceCreate > 10 && daysSinceInteraction > 180) || 
@@ -49,19 +67,19 @@ export const classifyLead = (contact) => {
         return 'Unqualified';
     }
 
-    // 6. HOT
+    // 7. HOT
     const deals = parseInt(props.num_associated_deals || 0);
     // Note: Health score calculation happens before this, but we can use the same logic
     if (daysSinceInteraction < 14 || deals > 0 || ['opportunity'].includes(stage)) {
         return 'Hot';
     }
 
-    // 7. NURTURE
+    // 8. NURTURE
     if (daysSinceInteraction >= 14 && daysSinceInteraction < 90) {
         return 'Nurture';
     }
 
-    // 8. WATCH
+    // 9. WATCH
     if (daysSinceInteraction >= 90 && daysSinceInteraction < 365) {
         return 'Watch';
     }
@@ -71,7 +89,7 @@ export const classifyLead = (contact) => {
 
 export const calculateHealthScore = (contact) => {
     const now = new Date();
-    let score = 50;
+    let score = 5;
     const breakdown = [];
     const props = contact.properties || {};
     
@@ -164,4 +182,3 @@ export const calculateHealthScore = (contact) => {
         breakdown
     };
 };
-

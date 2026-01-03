@@ -27,7 +27,8 @@ export default async function handler(req, res) {
           COUNT(CASE WHEN classification = 'Watch' THEN 1 END) as watch_count,
           COUNT(CASE WHEN classification = 'New' THEN 1 END) as new_count,
           COUNT(CASE WHEN classification = 'Unqualified' THEN 1 END) as unqualified_count,
-          COUNT(CASE WHEN classification = 'Customer' THEN 1 END) as customer_count,
+          COUNT(CASE WHEN classification = 'Active Client' THEN 1 END) as customer_count,
+          COUNT(CASE WHEN classification = 'Employee' THEN 1 END) as employee_count,
           COUNT(CASE WHEN classification = 'Trash' THEN 1 END) as trash_count,
           COUNT(CASE WHEN email IS NULL OR email = '' THEN 1 END) as missing_email,
           COUNT(CASE WHEN hubspot_owner_id IS NULL OR hubspot_owner_id = '' THEN 1 END) as unassigned,
@@ -91,6 +92,7 @@ export default async function handler(req, res) {
             new: parseInt(stats.new_count) || 0,
             unqualified: parseInt(stats.unqualified_count) || 0,
             customer: parseInt(stats.customer_count) || 0,
+            employee: parseInt(stats.employee_count) || 0,
             trash: parseInt(stats.trash_count) || 0
           },
           dataQuality: {

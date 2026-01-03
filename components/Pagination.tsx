@@ -68,7 +68,7 @@ export default function Pagination({
               aria-label="Items per page"
             >
               {pageSizeOptions.map((opt) => (
-                <option key={opt} value={opt} className="bg-slate-900">
+                <option key={opt} value={opt} className="bg-white">
                   {opt}
                 </option>
               ))}
@@ -101,7 +101,7 @@ export default function Pagination({
                   className={`px-3 py-2 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-colors border ${
                     p === page
                       ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-200'
-                      : 'glass-button border-white/5 text-slate-400 hover:text-white'
+                      : 'glass-button border-slate-200 text-slate-600 hover:text-slate-900'
                   }`}
                   aria-current={p === page ? 'page' : undefined}
                 >
@@ -124,4 +124,3 @@ export default function Pagination({
     </div>
   );
 }
-

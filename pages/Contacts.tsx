@@ -46,6 +46,7 @@ const Contacts: React.FC = () => {
       Unqualified: 0,
       "Past Client": 0,
       "Active Client": 0,
+      Employee: 0,
       Rejected: 0,
       Trash: 0,
       Unclassified: 0,
@@ -253,26 +254,26 @@ const Contacts: React.FC = () => {
               Lead Velocity Intelligence
             </span>
           </div>
-          <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
             Database <span className="gradient-text">Brain.</span>
           </h1>
-          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+          <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
             AI-powered lead classification and membership tracking for
             high-velocity sales.
           </p>
         </div>
 
         <div className="flex gap-3">
-          <div className="flex p-1 bg-white/5 border border-white/10 rounded-2xl">
+          <div className="flex p-1 bg-slate-100 border border-slate-200 rounded-2xl">
             <button
               onClick={() => setView("funnel")}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${view === "funnel" ? "bg-indigo-500 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${view === "funnel" ? "bg-indigo-500 text-slate-900 shadow-lg" : "text-slate-600 hover:text-slate-900"}`}
             >
               <Layers size={14} /> Funnel
             </button>
             <button
               onClick={() => setView("list")}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${view === "list" ? "bg-indigo-500 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${view === "list" ? "bg-indigo-500 text-slate-900 shadow-lg" : "text-slate-600 hover:text-slate-900"}`}
             >
               <Users size={14} /> Contacts
             </button>
@@ -283,7 +284,7 @@ const Contacts: React.FC = () => {
             disabled={isBulkScanning || !isConnected}
             className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 border-2 ${
               isBulkScanning
-                ? "bg-slate-700 text-slate-400 border-slate-600"
+                ? "bg-slate-700 text-slate-600 border-slate-600"
                 : "bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20"
             }`}
           >
@@ -345,7 +346,7 @@ const Contacts: React.FC = () => {
             disabled={isExecuting || !isConnected}
             className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 border-2 ${
               isExecuting
-                ? "bg-slate-700 text-slate-400 border-slate-600"
+                ? "bg-slate-700 text-slate-600 border-slate-600"
                 : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
             }`}
           >
@@ -357,8 +358,8 @@ const Contacts: React.FC = () => {
             disabled={isExecuting || !isConnected}
             className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 ${
               isExecuting
-                ? "bg-slate-700 text-slate-400"
-                : "premium-gradient text-white shadow-indigo-500/20 hover:scale-105 active:scale-95"
+                ? "bg-slate-700 text-slate-600"
+                : "premium-gradient text-slate-900 shadow-indigo-500/20 hover:scale-105 active:scale-95"
             }`}
           >
             {isExecuting ? (
@@ -377,10 +378,10 @@ const Contacts: React.FC = () => {
             <ShieldCheck className="text-amber-400" size={32} />
           </div>
           <div className="max-w-md mx-auto">
-            <h3 className="text-xl font-bold text-white uppercase tracking-wider">
+            <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider">
               Connection Required
             </h3>
-            <p className="text-slate-400 mt-2 font-medium">
+            <p className="text-slate-600 mt-2 font-medium">
               Link your HubSpot portal to run organizational heuristics.
             </p>
           </div>
@@ -401,6 +402,7 @@ const Contacts: React.FC = () => {
                 color: "bg-emerald-500",
                 icon: ShieldCheck,
               },
+              { id: "Employee", color: "bg-cyan-500", icon: Users },
               { id: "Past Client", color: "bg-slate-500", icon: UserCheck },
               { id: "Unqualified", color: "bg-slate-600", icon: Filter },
               { id: "Rejected", color: "bg-red-500", icon: UserX },
@@ -422,16 +424,16 @@ const Contacts: React.FC = () => {
                 )}
                 <div className="flex justify-between items-start mb-3">
                   <div
-                    className={`p-2.5 rounded-xl ${status.color} bg-opacity-20 text-white`}
+                    className={`p-2.5 rounded-xl ${status.color} bg-opacity-20 text-slate-900`}
                   >
                     <status.icon size={18} />
                   </div>
-                  <span className="text-3xl font-extrabold text-white">
+                  <span className="text-3xl font-extrabold text-slate-900">
                     {contactHealth.statusBreakdown[status.id as LeadStatus] ||
                       0}
                   </span>
                 </div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] truncate">
+                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] truncate">
                   {status.id}
                 </p>
               </div>
@@ -440,7 +442,7 @@ const Contacts: React.FC = () => {
 
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white uppercase tracking-wider flex items-center gap-3">
+              <h2 className="text-xl font-bold text-slate-900 uppercase tracking-wider flex items-center gap-3">
                 <List className="text-indigo-400" />
                 Active Segments
               </h2>
@@ -475,11 +477,11 @@ const Contacts: React.FC = () => {
                   className="glass-card p-6 group hover:border-indigo-500/30 transition-all cursor-pointer"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-white/5 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-slate-200 group-hover:bg-indigo-500 group-hover:text-slate-900 transition-all">
                       <List size={22} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors uppercase italic tracking-tight">
+                      <h3 className="font-bold text-slate-900 group-hover:text-indigo-400 transition-colors uppercase italic tracking-tight">
                         {seg.name}
                       </h3>
                       <p className="text-xs text-slate-500 font-bold mt-1 tracking-widest uppercase">
@@ -499,10 +501,10 @@ const Contacts: React.FC = () => {
         <div className="animate-in slide-in-from-right-4 duration-500 space-y-6">
           <div className="glass-card overflow-hidden">
             <table className="w-full text-left">
-              <thead className="bg-white/5 border-b border-white/10">
+              <thead className="bg-slate-100 border-b border-slate-200">
                 <tr>
                   <th
-                    className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                    className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] cursor-pointer hover:text-slate-900 transition-colors"
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-2">
@@ -519,7 +521,7 @@ const Contacts: React.FC = () => {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                    className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] cursor-pointer hover:text-slate-900 transition-colors"
                     onClick={() => handleSort("status")}
                   >
                     <div className="flex items-center gap-2">
@@ -536,7 +538,7 @@ const Contacts: React.FC = () => {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                    className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] cursor-pointer hover:text-slate-900 transition-colors"
                     onClick={() => handleSort("strategic_score")}
                   >
                     <div className="flex items-center gap-2">
@@ -553,7 +555,7 @@ const Contacts: React.FC = () => {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                    className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] cursor-pointer hover:text-slate-900 transition-colors"
                     onClick={() => handleSort("risk_level")}
                   >
                     <div className="flex items-center gap-2">
@@ -570,7 +572,7 @@ const Contacts: React.FC = () => {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors"
+                    className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] cursor-pointer hover:text-slate-900 transition-colors"
                     onClick={() => handleSort("lastActivityDays")}
                   >
                     <div className="flex items-center gap-2">
@@ -587,7 +589,7 @@ const Contacts: React.FC = () => {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right cursor-pointer hover:text-white transition-colors"
+                    className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] text-right cursor-pointer hover:text-slate-900 transition-colors"
                     onClick={() => handleSort("associatedDeals")}
                   >
                     <div className="flex items-center justify-end gap-2">
@@ -609,11 +611,11 @@ const Contacts: React.FC = () => {
                 {pagedIntel.map((contact) => (
                   <tr
                     key={contact.id}
-                    className="hover:bg-white/[0.02] transition-colors group"
+                    className="hover:bg-slate-50 transition-colors group"
                   >
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-slate-900 group-hover:text-indigo-400 transition-colors flex items-center gap-2 flex-wrap">
                           {contact.name}
                           <span
                             className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
@@ -621,6 +623,8 @@ const Contacts: React.FC = () => {
                                 ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                                 : contact.status === "Active Client"
                                   ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                  : contact.status === "Employee"
+                                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                                   : contact.status === "Nurture"
                                     ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
                                     : contact.status === "Watch"
@@ -628,14 +632,14 @@ const Contacts: React.FC = () => {
                                       : contact.status === "New"
                                         ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
                                         : contact.status === "Unqualified"
-                                          ? "bg-slate-500/20 text-slate-400 border border-slate-500/30"
+                                          ? "bg-slate-500/20 text-slate-600 border border-slate-500/30"
                                           : contact.status === "Past Client"
                                             ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
                                             : contact.status === "Rejected"
                                               ? "bg-red-500/20 text-red-400 border border-red-500/30"
                                               : contact.status === "Trash"
                                                 ? "bg-zinc-500/20 text-zinc-400 border border-zinc-500/30"
-                                                : "bg-slate-500/20 text-slate-400 border border-slate-500/30"
+                                                : "bg-slate-500/20 text-slate-600 border border-slate-500/30"
                             }`}
                           >
                             {contact.status}
@@ -662,6 +666,8 @@ const Contacts: React.FC = () => {
                               ? "bg-rose-500"
                               : contact.status === "Active Client"
                                 ? "bg-emerald-500"
+                                : contact.status === "Employee"
+                                  ? "bg-cyan-500"
                                 : contact.status === "New"
                                   ? "bg-blue-500"
                                   : "bg-slate-600"
@@ -682,7 +688,7 @@ const Contacts: React.FC = () => {
                             }}
                           ></div>
                         </div>
-                        <span className="text-xs font-black text-white">
+                        <span className="text-xs font-black text-slate-900">
                           {contact.rawProperties.strategic_score}
                         </span>
                       </div>
@@ -728,7 +734,7 @@ const Contacts: React.FC = () => {
                           className={`p-2 rounded-lg border transition-all ${
                             contact.deepScanned
                               ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400"
-                              : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white"
+                              : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
                           }`}
                           title="Run Deep Brain Scan (AI Notes Analysis)"
                         >

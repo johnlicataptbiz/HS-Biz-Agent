@@ -57,10 +57,10 @@ const JourneyMap: React.FC = () => {
                 <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-slate-500'}`}></div>
                 <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em]">Revenue Architecture</span>
             </div>
-            <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+            <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
                 Journey <span className="gradient-text">Map.</span>
             </h1>
-            <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+            <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
                 Visualize the high-velocity path from unknown visitor to long-term evangelist. Audit the automation nodes powering each stage.
             </p>
         </div>
@@ -68,7 +68,7 @@ const JourneyMap: React.FC = () => {
         <div className="flex gap-4">
           <button 
             onClick={loadData}
-            className="p-3 glass-button border-white/5 text-slate-400 hover:text-white transition-all active:scale-90"
+            className="p-3 glass-button border-slate-200 text-slate-600 hover:text-slate-900 transition-all active:scale-90"
             title="Refresh Journey Data"
           >
             <RefreshCw size={20} className={`${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
@@ -85,7 +85,7 @@ const JourneyMap: React.FC = () => {
                 setShowAi(true);
             }}
             title="Audit Revenue Flow"
-            className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
+            className="px-8 py-3 premium-gradient text-slate-900 rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
           >
               <Sparkles size={18} />
               Audit Revenue Flow
@@ -99,8 +99,8 @@ const JourneyMap: React.FC = () => {
                  <ShieldCheck className="text-indigo-400" size={32} />
              </div>
              <div className="max-w-md mx-auto">
-                 <h3 className="text-xl font-bold text-white uppercase tracking-wider">Sync Required</h3>
-                 <p className="text-slate-400 mt-2 font-medium">Connect Sales Hub to visualize your revenue pipeline architecture.</p>
+                 <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider">Sync Required</h3>
+                 <p className="text-slate-600 mt-2 font-medium">Connect Sales Hub to visualize your revenue pipeline architecture.</p>
              </div>
          </div>
       )}
@@ -130,10 +130,10 @@ const JourneyMap: React.FC = () => {
                 <div className="glass-card p-8 flex flex-col justify-between relative overflow-hidden group hover:border-indigo-500/30 transition-all">
                     <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all"></div>
                     <div className="flex items-center gap-3 mb-4">
-                        <TrendingUp size={20} className="text-indigo-400" />
-                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Velocity Score</h4>
+                        <TrendingUp size={20} className="text-indigo-500" />
+                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Velocity Score</h4>
                     </div>
-                    <p className="text-4xl font-extrabold text-white tracking-tighter">{journeyData.velocityScore || 0}%</p>
+                    <p className="text-4xl font-extrabold text-slate-900 tracking-tighter">{journeyData.velocityScore || 0}%</p>
                     <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase tracking-widest">
                         {journeyData.velocityScore > 80 ? 'Elite Acceleration' : (journeyData.velocityScore > 50 ? 'High Potential' : 'Stalled Engine')}
                     </p>
@@ -142,10 +142,10 @@ const JourneyMap: React.FC = () => {
                 <div className="glass-card p-8 flex flex-col justify-between relative overflow-hidden group hover:border-rose-500/30 transition-all">
                     <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-rose-500/10 rounded-full blur-3xl group-hover:bg-rose-500/20 transition-all"></div>
                     <div className="flex items-center gap-3 mb-4">
-                        <AlertTriangle size={20} className="text-rose-400" />
-                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Leakage Points</h4>
+                        <AlertTriangle size={20} className="text-rose-500" />
+                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Leakage Points</h4>
                     </div>
-                    <p className="text-4xl font-extrabold text-white tracking-tighter">
+                    <p className="text-4xl font-extrabold text-slate-900 tracking-tighter">
                         {String(journeyData.stages.filter((s: any) => s.dropOff > 30).length).padStart(2, '0')}
                     </p>
                     <p className="text-[10px] text-rose-500/60 font-bold mt-2 uppercase tracking-widest">
@@ -156,10 +156,10 @@ const JourneyMap: React.FC = () => {
                 <div className="glass-card p-8 flex flex-col justify-between relative overflow-hidden group hover:border-emerald-500/30 transition-all">
                     <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all"></div>
                     <div className="flex items-center gap-3 mb-4">
-                        <Sparkles size={20} className="text-emerald-400" />
-                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Growth Opportunity</h4>
+                        <Sparkles size={20} className="text-emerald-500" />
+                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Growth Opportunity</h4>
                     </div>
-                    <p className="text-4xl font-extrabold text-white tracking-tighter">+$124k</p>
+                    <p className="text-4xl font-extrabold text-slate-900 tracking-tighter">+$124k</p>
                     <p className="text-[10px] text-emerald-500/60 font-bold mt-2 uppercase tracking-widest">Estimated Pipeline Lift</p>
                 </div>
             </div>

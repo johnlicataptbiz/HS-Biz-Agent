@@ -53,10 +53,10 @@ const BreezeTools: React.FC = () => {
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-purple-500 shadow-[0_0_8px_rgba(167,139,250,0.5)]' : 'bg-slate-500'}`}></div>
             <span className="text-[10px] font-bold text-purple-400 uppercase tracking-[0.3em]">Edge Computing</span>
           </div>
-          <h1 className="text-5xl font-extrabold text-white tracking-tighter leading-tight">
+          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
             Breeze <span className="gradient-text">Extensions.</span>
           </h1>
-          <p className="text-slate-400 max-w-lg font-medium leading-relaxed">
+          <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
             Architect custom workflow actions and autonomous app objects for advanced logic execution.
           </p>
         </div>
@@ -65,7 +65,7 @@ const BreezeTools: React.FC = () => {
           <button 
             id="refresh-extensions-btn"
             onClick={loadData}
-            className="p-3 glass-button border-white/5 text-slate-400 hover:text-white transition-all active:scale-90"
+            className="p-3 glass-button border-slate-200 text-slate-600 hover:text-slate-900 transition-all active:scale-90"
             title="Refresh Extension Registry"
             aria-label="Refresh breeze extensions from HubSpot"
           >
@@ -75,7 +75,7 @@ const BreezeTools: React.FC = () => {
             id="draft-tool-btn"
             onClick={handleOpenDraft}
             aria-label="Draft new edge tool with AI"
-            className="px-8 py-3 premium-gradient text-white rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
+            className="px-8 py-3 premium-gradient text-slate-900 rounded-2xl text-sm font-extrabold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
           >
               <Sparkles size={18} />
               Draft Edge Tool
@@ -90,8 +90,8 @@ const BreezeTools: React.FC = () => {
                 <ShieldCheck className="text-purple-400" size={32} />
             </div>
             <div className="max-w-md mx-auto">
-                <h3 className="text-xl font-bold text-white uppercase tracking-wider">Sync Required</h3>
-                <p className="text-slate-400 mt-2 font-medium">Link your HubSpot portal to orchestrate custom extensions and edge-based workflow actions.</p>
+                <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider">Sync Required</h3>
+                <p className="text-slate-600 mt-2 font-medium">Link your HubSpot portal to orchestrate custom extensions and edge-based workflow actions.</p>
             </div>
          </div>
       )}
@@ -103,15 +103,15 @@ const BreezeTools: React.FC = () => {
             
             <div className="flex justify-between items-start mb-8 relative z-10">
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 premium-gradient rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 premium-gradient rounded-2xl flex items-center justify-center text-slate-900 shadow-lg group-hover:scale-110 transition-transform">
                         <Hammer size={24} />
                     </div>
                     <div>
-                        <h3 className="text-xl font-bold text-white group-hover:text-purple-400 transition-colors uppercase tracking-tight">{tool.name}</h3>
-                        <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mt-1">Registry ID: {tool.id}</p>
+                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-purple-400 transition-colors uppercase tracking-tight">{tool.name}</h3>
+                        <p className="text-[10px] text-slate-600 font-extrabold uppercase tracking-widest mt-1">Registry ID: {tool.id}</p>
                     </div>
                 </div>
-                <div className="px-3 py-1.5 rounded-xl border border-white/5 bg-white/5 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+                <div className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-[10px] font-extrabold text-slate-600 uppercase tracking-widest">
                     {tool.aiScore === 0 ? 'PENDING AUDIT' : `Rating: ${tool.aiScore}%`}
                 </div>
             </div>
@@ -119,39 +119,39 @@ const BreezeTools: React.FC = () => {
             <div className="space-y-6 mb-8 relative z-10">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
-                        <Terminal size={12} className="text-slate-400" />
-                        <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Execution Endpoint</p>
+                        <Terminal size={12} className="text-slate-600" />
+                        <p className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest leading-none">Execution Endpoint</p>
                     </div>
-                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5 text-indigo-300 text-xs font-mono break-all font-bold">
+                    <div className="bg-slate-100 p-4 rounded-xl border border-slate-200 text-indigo-700 text-xs font-mono break-all font-bold">
                         {tool.actionUrl || 'No Endpoint Identified'}
                     </div>
                 </div>
                 
                 <div>
                     <div className="flex items-center gap-2 mb-3">
-                        <Zap size={12} className="text-slate-400" />
-                        <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Input Arguments</p>
+                        <Zap size={12} className="text-slate-600" />
+                        <p className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest">Input Arguments</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {tool.inputFields.length > 0 ? tool.inputFields.map((field) => (
-                            <span key={field.key} className="px-3 py-1.5 bg-white/5 text-white/90 rounded-xl border border-white/5 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                            <span key={field.key} className="px-3 py-1.5 bg-slate-100 text-slate-900/90 rounded-xl border border-slate-200 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
                                 <Box size={10} className="text-purple-400" />
                                 {field.label}
                                 {field.required && <span className="text-rose-500">*</span>}
                             </span>
                         )) : (
-                            <span className="text-xs text-slate-400 font-medium italic uppercase tracking-widest">Dynamic Logic Mapping</span>
+                            <span className="text-xs text-slate-600 font-medium italic uppercase tracking-widest">Dynamic Logic Mapping</span>
                         )}
                     </div>
                 </div>
             </div>
 
-            <div className="mt-8 pt-8 border-t border-white/5 flex gap-4 relative z-10">
-                <button className="flex-1 py-4 glass-button text-[10px] font-extrabold text-slate-400 hover:text-white uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all" title="Inspect Tool JSON">
+            <div className="mt-8 pt-8 border-t border-slate-200 flex gap-4 relative z-10">
+                <button className="flex-1 py-4 glass-button text-[10px] font-extrabold text-slate-600 hover:text-slate-900 uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all" title="Inspect Tool JSON">
                     <Code size={14} />
                     Inspect JSON
                 </button>
-                <button className="flex-1 py-4 glass-button border-purple-500/20 text-white hover:bg-purple-500/10 uppercase tracking-widest text-[10px] font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg hover:shadow-purple-500/5" title="Refine Tool with AI">
+                <button className="flex-1 py-4 glass-button border-purple-500/20 text-slate-900 hover:bg-purple-500/10 uppercase tracking-widest text-[10px] font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg hover:shadow-purple-500/5" title="Refine Tool with AI">
                     <Sparkles size={14} className="text-purple-400" />
                     Refine Tool
                 </button>
@@ -164,12 +164,12 @@ const BreezeTools: React.FC = () => {
             title="Draft new edge logic with AI"
             className="group glass-card p-12 flex flex-col items-center justify-center text-center space-y-6 hover:border-purple-500/30 hover:bg-purple-500/5 transition-all h-[400px]"
         >
-            <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:bg-purple-500/20 transition-all border border-white/10 group-hover:border-purple-500/30">
-                <Sparkles size={32} className="text-slate-400 group-hover:text-purple-400" />
+            <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:bg-purple-500/20 transition-all border border-slate-200 group-hover:border-purple-500/30">
+                <Sparkles size={32} className="text-slate-600 group-hover:text-purple-400" />
             </div>
             <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white uppercase tracking-wider group-hover:text-purple-400 transition-colors">Draft Edge Logic</h3>
-                <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest leading-relaxed">
+                <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider group-hover:text-purple-400 transition-colors">Draft Edge Logic</h3>
+                <p className="text-[10px] text-slate-600 font-extrabold uppercase tracking-widest leading-relaxed">
                     Generate autonomous <code className="text-indigo-400">app.json</code> configurations using heuristic AI modeling.
                 </p>
             </div>

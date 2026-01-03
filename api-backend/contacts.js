@@ -3,6 +3,19 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  if (!process.env.DATABASE_URL) {
+    if (req.method === "GET") {
+      return res.status(200).json({
+        contacts: [],
+        pagination: { page: 1, limit: 0, total: 0, totalPages: 0 },
+        warning: "DATABASE_URL not configured",
+      });
+    }
+    if (req.method === "POST") {
+      return res.status(200).json({ results: [], warning: "DATABASE_URL not configured" });
+    }
+  }
+
   // Import pool from dataService
   const { pool } = await import("../services/backend/dataService.js");
 

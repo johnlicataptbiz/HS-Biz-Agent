@@ -7,10 +7,32 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
+const corsOrigin = process.env.CORS_ORIGIN || "*";
 const port = process.env.PORT || 3001;
 
 // 1. MIDDLEWARE
-app.use(cors());
+app.use(
+  cors({
+    origin: corsOrigin,
+    credentials: true,
+  })
+);
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", corsOrigin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Authorization, Content-Type, X-Requested-With"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+  );
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
 // PROXY must be before express.json()
 // We'll define the proxy within the router below
 
@@ -39,7 +61,7 @@ const wrap = (modulePath) => async (req, res) => {
 };
 
 // --- HUBSPOT PROXY ---
-apiRouter.all("/hubspot/*", async (req, res) => {
+apiRouter.all(/^\/hubspot\/.*/, async (req, res) => {
   try {
     const { default: proxy } = await import("./api-backend/proxy.js");
     await proxy(req, res);
@@ -53,18 +75,25 @@ apiRouter.use(express.json());
 
 apiRouter.all("/token", wrap("./api-backend/token.js"));
 apiRouter.all("/oauth-start", wrap("./api-backend/oauth-start.js"));
+apiRouter.all("/ai", wrap("./api-backend/ai.js"));
 apiRouter.all(
   "/contacts-analytics",
   wrap("./api-backend/contacts-analytics.js")
 );
+apiRouter.all("/contacts", wrap("./api-backend/contacts.js"));
+apiRouter.all("/segments", wrap("./api-backend/segments.js"));
+apiRouter.all("/assets", wrap("./api-backend/assets.js"));
+apiRouter.all("/velocity", wrap("./api-backend/velocity.js"));
+apiRouter.all("/win-loss", wrap("./api-backend/win-loss.js"));
 apiRouter.all("/sync", wrap("./api-backend/sync.js"));
 apiRouter.all("/sync/status", wrap("./api-backend/sync.js"));
+apiRouter.all("/sync/start", wrap("./api-backend/sync.js"));
 apiRouter.all("/debug-ping", (req, res) =>
   res.json({ pong: true, env: process.env.NODE_ENV })
 );
 
 // Fallback for API
-apiRouter.all("*", (req, res) => {
+apiRouter.all(/.*/, (req, res) => {
   res
     .status(404)
     .json({ error: "API Route Not Found in Router", path: req.url });
@@ -79,7 +108,7 @@ app.use(express.static(join(__dirname, "dist")));
 app.get("/health", (req, res) => res.status(200).send("OK"));
 
 // Catch-all SPA - STRICTOR CHECK
-app.get("*", (req, res) => {
+app.get(/.*/, (req, res) => {
   if (req.url.startsWith("/api")) {
     return res.status(404).json({ error: "API Not Found (Root Fallback)" });
   }
