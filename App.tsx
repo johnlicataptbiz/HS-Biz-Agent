@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 
@@ -288,6 +289,7 @@ const App: React.FC = () => {
           <AppTour isOpen={isTourOpen} onClose={handleTourDismiss} onComplete={handleTourDismiss} onNavigate={setActiveTab} />
         </main>
       </div>
+      <Analytics />
     </div>
   );
 };
