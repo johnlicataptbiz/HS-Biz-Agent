@@ -37,7 +37,7 @@ const server = app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Railway Failover Server live on port ${port}`);
 });
 
-// 2. MIDDLEWARE
+// 2. MIDDLEWARE & PROXY (Proxy must come before express.json to avoid issues with content-type on GET)
 const allowedOrigins = [
   "https://hubspot-ai-optimizer.vercel.app",
   "https://hubspot-ai-optimizer-murex.vercel.app",
@@ -74,6 +74,23 @@ app.use(
   })
 );
 
+// HUBPSOT PROXY (Exempt from global json parsing)
+app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
+  try {
+    const pathPart = req.params[0];
+    if (!pathPart) return res.status(400).json({ error: "Invalid proxy path" });
+    const { default: proxy } = await import("./api-backend/proxy.js");
+    req.query.path = pathPart;
+    await proxy(req, res);
+  } catch (err) {
+    console.error("Proxy Route Error:", err);
+    if (!res.headersSent)
+      res
+        .status(500)
+        .json({ error: "Proxy Route Failed", details: err.message });
+  }
+});
+
 app.use(express.json());
 
 // 3. ADAPTIVE ROUTE WRAPPER (Dynamic Import Support)
@@ -102,7 +119,10 @@ app.all("/api/oauth-start", wrap("./api-backend/oauth-start.js"));
 app.all("/api/contacts", wrap("./api-backend/contacts.js"));
 app.all("/api/contacts/aggregates", wrap("./api-backend/aggregates.js"));
 app.all("/api/assets", wrap("./api-backend/assets.js"));
-app.all("/api/attribution-analytics", wrap("./api-backend/attribution-analytics.js"));
+app.all(
+  "/api/attribution-analytics",
+  wrap("./api-backend/attribution-analytics.js")
+);
 app.all("/api/contact-workflows", wrap("./api-backend/contact-workflows.js"));
 app.all("/api/contacts-analytics", wrap("./api-backend/contacts-analytics.js"));
 app.all("/api/contacts-stats", wrap("./api-backend/contacts-stats.js"));
@@ -204,23 +224,6 @@ app.post("/api/contacts/process-scores", async (req, res) => {
   } catch (e) {
     console.error("Score processing error:", e);
     if (!res.headersSent) res.status(500).json({ error: e.message });
-  }
-});
-
-// Proxy handler
-app.all(/^\/api\/hubspot\/(.*)/, async (req, res) => {
-  try {
-    const pathPart = req.params[0];
-    if (!pathPart) return res.status(400).json({ error: "Invalid proxy path" });
-    const { default: proxy } = await import("./api-backend/proxy.js");
-    req.query.path = pathPart;
-    await proxy(req, res);
-  } catch (err) {
-    console.error("Proxy Route Error:", err);
-    if (!res.headersSent)
-      res
-        .status(500)
-        .json({ error: "Proxy Route Failed", details: err.message });
   }
 });
 

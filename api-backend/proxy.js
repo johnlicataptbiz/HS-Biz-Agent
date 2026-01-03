@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Get the path from query parameter
+  // Path is already put into req.query.path by server.js
   let { path, ...otherParams } = req.query;
 
   if (!path) {
@@ -22,16 +22,22 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Missing Authorization header" });
   }
 
-  // Build query string from remaining parameters (excluding 'path')
-  const queryString =
-    Object.keys(otherParams).length > 0
-      ? "?" + new URLSearchParams(otherParams).toString()
-      : "";
+  // Reconstruct the original query string from the request URL to avoid issues with nested params
+  // req.url in Express includes the path and query string
+  const urlParts = req.url.split("?");
+  let queryString = "";
+  if (urlParts.length > 1) {
+    // We want all params EXCEPT 'path' (which was added by server.js)
+    const searchParams = new URLSearchParams(urlParts[1]);
+    searchParams.delete("path");
+    queryString = searchParams.toString();
+    if (queryString) queryString = "?" + queryString;
+  }
 
-  // Construct the full HubSpot URL with query params
+  // Construct the full HubSpot URL
   const hubspotUrl = `https://api.hubapi.com/${path}${queryString}`;
 
-  console.log("Proxying to:", hubspotUrl);
+  console.log(`[Proxy] ${req.method} ${hubspotUrl}`);
 
   try {
     const fetchOptions = {
@@ -42,10 +48,12 @@ export default async function handler(req, res) {
       },
     };
 
-    if (req.method !== "GET" && req.method !== "HEAD" && req.body) {
-      fetchOptions.headers["Content-Type"] = "application/json";
-      fetchOptions.body =
-        typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    // Forward the body if present (only for non-GET/HEAD)
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      if (req.body && Object.keys(req.body).length > 0) {
+        fetchOptions.headers["Content-Type"] = "application/json";
+        fetchOptions.body = JSON.stringify(req.body);
+      }
     }
 
     const response = await fetch(hubspotUrl, fetchOptions);
@@ -66,21 +74,22 @@ export default async function handler(req, res) {
         responseBody: data,
       });
 
-      // Pass more details to the client for debugging
       return res.status(response.status).json({
+        success: false,
         error: "HubSpot API Error",
         status: response.status,
-        hubspot_message: data?.message || "Unknown error",
+        message: data?.message || "Unknown error",
         details: data,
         proxy_target: hubspotUrl,
       });
     }
 
-    // Forward the status code from HubSpot
+    // Forward the status code and data from HubSpot
     res.status(response.status).json(data);
   } catch (error) {
     console.error("HubSpot API Proxy Error:", error);
     res.status(500).json({
+      success: false,
       error: "Failed to proxy request to HubSpot",
       details: error.message,
       path: hubspotUrl,
