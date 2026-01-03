@@ -3,40 +3,40 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Get the authorization header from the request
   const authHeader = req.headers.authorization;
-
   if (!authHeader) {
     return res.status(401).json({ error: "Missing Authorization header" });
   }
 
-  const basePrefix = "/api/hubspot/";
+  // Robust path extraction
   const originalUrl = req.originalUrl || req.url || "";
+  const hubspotIdentifier = "/hubspot/";
 
   let targetPathWithQuery = "";
-  if (originalUrl.includes(basePrefix)) {
+  if (originalUrl.includes(hubspotIdentifier)) {
     targetPathWithQuery = originalUrl.substring(
-      originalUrl.indexOf(basePrefix) + basePrefix.length
+      originalUrl.indexOf(hubspotIdentifier) + hubspotIdentifier.length
     );
   } else {
-    // Fallback using req.params[0] from server.js wildcard
-    const pathPart = req.params?.[0] || "";
-    const urlParts = originalUrl.split("?");
-    const queryString = urlParts.length > 1 ? "?" + urlParts[1] : "";
-    targetPathWithQuery = pathPart + queryString;
+    // If not in URL, check if express stripped the prefix already
+    targetPathWithQuery = req.params?.[0] || "";
+    const queryString = originalUrl.includes("?")
+      ? originalUrl.substring(originalUrl.indexOf("?"))
+      : "";
+    targetPathWithQuery += queryString;
   }
 
-  // Trim leading slashes to avoid double-slashes in hubspotUrl
+  // Clean leading slashes
   targetPathWithQuery = targetPathWithQuery.replace(/^\/+/, "");
 
   if (!targetPathWithQuery) {
-    return res.status(400).json({ error: "Invalid proxy path" });
+    return res
+      .status(400)
+      .json({ error: "Invalid proxy path - target missing" });
   }
 
-  // Construct the full HubSpot URL
   const hubspotUrl = `https://api.hubapi.com/${targetPathWithQuery}`;
-
-  console.log(`[Proxy] ${req.method} -> ${hubspotUrl}`);
+  console.log(`[PROXY] -> ${hubspotUrl}`);
 
   try {
     const fetchOptions = {
@@ -47,21 +47,17 @@ export default async function handler(req, res) {
       },
     };
 
-    // Forward the body if present (only for non-GET/HEAD)
-    if (req.method !== "GET" && req.method !== "HEAD") {
-      if (req.body && Object.keys(req.body).length > 0) {
-        fetchOptions.headers["Content-Type"] = "application/json";
-        fetchOptions.body = JSON.stringify(req.body);
-      }
+    if (req.method !== "GET" && req.method !== "HEAD" && req.body) {
+      fetchOptions.headers["Content-Type"] = "application/json";
+      fetchOptions.body =
+        typeof req.body === "string" ? req.body : JSON.stringify(req.body);
     }
 
     const response = await fetch(hubspotUrl, fetchOptions);
     const contentType = response.headers.get("content-type");
 
     let data;
-    const isJson = contentType && contentType.includes("application/json");
-
-    if (isJson) {
+    if (contentType && contentType.includes("application/json")) {
       data = await response.json().catch(() => ({}));
     } else {
       const text = await response.text().catch(() => "");
@@ -69,31 +65,19 @@ export default async function handler(req, res) {
     }
 
     if (!response.ok) {
-      console.error("❌ [Proxy] HubSpot Error:", {
-        status: response.status,
-        url: hubspotUrl,
-        responseBody: data,
-      });
-
       return res.status(response.status).json({
         success: false,
-        error: "HubSpot API Error",
         status: response.status,
-        message: data?.message || data?.error || `HTTP ${response.status}`,
+        message:
+          data?.message || data?.error || `HubSpot Error ${response.status}`,
         details: data,
-        proxy_target: hubspotUrl,
       });
     }
 
-    // Forward the status code and data from HubSpot
     res.status(response.status).json(data);
   } catch (error) {
-    console.error("HubSpot API Proxy Error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to proxy request to HubSpot",
-      details: error.message,
-      path: hubspotUrl,
-    });
+    res
+      .status(500)
+      .json({ error: "Proxy Execution Error", details: error.message });
   }
 }

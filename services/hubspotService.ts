@@ -31,7 +31,12 @@ export class HubSpotService {
     CONNECTED_CLIENT_ID: "hubspot_client_id",
   };
 
-  private constructor() {}
+  private constructor() {
+    console.log(
+      "🚀 HubSpotService Initialized with BASE_API_URL:",
+      this.BASE_API_URL
+    );
+  }
 
   public static getInstance(): HubSpotService {
     if (!HubSpotService.instance) {
@@ -371,6 +376,10 @@ export class HubSpotService {
       ? endpoint.substring(1)
       : endpoint;
     const url = `${this.BASE_API_URL}${this.BASE_API_URL.endsWith("/") ? "" : "/"}${sanitizedEndpoint}`;
+
+    if (url.includes("contacts?limit=1")) {
+      console.log("🔍 [DIAGNOSTIC] Critical request URL:", url);
+    }
 
     const headers = new Headers(options.headers);
     if (options.body) {
