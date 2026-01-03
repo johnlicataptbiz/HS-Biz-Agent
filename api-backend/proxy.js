@@ -10,9 +10,6 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Missing Authorization header" });
   }
 
-  // REVOLUTIONARY PROXY STRATEGY:
-  // We take the exact string after /api/hubspot/ from the original URL.
-  // This preserves encoding, multiple query params, and prevents "double ??" issues.
   const basePrefix = "/api/hubspot/";
   const originalUrl = req.originalUrl || req.url || "";
 
@@ -22,11 +19,14 @@ export default async function handler(req, res) {
       originalUrl.indexOf(basePrefix) + basePrefix.length
     );
   } else {
-    // Fallback to the path parameter set by server.js
-    targetPathWithQuery = req.query.path || "";
+    // Fallback using req.params[0] from server.js wildcard
+    const pathPart = req.params?.[0] || "";
+    const urlParts = originalUrl.split("?");
+    const queryString = urlParts.length > 1 ? "?" + urlParts[1] : "";
+    targetPathWithQuery = pathPart + queryString;
   }
 
-  // Trim leading slashes
+  // Trim leading slashes to avoid double-slashes in hubspotUrl
   targetPathWithQuery = targetPathWithQuery.replace(/^\/+/, "");
 
   if (!targetPathWithQuery) {

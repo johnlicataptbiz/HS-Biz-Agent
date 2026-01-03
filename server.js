@@ -77,11 +77,7 @@ app.use(
 // HUBPSOT PROXY (Exempt from global json parsing)
 app.all("/api/hubspot/*", async (req, res) => {
   try {
-    // req.params[0] captures whatever follows /api/hubspot/
-    const pathPart = req.params[0];
-    if (!pathPart) return res.status(400).json({ error: "Invalid proxy path" });
     const { default: proxy } = await import("./api-backend/proxy.js");
-    req.query.path = pathPart;
     await proxy(req, res);
   } catch (err) {
     console.error("Proxy Route Error:", err);
@@ -132,6 +128,7 @@ app.all("/api/enrich", wrap("./api-backend/enrich.js"));
 app.all("/api/lead-status-sync", wrap("./api-backend/lead-status-sync.js"));
 app.all("/api/segments", wrap("./api-backend/segments.js"));
 app.all("/api/sync", wrap("./api-backend/sync.js"));
+app.all("/api/sync/status", wrap("./api-backend/sync.js")); // Route both to the same file which handles GET/POST
 app.all("/api/velocity", wrap("./api-backend/velocity.js"));
 app.all("/api/win-loss", wrap("./api-backend/win-loss.js"));
 
@@ -233,9 +230,18 @@ app.use(express.static(join(__dirname, "dist")));
 app.get("/embeds/tour-33", (req, res) =>
   res.sendFile(join(__dirname, "embeds/tour-33.html"))
 );
-app.get(/.*/, (req, res) => {
-  if (req.path.startsWith("/api"))
-    return res.status(404).json({ error: "Not Found" });
+
+// Fallback for API - Return JSON 404
+app.use("/api/*", (req, res) => {
+  res.status(404).json({
+    error: "API Route Not Found",
+    path: req.originalUrl,
+    method: req.method,
+  });
+});
+
+// Fallback for SPA - Return index.html
+app.get("*", (req, res) => {
   res.sendFile(join(__dirname, "dist", "index.html"));
 });
 
