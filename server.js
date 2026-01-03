@@ -32,10 +32,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-console.log(`📡 Starting server on port ${port}...`);
-const server = app.listen(port, "0.0.0.0", () => {
-  console.log(`🚀 Railway Failover Server live on port ${port}`);
-});
+console.log(`📡 Initializing server on port ${port}...`);
 
 // 2. MIDDLEWARE & PROXY (Proxy must come before express.json to avoid issues with content-type on GET)
 const allowedOrigins = [
@@ -132,107 +129,12 @@ app.all("/api/sync/status", wrap("./api-backend/sync.js")); // Route both to the
 app.all("/api/velocity", wrap("./api-backend/velocity.js"));
 app.all("/api/win-loss", wrap("./api-backend/win-loss.js"));
 
-// 5. CRM SYNC & SPECIAL ENDPOINTS
-app.post("/api/sync/start", async (req, res) => {
-  try {
-    const { startBackgroundSync } = await import(
-      "./services/backend/syncService.js"
-    );
-    const authHeader = req.headers.authorization;
-    if (!authHeader)
-      return res.status(401).json({ error: "Missing Authorization header" });
-    const token = authHeader.replace("Bearer ", "");
-    const result = await startBackgroundSync(token);
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/sync/status", async (req, res) => {
-  try {
-    const { getSyncProgress } = await import(
-      "./services/backend/dataService.js"
-    );
-    const progress = await getSyncProgress();
-    res.json(progress);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.post("/api/sync/reset", async (req, res) => {
-  try {
-    const { updateSyncStatus } = await import(
-      "./services/backend/dataService.js"
-    );
-    await updateSyncStatus("idle");
-    res.json({ message: "Sync status reset to idle" });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get("/api/sync/sample", async (req, res) => {
-  try {
-    const { pool } = await import("./services/backend/dataService.js");
-    const result = await pool.query(
-      "SELECT * FROM contacts ORDER BY last_modified DESC LIMIT 5"
-    );
-    res.json({ leads: result.rows });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.post("/api/contacts/process-scores", async (req, res) => {
-  try {
-    const { pool, updateContactHealthScore } = await import(
-      "./services/backend/dataService.js"
-    );
-    const { calculateHealthScore } = await import(
-      "./services/backend/healthScoreService.js"
-    );
-    res.status(202).json({ message: "Score processing started in background" });
-    (async () => {
-      console.log("🚀 Starting batch health score processing...");
-      let processed = 0,
-        hasMore = true,
-        lastId = null;
-      while (hasMore) {
-        const query = lastId
-          ? "SELECT id, raw_data FROM contacts WHERE id > $1 ORDER BY id LIMIT 500"
-          : "SELECT id, raw_data FROM contacts ORDER BY id LIMIT 500";
-        const result = await pool.query(query, lastId ? [lastId] : []);
-        if (result.rows.length === 0) {
-          hasMore = false;
-          break;
-        }
-        for (const row of result.rows) {
-          const { score } = calculateHealthScore(row.raw_data);
-          await updateContactHealthScore(row.id, score, row.raw_data);
-          processed++;
-          lastId = row.id;
-        }
-        console.log(`📊 Processed ${processed} contact scores...`);
-        await new Promise((r) => setTimeout(r, 100));
-      }
-      console.log("✅ Batch health score processing completed!");
-    })();
-  } catch (e) {
-    console.error("Score processing error:", e);
-    if (!res.headersSent) res.status(500).json({ error: e.message });
-  }
-});
-
-// Static files & SPA
+// 5. STATIC FILES & SPA FALLBACK
 app.use(express.static(join(__dirname, "dist")));
-app.get("/embeds/tour-33", (req, res) =>
-  res.sendFile(join(__dirname, "embeds/tour-33.html"))
-);
 
-// Fallback for API - Return JSON 404
-app.use("/api/*", (req, res) => {
+// API Fallback - Must return JSON
+app.all("/api/*", (req, res) => {
+  console.log(`[404] API Route Not Found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     error: "API Route Not Found",
     path: req.originalUrl,
@@ -240,9 +142,14 @@ app.use("/api/*", (req, res) => {
   });
 });
 
-// Fallback for SPA - Return index.html
+// SPA Fallback - Returns HTML
 app.get("*", (req, res) => {
   res.sendFile(join(__dirname, "dist", "index.html"));
+});
+
+// 6. START SERVER
+const server = app.listen(port, "0.0.0.0", () => {
+  console.log(`🚀 Railway Failover Server live on port ${port}`);
 });
 
 // Post-Listen Initialization
