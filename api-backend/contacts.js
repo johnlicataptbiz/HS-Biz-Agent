@@ -139,6 +139,8 @@ export default async function handler(req, res) {
         ? sort
         : "last_modified";
       const sortOrder = order.toLowerCase() === "asc" ? "ASC" : "DESC";
+      const scoreSort =
+        "CASE WHEN classification IN ('Active Client','Employee') THEN 0 ELSE health_score END";
 
       // Get total count
       const countQuery = `SELECT COUNT(*) as total FROM contacts ${whereClause}`;
@@ -166,12 +168,18 @@ export default async function handler(req, res) {
           raw_data->>'url' as hubspot_url
         FROM contacts
         ${whereClause}
-        ORDER BY ${sortColumn} ${sortOrder}
+        ORDER BY ${sortColumn === "health_score" ? scoreSort : sortColumn} ${sortOrder}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
       params.push(parseInt(limit), offset);
 
       const result = await pool.query(dataQuery, params);
+      const adjustedRows = result.rows.map((row) => {
+        if (row.classification === "Active Client" || row.classification === "Employee") {
+          return { ...row, health_score: 0 };
+        }
+        return row;
+      });
 
       // If a specific ID was requested, return the first result with FULL raw_data
       const { id } = req.query;
@@ -180,11 +188,15 @@ export default async function handler(req, res) {
           "SELECT * FROM contacts WHERE id = $1",
           [id]
         );
-        return res.status(200).json(fullResult.rows[0]);
+        const fullRow = fullResult.rows[0];
+        if (fullRow && (fullRow.classification === "Active Client" || fullRow.classification === "Employee")) {
+          fullRow.health_score = 0;
+        }
+        return res.status(200).json(fullRow);
       }
 
       return res.status(200).json({
-        contacts: result.rows,
+        contacts: adjustedRows,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
