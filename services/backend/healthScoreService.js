@@ -15,6 +15,7 @@ export const classifyLead = (contact) => {
     const props = contact.properties || {};
     const now = new Date();
     const email = (props.email || "").toLowerCase();
+    const leadStatus = (props.hs_lead_status || "").toLowerCase();
     
     // 1. TRASH/REJECTED
     if (props.hs_email_bounce > 0 || 
@@ -42,6 +43,8 @@ export const classifyLead = (contact) => {
         memType.includes("crm") ||
         memStatus.includes("active") ||
         memStatus.includes("member") ||
+        leadStatus.includes("mm") ||
+        leadStatus.includes("crm") ||
         ['customer', 'evangelist', 'subscriber'].includes(stage)
     ) {
         return 'Active Client';
@@ -92,6 +95,33 @@ export const calculateHealthScore = (contact) => {
     let score = 5;
     const breakdown = [];
     const props = contact.properties || {};
+
+    const email = (props.email || "").toLowerCase();
+    const stage = (props.lifecyclestage || "").toLowerCase();
+    const memType = (props.membership_type || "").toLowerCase();
+    const memStatus = (props.membership_status || "").toLowerCase();
+    const leadStatus = (props.hs_lead_status || "").toLowerCase();
+
+    const isEmployee = email.endsWith("@physicaltherapybiz.com");
+    const isActiveClient =
+        stage.includes("member") ||
+        stage.includes("mm") ||
+        stage.includes("crm") ||
+        memType.includes("member") ||
+        memType.includes("mm") ||
+        memType.includes("crm") ||
+        memStatus.includes("active") ||
+        memStatus.includes("member") ||
+        leadStatus.includes("mm") ||
+        leadStatus.includes("crm") ||
+        ['customer', 'evangelist', 'subscriber'].includes(stage);
+
+    if (isEmployee || isActiveClient) {
+        return {
+            score: 0,
+            breakdown: [isEmployee ? 'Employee: excluded from lead scoring' : 'Active Client: excluded from lead scoring']
+        };
+    }
     
     // 1. Engagement Intent (Up to +30)
     const pageViews = parseInt(props.hs_analytics_num_page_views || 0);
@@ -119,16 +149,16 @@ export const calculateHealthScore = (contact) => {
 
     // 2. Commercial Velocity (Up to +30)
     const deals = parseInt(props.num_associated_deals || 0);
-    const stage = props.lifecyclestage || '';
+    const stageRaw = props.lifecyclestage || '';
 
     if (deals > 0) {
         score += 20;
         breakdown.push('+20: Active deal associated');
     }
 
-    if (['marketingqualifiedlead', 'salesqualifiedlead', 'opportunity'].includes(stage)) {
+    if (['marketingqualifiedlead', 'salesqualifiedlead', 'opportunity'].includes(stageRaw)) {
         score += 10;
-        breakdown.push(`+10: Mature lifecycle stage (${stage})`);
+        breakdown.push(`+10: Mature lifecycle stage (${stageRaw})`);
     }
     
     // 3. Create Date Recency (Up to +20)
