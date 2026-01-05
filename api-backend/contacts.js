@@ -140,7 +140,7 @@ export default async function handler(req, res) {
         : "last_modified";
       const sortOrder = order.toLowerCase() === "asc" ? "ASC" : "DESC";
       const scoreSort =
-        "CASE WHEN classification IN ('Active Client','Employee') THEN 0 ELSE health_score END";
+        "CASE WHEN classification IN ('Active Client','Customer','Employee') THEN 0 ELSE health_score END";
 
       // Get total count
       const countQuery = `SELECT COUNT(*) as total FROM contacts ${whereClause}`;
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
 
       const result = await pool.query(dataQuery, params);
       const adjustedRows = result.rows.map((row) => {
-        if (row.classification === "Active Client" || row.classification === "Employee") {
+        if (row.classification === "Active Client" || row.classification === "Customer" || row.classification === "Employee") {
           return { ...row, health_score: 0 };
         }
         return row;
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
           [id]
         );
         const fullRow = fullResult.rows[0];
-        if (fullRow && (fullRow.classification === "Active Client" || fullRow.classification === "Employee")) {
+        if (fullRow && (fullRow.classification === "Active Client" || fullRow.classification === "Customer" || fullRow.classification === "Employee")) {
           fullRow.health_score = 0;
         }
         return res.status(200).json(fullRow);

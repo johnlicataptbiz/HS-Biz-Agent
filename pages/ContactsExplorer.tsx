@@ -23,6 +23,10 @@ interface Contact {
   last_modified: string;
 }
 
+interface ContactDetails extends Contact {
+  raw_data?: any;
+}
+
 interface Pagination {
   page: number;
   limit: number;
@@ -49,6 +53,8 @@ const ContactsExplorer: React.FC = () => {
   const [leadSource, setLeadSource] = useState(''); // New state for Lead Source
   const [formId, setFormId] = useState(''); // New state for Form ID/Magnet
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<ContactDetails | null>(null);
+  const [loadingContactDetails, setLoadingContactDetails] = useState(false);
 
   // URL Deep Linking for Segments
   useEffect(() => {
@@ -187,6 +193,14 @@ const ContactsExplorer: React.FC = () => {
     fetchContacts();
   }, [fetchContacts]);
 
+  useEffect(() => {
+    const handleSync = () => {
+      fetchContacts();
+    };
+    window.addEventListener('lead_mirror_synced', handleSync);
+    return () => window.removeEventListener('lead_mirror_synced', handleSync);
+  }, [fetchContacts]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearch(searchInput);
@@ -232,6 +246,47 @@ const ContactsExplorer: React.FC = () => {
       case 'Employee': return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30';
       case 'Trash': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
       default: return 'bg-slate-100 text-slate-600 border-slate-200';
+    }
+  };
+
+  const buildLeadSignals = (contact: ContactDetails) => {
+    const props = contact.raw_data?.properties || {};
+    const signals: { label: string; value: string }[] = [];
+
+    const addSignal = (label: string, value?: string | number | null) => {
+      if (value === null || value === undefined || value === '') return;
+      signals.push({ label, value: String(value) });
+    };
+
+    addSignal('Lifecycle Stage', contact.lifecyclestage);
+    addSignal('Lead Status', props.hs_lead_status || contact.lead_status);
+    addSignal('Page Views', props.hs_analytics_num_page_views);
+    addSignal('Email Opens', props.hs_email_open_count);
+    addSignal('Email Clicks', props.hs_email_click_count);
+    addSignal('Conversions', props.num_conversion_events || props.num_conversion_events);
+    addSignal('Last Visit', props.hs_analytics_last_visit_timestamp ? formatDate(props.hs_analytics_last_visit_timestamp) : null);
+    addSignal('Last Modified', contact.last_modified ? formatDate(contact.last_modified) : null);
+    addSignal('Associated Deals', props.num_associated_deals || contact.deals);
+    addSignal('Source', props.hs_analytics_source || contact.source);
+    addSignal('Source Detail', props.hs_analytics_source_data_1);
+    addSignal('First Form', props.hs_analytics_source_data_2);
+
+    return signals;
+  };
+
+  const handleContactOpen = async (contact: Contact) => {
+    setSelectedContact(contact);
+    setLoadingContactDetails(true);
+    try {
+      const resp = await fetch(`${getApiUrl('/api/contacts')}?id=${contact.id}`);
+      if (resp.ok) {
+        const detail = await resp.json();
+        setSelectedContact(detail);
+      }
+    } catch (e) {
+      console.error('Failed to fetch contact details:', e);
+    } finally {
+      setLoadingContactDetails(false);
     }
   };
 
@@ -289,6 +344,36 @@ const ContactsExplorer: React.FC = () => {
           </div>
         </header>
 
+        <div className="flex flex-wrap gap-3 mb-8">
+          {[
+            { id: 'all', label: 'Strategic Directory' },
+            { id: 'hot', label: 'Hot Targets' },
+            { id: 'new', label: 'New Leads' },
+            { id: 'nurture', label: 'Nurture' },
+            { id: 'watch', label: 'Watch List' },
+            { id: 'customer', label: 'Active Clients' },
+            { id: 'mm', label: 'Mastermind' },
+            { id: 'crm', label: 'CRM Clients' },
+            { id: 'unqualified', label: 'Unqualified' },
+            { id: 'trash', label: 'Trash' }
+          ].map(segment => (
+            <button
+              key={segment.id}
+              onClick={() => {
+                setActiveSegment(segment.id);
+                setPagination(p => ({ ...p, page: 1 }));
+              }}
+              className={`px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest border transition-colors ${
+                activeSegment === segment.id
+                  ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30'
+                  : 'bg-white text-slate-500 border-slate-200 hover:text-slate-900'
+              }`}
+            >
+              {segment.label}
+            </button>
+          ))}
+        </div>
+
         {/* --- DATAGRID --- */}
         <div className="glass-panel border-slate-200 shadow-2xl overflow-hidden mb-10">
           <div className="overflow-x-auto">
@@ -340,7 +425,15 @@ const ContactsExplorer: React.FC = () => {
                   </tr>
                 ) : (
                   contacts.map((contact) => (
-                    <tr key={contact.id} className={`group hover:bg-slate-50 transition-all duration-300 ${selectedIds.includes(contact.id) ? 'bg-indigo-500/[0.03]' : ''}`}>
+                    <tr 
+                      key={contact.id}
+                      className={`group hover:bg-slate-50 transition-all duration-300 cursor-pointer ${selectedIds.includes(contact.id) ? 'bg-indigo-500/[0.03]' : ''}`}
+                      onClick={(event) => {
+                        const target = event.target as HTMLElement;
+                        if (target.tagName.toLowerCase() === 'input' || target.closest('button')) return;
+                        handleContactOpen(contact);
+                      }}
+                    >
                       <td className="px-8 py-8">
                         <input 
                           aria-label={`Select contact ${contact.firstname} ${contact.lastname}`} 
@@ -415,7 +508,7 @@ const ContactsExplorer: React.FC = () => {
                              <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-500/10 px-2 py-0.5 rounded-md border border-slate-500/20" title="No activity in 90+ days">Stale</span>
                            )}
                            {/* Hot Lead Indicator */}
-                           {(contact.health_score || 0) >= 80 && (
+                           {(contact.health_score || 0) >= 80 && contact.classification !== 'Active Client' && contact.classification !== 'Customer' && contact.classification !== 'Employee' && (
                              <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest bg-orange-500/10 px-2 py-0.5 rounded-md border border-orange-500/20">Critical Lead 🔥</span>
                            )}
                            {/* Ghost Opportunity */}
@@ -499,6 +592,65 @@ const ContactsExplorer: React.FC = () => {
                  </button>
               </div>
            </div>
+        </div>
+      )}
+
+      {selectedContact && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+          <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-3xl shadow-2xl p-8">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lead Insight</div>
+                <div className="mt-2 text-3xl font-black text-slate-900">
+                  {selectedContact.firstname || 'Anonymous'} {selectedContact.lastname || ''}
+                </div>
+                <div className="mt-1 text-sm text-slate-500 font-semibold">{selectedContact.email || 'No email on file'}</div>
+              </div>
+              <button
+                onClick={() => setSelectedContact(null)}
+                className="text-slate-500 hover:text-slate-900 text-sm font-bold"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">
+                Score: {selectedContact.health_score ?? 0}
+              </span>
+              {selectedContact.classification && (
+                <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-black uppercase tracking-widest ${getStatusColor(selectedContact.classification)}`}>
+                  {getStatusIcon(selectedContact.classification)}
+                  {selectedContact.classification}
+                </span>
+              )}
+              {selectedContact.lifecyclestage && (
+                <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-xs font-black uppercase tracking-widest">
+                  {selectedContact.lifecyclestage}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-4">
+              {buildLeadSignals(selectedContact).map((signal) => (
+                <div key={signal.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{signal.label}</div>
+                  <div className="mt-1 text-sm font-bold text-slate-900">{signal.value}</div>
+                </div>
+              ))}
+              {buildLeadSignals(selectedContact).length === 0 && (
+                <div className="col-span-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 font-semibold">
+                  No engagement signals found for this contact yet.
+                </div>
+              )}
+            </div>
+
+            {loadingContactDetails && (
+              <div className="mt-6 text-xs text-slate-500 font-semibold uppercase tracking-widest">
+                Loading deeper CRM details...
+              </div>
+            )}
+          </div>
         </div>
       )}
 
