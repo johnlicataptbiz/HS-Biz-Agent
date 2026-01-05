@@ -352,8 +352,6 @@ const ContactsExplorer: React.FC = () => {
             { id: 'nurture', label: 'Nurture' },
             { id: 'watch', label: 'Watch List' },
             { id: 'customer', label: 'Active Clients' },
-            { id: 'mm', label: 'Mastermind' },
-            { id: 'crm', label: 'CRM Clients' },
             { id: 'unqualified', label: 'Unqualified' },
             { id: 'trash', label: 'Trash' }
           ].map(segment => (
@@ -478,9 +476,16 @@ const ContactsExplorer: React.FC = () => {
                       </td>
                       <td className="px-8 py-8">
                         {contact.classification && (
-                          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest ${getStatusColor(contact.classification)}`}>
-                            {getStatusIcon(contact.classification)}
-                            {contact.classification}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest ${getStatusColor(contact.classification)}`}>
+                              {getStatusIcon(contact.classification)}
+                              {contact.classification}
+                            </div>
+                            {contact.classification === 'Active Client' && contact.lead_status && (
+                              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-500 border-indigo-500/20">
+                                {contact.lead_status}
+                              </div>
+                            )}
                           </div>
                         )}
                       </td>

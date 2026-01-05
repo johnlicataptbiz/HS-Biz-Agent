@@ -175,10 +175,14 @@ export default async function handler(req, res) {
 
       const result = await pool.query(dataQuery, params);
       const adjustedRows = result.rows.map((row) => {
-        if (row.classification === "Active Client" || row.classification === "Customer" || row.classification === "Employee") {
-          return { ...row, health_score: 0 };
+        let normalized = row.classification;
+        if (normalized === "Customer") {
+          normalized = "Active Client";
         }
-        return row;
+        if (normalized === "Active Client" || normalized === "Employee") {
+          return { ...row, classification: normalized, health_score: 0 };
+        }
+        return { ...row, classification: normalized };
       });
 
       // If a specific ID was requested, return the first result with FULL raw_data
@@ -189,8 +193,13 @@ export default async function handler(req, res) {
           [id]
         );
         const fullRow = fullResult.rows[0];
-        if (fullRow && (fullRow.classification === "Active Client" || fullRow.classification === "Customer" || fullRow.classification === "Employee")) {
-          fullRow.health_score = 0;
+        if (fullRow) {
+          if (fullRow.classification === "Customer") {
+            fullRow.classification = "Active Client";
+          }
+          if (fullRow.classification === "Active Client" || fullRow.classification === "Employee") {
+            fullRow.health_score = 0;
+          }
         }
         return res.status(200).json(fullRow);
       }
