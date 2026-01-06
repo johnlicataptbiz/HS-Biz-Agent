@@ -27,6 +27,7 @@ export default async function handler(req, res) {
         limit = 50,
         search = "",
         lifecyclestage = "",
+        excludeLifecycle = "",
         owner = "",
         classification = "",
         sort = "last_modified",
@@ -38,15 +39,21 @@ export default async function handler(req, res) {
       let whereClause = "WHERE 1=1";
       let paramIndex = 1;
 
-      // Search filter (name or email)
+      // Search filter (global: name/email/company/phone + key attribution fields)
       if (search) {
         whereClause += ` AND (
-          LOWER(email) LIKE $${paramIndex} OR 
-          LOWER(firstname) LIKE $${paramIndex} OR 
-          LOWER(lastname) LIKE $${paramIndex} OR
-          LOWER(raw_data->>'company') LIKE $${paramIndex}
+          coalesce(email, '') ILIKE $${paramIndex} OR
+          coalesce(firstname, '') ILIKE $${paramIndex} OR
+          coalesce(lastname, '') ILIKE $${paramIndex} OR
+          (coalesce(firstname, '') || ' ' || coalesce(lastname, '')) ILIKE $${paramIndex} OR
+          coalesce(raw_data->'properties'->>'company', '') ILIKE $${paramIndex} OR
+          coalesce(raw_data->'properties'->>'phone', '') ILIKE $${paramIndex} OR
+          coalesce(raw_data->'properties'->>'hs_analytics_source', '') ILIKE $${paramIndex} OR
+          coalesce(raw_data->'properties'->>'hs_analytics_source_data_1', '') ILIKE $${paramIndex} OR
+          coalesce(raw_data->'properties'->>'hs_analytics_source_data_2', '') ILIKE $${paramIndex} OR
+          coalesce(raw_data->'properties'->>'hs_analytics_first_conversion_event_name', '') ILIKE $${paramIndex}
         )`;
-        params.push(`%${search.toLowerCase()}%`);
+        params.push(`%${String(search).trim()}%`);
         paramIndex++;
       }
 
@@ -54,6 +61,11 @@ export default async function handler(req, res) {
       if (lifecyclestage) {
         whereClause += ` AND lifecyclestage = $${paramIndex}`;
         params.push(lifecyclestage);
+        paramIndex++;
+      }
+      if (excludeLifecycle) {
+        whereClause += ` AND (lifecyclestage IS NULL OR lower(lifecyclestage) <> lower($${paramIndex}))`;
+        params.push(excludeLifecycle);
         paramIndex++;
       }
 
@@ -64,11 +76,31 @@ export default async function handler(req, res) {
         paramIndex++;
       }
 
-      // Classification filter
-      if (classification) {
-        whereClause += ` AND classification = $${paramIndex}`;
+      // Active Client composite filter (classification OR lifecycle/lead status/member metadata)
+      if (req.query.activeClient === "true") {
+        const memberPatterns = ["%member%", "%mm%", "%crm%"];
+        const statusPatterns = ["%active%", "%member%"];
+        whereClause += ` AND (
+          classification = $${paramIndex}
+          OR lower(lifecyclestage) IN ('customer', 'evangelist')
+          OR lower(lifecyclestage) LIKE ANY($${paramIndex + 1})
+          OR lower(raw_data->'properties'->>'hs_lead_status') LIKE ANY($${paramIndex + 1})
+          OR lower(raw_data->'properties'->>'membership_type') LIKE ANY($${paramIndex + 1})
+          OR (
+            lower(raw_data->'properties'->>'membership_status') LIKE ANY($${paramIndex + 2})
+            AND lower(raw_data->'properties'->>'membership_status') NOT LIKE '%subscriber%'
+          )
+        )`;
+        params.push("Active Client", memberPatterns, statusPatterns);
+        paramIndex += 3;
+      } else if (classification) {
+        // Classification filter
+        whereClause += ` AND lower(classification) = lower($${paramIndex})`;
         params.push(classification);
         paramIndex++;
+      }
+      if (classification && String(classification).toLowerCase() === "hot") {
+        whereClause += ` AND (lifecyclestage IS NULL OR lower(lifecyclestage) <> 'opportunity')`;
       }
 
       // Min Health Score filter
@@ -104,6 +136,26 @@ export default async function handler(req, res) {
               AND (d.dealstage IS NULL OR lower(d.dealstage) <> ALL($${paramIndex}))
           )`;
           params.push(excludedStages);
+          paramIndex++;
+        }
+      }
+
+      // Deal Stage filter (most recent deal)
+      if (req.query.dealStage) {
+        const stage = String(req.query.dealStage).trim().toLowerCase();
+        if (stage === "closedlost" || stage === "closed lost") {
+          whereClause += ` AND EXISTS (
+            SELECT 1 FROM deals d
+            WHERE d.contact_id = contacts.id
+              AND lower(d.dealstage) IN ('closedlost', 'closed lost')
+          )`;
+        } else {
+          whereClause += ` AND EXISTS (
+            SELECT 1 FROM deals d
+            WHERE d.contact_id = contacts.id
+              AND lower(d.dealstage) = $${paramIndex}
+          )`;
+          params.push(stage);
           paramIndex++;
         }
       }
@@ -188,9 +240,18 @@ export default async function handler(req, res) {
           raw_data->>'jobtitle' as jobtitle,
           raw_data->'properties'->>'hs_lead_status' as lead_status,
           raw_data->'properties'->>'hs_analytics_source' as source,
+          raw_data->'properties'->>'hs_analytics_source_data_2' as first_form,
           raw_data->'properties'->>'num_associated_deals' as deals,
-          raw_data->>'url' as hubspot_url
+          raw_data->>'url' as hubspot_url,
+          d.dealstage as deal_stage
         FROM contacts
+        LEFT JOIN LATERAL (
+          SELECT dealstage
+          FROM deals
+          WHERE deals.contact_id = contacts.id
+          ORDER BY last_modified DESC NULLS LAST
+          LIMIT 1
+        ) d ON true
         ${whereClause}
         ORDER BY ${sortColumn === "health_score" ? scoreSort : sortColumn} ${sortOrder}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -200,13 +261,14 @@ export default async function handler(req, res) {
       const result = await pool.query(dataQuery, params);
       const adjustedRows = result.rows.map((row) => {
         let normalized = row.classification;
+        const scoreValue = row.health_score === null ? null : parseFloat(row.health_score);
         if (normalized === "Customer") {
           normalized = "Active Client";
         }
         if (normalized === "Active Client" || normalized === "Employee") {
           return { ...row, classification: normalized, health_score: 0 };
         }
-        return { ...row, classification: normalized };
+        return { ...row, classification: normalized, health_score: scoreValue };
       });
 
       // If a specific ID was requested, return the first result with FULL raw_data
@@ -223,6 +285,8 @@ export default async function handler(req, res) {
           }
           if (fullRow.classification === "Active Client" || fullRow.classification === "Employee") {
             fullRow.health_score = 0;
+          } else if (fullRow.health_score !== null) {
+            fullRow.health_score = parseFloat(fullRow.health_score);
           }
         }
         return res.status(200).json(fullRow);
@@ -282,7 +346,12 @@ export default async function handler(req, res) {
         [searchPattern]
       );
 
-      return res.status(200).json({ results: result.rows });
+      const adjustedResults = result.rows.map((row) => ({
+        ...row,
+        health_score: row.health_score === null ? null : parseFloat(row.health_score),
+      }));
+
+      return res.status(200).json({ results: adjustedResults });
     } catch (error) {
       console.error("Contact Search Error:", error);
       return res

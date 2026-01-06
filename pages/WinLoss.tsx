@@ -171,15 +171,15 @@ const WinLoss: React.FC = () => {
                </div>
             </div>
 
-            {/* Source Efficiency Analysis */}
+            {/* Entry Source Efficiency Analysis */}
             <div className="glass-card p-8">
                <div className="flex items-center gap-3 mb-8">
                   <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
                      <PieChart size={20} />
                   </div>
                   <div>
-                     <h3 className="text-lg font-bold text-slate-900">Lead Sources</h3>
-                     <p className="text-xs text-slate-600 uppercase tracking-wider">Which lead sources actually close?</p>
+                     <h3 className="text-lg font-bold text-slate-900">Entry Sources</h3>
+                     <p className="text-xs text-slate-600 uppercase tracking-wider">Which forms/pages/sources actually close?</p>
                   </div>
                </div>
 

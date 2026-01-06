@@ -18,6 +18,8 @@ interface Contact {
   jobtitle: string | null;
   lead_status: string | null;
   source: string | null;
+  first_form: string | null;
+  deal_stage: string | null;
   deals: string | null;
   hubspot_url: string | null;
   last_modified: string;
@@ -55,6 +57,23 @@ const ContactsExplorer: React.FC = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [selectedContact, setSelectedContact] = useState<ContactDetails | null>(null);
   const [loadingContactDetails, setLoadingContactDetails] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [noteStatus, setNoteStatus] = useState<'idle' | 'generating' | 'saving' | 'saved' | 'error'>('idle');
+  const [noteError, setNoteError] = useState('');
+
+  const formatTag = (value: string | null, fallback = '') => {
+    if (!value) return fallback;
+    return value.replace(/_/g, ' ').replace(/-/g, ' ').toUpperCase();
+  };
+
+  const isMeaningfulTag = (value: string | null) => {
+    if (!value) return false;
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    if (!/[a-zA-Z]/.test(trimmed)) return false;
+    if (/^(user(id)?|contact(id)?|vid|id)[:_ ]?\d+$/i.test(trimmed)) return false;
+    return true;
+  };
 
   // URL Deep Linking for Segments
   useEffect(() => {
@@ -152,10 +171,15 @@ const ContactsExplorer: React.FC = () => {
       else if (activeSegment === 'watch') filterParams.classification = 'Watch';
       else if (activeSegment === 'new') filterParams.classification = 'New';
       else if (activeSegment === 'unqualified') filterParams.classification = 'Unqualified';
-      else if (activeSegment === 'customer') filterParams.classification = 'Active Client';
+      else if (activeSegment === 'customer') filterParams.activeClient = 'true';
+      else if (activeSegment === 'opportunity') filterParams.lifecyclestage = 'opportunity';
+      else if (activeSegment === 'closed-lost') filterParams.dealStage = 'closedlost';
       else if (activeSegment === 'trash') filterParams.classification = 'Trash';
       else if (activeSegment === 'mm') filterParams.lifecyclestage = '266772554'; 
       else if (activeSegment === 'crm') filterParams.lifecyclestage = 'customer';
+      if (activeSegment !== 'all' && activeSegment !== 'opportunity') {
+        filterParams.excludeLifecycle = 'opportunity';
+      }
 
       // Advanced Filters (from URL/Segments)
       if (minHealthScore > 0) filterParams.minScore = minHealthScore.toString();
@@ -201,9 +225,19 @@ const ContactsExplorer: React.FC = () => {
     return () => window.removeEventListener('lead_mirror_synced', handleSync);
   }, [fetchContacts]);
 
+  useEffect(() => {
+    if (selectedContact) {
+      setNoteDraft('');
+      setNoteStatus('idle');
+      setNoteError('');
+    }
+  }, [selectedContact]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearch(searchInput);
+    // Search should be global (not constrained to the current segment)
+    setActiveSegment('all');
     setPagination(p => ({ ...p, page: 1 }));
   };
 
@@ -219,6 +253,92 @@ const ContactsExplorer: React.FC = () => {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const buildNotePrompt = (contact: ContactDetails) => {
+    const props = contact.raw_data?.properties || {};
+    const ownerId = props.hubspot_owner_id || contact.hubspot_owner_id;
+    const ownerTag = ownerId ? `@owner-${ownerId}` : '@unassigned';
+    return `
+You are a sales assistant. Write a concise CRM note for a HubSpot contact.
+Tone: direct, analytical, 3-4 sentences max. Explain why the lead is labeled this way using specific signals.
+Include a clear next step and tag the owner (${ownerTag}).
+
+Contact:
+- Name: ${contact.firstname || ''} ${contact.lastname || ''}`.trim() + `
+- Email: ${contact.email || 'Unknown'}
+- Lifecycle: ${contact.lifecyclestage || 'Unknown'}
+- Lead Status: ${contact.lead_status || 'Unknown'}
+- AI Score: ${contact.health_score ?? 0}
+- Source: ${props.hs_analytics_source || contact.source || 'Unknown'}
+- First Form: ${props.hs_analytics_first_conversion_event_name || props.hs_analytics_source_data_2 || contact.first_form || 'Unknown'}
+- Page Views: ${props.hs_analytics_num_page_views || '0'}
+- Conversions: ${props.num_conversion_events || '0'}
+- Last Visit: ${props.hs_analytics_last_visit_timestamp || 'Unknown'}
+- Last Modified: ${contact.last_modified || 'Unknown'}
+
+Output only the note body, no markdown.`;
+  };
+
+  const generateNoteDraft = async () => {
+    if (!selectedContact) return;
+    setNoteStatus('generating');
+    setNoteError('');
+    try {
+      const accessToken = localStorage.getItem('hubspot_access_token');
+      const resp = await fetch(getApiUrl('/api/ai'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'chat',
+          prompt: buildNotePrompt(selectedContact),
+          hubspotToken: accessToken
+        })
+      });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        if (/EXPIRED_AUTHENTICATION/i.test(errText) || resp.status === 401) {
+          throw new Error('HubSpot token expired — click “Connect HubSpot” (top-right) and try again.');
+        }
+        throw new Error(errText || 'Failed to generate note');
+      }
+      const data = await resp.json();
+      setNoteDraft(data.text || '');
+      setNoteStatus('idle');
+    } catch (error: any) {
+      setNoteStatus('error');
+      setNoteError(error.message || 'Failed to generate note');
+    }
+  };
+
+  const saveNoteToHubSpot = async () => {
+    if (!selectedContact || !noteDraft.trim()) return;
+    setNoteStatus('saving');
+    setNoteError('');
+    try {
+      const accessToken = localStorage.getItem('hubspot_access_token');
+      const resp = await fetch(getApiUrl('/api/notes'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hubspotToken: accessToken,
+          contactId: selectedContact.id,
+          noteBody: noteDraft.trim(),
+        })
+      });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        if (/EXPIRED_AUTHENTICATION/i.test(errText) || resp.status === 401) {
+          throw new Error('HubSpot token expired — click “Connect HubSpot” (top-right) and try again.');
+        }
+        throw new Error(errText || 'Failed to save note');
+      }
+      setNoteStatus('saved');
+      setTimeout(() => setNoteStatus('idle'), 3000);
+    } catch (error: any) {
+      setNoteStatus('error');
+      setNoteError(error.message || 'Failed to save note');
+    }
   };
 
   const getStatusIcon = (status: string | null) => {
@@ -308,6 +428,8 @@ const ContactsExplorer: React.FC = () => {
                activeSegment === 'nurture' ? 'Nurture' :
                activeSegment === 'watch' ? 'Watch List' :
                activeSegment === 'unqualified' ? 'Unqualified' :
+               activeSegment === 'opportunity' ? 'Opportunities' :
+               activeSegment === 'closed-lost' ? 'Closed / Lost' :
                activeSegment === 'customer' ? 'Customers' :
                activeSegment === 'trash' ? 'Trash' :
                activeSegment === 'mm' ? 'Mastermind' : 'Members'}
@@ -351,6 +473,8 @@ const ContactsExplorer: React.FC = () => {
             { id: 'new', label: 'New Leads' },
             { id: 'nurture', label: 'Nurture' },
             { id: 'watch', label: 'Watch List' },
+            { id: 'opportunity', label: 'Opportunities' },
+            { id: 'closed-lost', label: 'Closed / Lost' },
             { id: 'customer', label: 'Active Clients' },
             { id: 'unqualified', label: 'Unqualified' },
             { id: 'trash', label: 'Trash' }
@@ -448,18 +572,23 @@ const ContactsExplorer: React.FC = () => {
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shadow-2xl transition-all group-hover:scale-110 ${
-                          (contact.health_score || 0) >= 80 ? 'bg-gradient-to-br from-orange-500 to-red-600 text-slate-900 shadow-orange-500/20' : 
-                          (contact.health_score || 0) >= 60 ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 
-                          'bg-slate-100 text-slate-600 border border-slate-200'
-                        }`}>
-                          {contact.health_score || '0'}
-                        </div>
+                        {(() => {
+                          const scoreValue = Number(contact.health_score ?? 0);
+                          return (
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shadow-2xl transition-all group-hover:scale-110 ${
+                              scoreValue >= 80 ? 'bg-gradient-to-br from-orange-500 to-red-600 text-slate-900 shadow-orange-500/20' : 
+                              scoreValue >= 60 ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 
+                              'bg-slate-100 text-slate-600 border border-slate-200'
+                            }`}>
+                              {scoreValue.toFixed(1)}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-3">
                           <div className={`w-7 h-7 rounded-md border flex items-center justify-center text-[10px] font-black transition-all group-hover:rotate-6 ${
-                            (contact.health_score || 0) >= 80 ? 'bg-orange-500/10 border-orange-500/30 text-orange-500' : 'bg-slate-100 border-slate-200 text-slate-600'
+                            Number(contact.health_score ?? 0) >= 80 ? 'bg-orange-500/10 border-orange-500/30 text-orange-500' : 'bg-slate-100 border-slate-200 text-slate-600'
                           }`}>
                             {(contact.firstname?.[0] || contact.email?.[0] || '?')}
                           </div>
@@ -481,9 +610,30 @@ const ContactsExplorer: React.FC = () => {
                               {getStatusIcon(contact.classification)}
                               {contact.classification}
                             </div>
-                            {contact.classification === 'Active Client' && contact.lead_status && (
+                            {isMeaningfulTag(contact.lifecyclestage) && (
+                              <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 border-slate-200">
+                                {formatTag(contact.lifecyclestage)}
+                              </div>
+                            )}
+                            {isMeaningfulTag(contact.lead_status) && (
                               <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-500 border-indigo-500/20">
-                                {contact.lead_status}
+                                {formatTag(contact.lead_status)}
+                              </div>
+                            )}
+                            {isMeaningfulTag(contact.deal_stage) && (
+                              <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                {formatTag(contact.deal_stage)}
+                              </div>
+                            )}
+                            {(contact.classification === 'Active Client' || contact.lifecyclestage === 'customer') &&
+                              /closed\s*lost/i.test(contact.deal_stage || '') && (
+                              <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-500 border-rose-500/20">
+                                CONFLICT
+                              </div>
+                            )}
+                            {(isMeaningfulTag(contact.first_form) || isMeaningfulTag(contact.source)) && (
+                              <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-widest bg-slate-50 text-slate-500 border-slate-200 max-w-[140px] truncate">
+                                {formatTag(isMeaningfulTag(contact.first_form) ? contact.first_form : contact.source)}
                               </div>
                             )}
                           </div>
@@ -513,7 +663,7 @@ const ContactsExplorer: React.FC = () => {
                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest bg-slate-500/10 px-2 py-0.5 rounded-md border border-slate-500/20" title="No activity in 90+ days">Stale</span>
                            )}
                            {/* Hot Lead Indicator */}
-                           {(contact.health_score || 0) >= 80 && contact.classification !== 'Active Client' && contact.classification !== 'Customer' && contact.classification !== 'Employee' && (
+                           {(Number(contact.health_score ?? 0)) >= 80 && contact.classification !== 'Active Client' && contact.classification !== 'Customer' && contact.classification !== 'Employee' && (
                              <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest bg-orange-500/10 px-2 py-0.5 rounded-md border border-orange-500/20">Critical Lead 🔥</span>
                            )}
                            {/* Ghost Opportunity */}
@@ -621,7 +771,7 @@ const ContactsExplorer: React.FC = () => {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">
-                Score: {selectedContact.health_score ?? 0}
+                Score: {Number(selectedContact.health_score ?? 0).toFixed(1)}
               </span>
               {selectedContact.classification && (
                 <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-black uppercase tracking-widest ${getStatusColor(selectedContact.classification)}`}>
@@ -648,6 +798,55 @@ const ContactsExplorer: React.FC = () => {
                   No engagement signals found for this contact yet.
                 </div>
               )}
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">AI Note</div>
+                  <div className="text-sm font-bold text-slate-900 mt-1">Generate and push a note to HubSpot</div>
+                </div>
+                {selectedContact.hubspot_url && (
+                  <a
+                    href={selectedContact.hubspot_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-400"
+                  >
+                    Open in HubSpot
+                  </a>
+                )}
+              </div>
+
+              <textarea
+                className="mt-4 w-full min-h-[96px] rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                placeholder="Generate a note to prefill this..."
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+              />
+
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={generateNoteDraft}
+                  disabled={noteStatus === 'generating' || noteStatus === 'saving'}
+                  className="px-4 py-2 rounded-full bg-indigo-500 text-white text-xs font-black uppercase tracking-widest hover:bg-indigo-400 transition-colors disabled:opacity-50"
+                >
+                  {noteStatus === 'generating' ? 'Generating…' : 'Generate Note'}
+                </button>
+                <button
+                  onClick={saveNoteToHubSpot}
+                  disabled={!noteDraft.trim() || noteStatus === 'saving' || noteStatus === 'generating'}
+                  className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-colors disabled:opacity-50"
+                >
+                  {noteStatus === 'saving' ? 'Saving…' : 'Push to HubSpot'}
+                </button>
+                {noteStatus === 'saved' && (
+                  <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Saved ✓</span>
+                )}
+                {noteStatus === 'error' && (
+                  <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">{noteError || 'Error'}</span>
+                )}
+              </div>
             </div>
 
             {loadingContactDetails && (
@@ -680,8 +879,9 @@ const ContactsExplorer: React.FC = () => {
                 hasOwner: selectedFilter === 'unassigned' ? false : undefined,
                 classification: ['hot','nurture','watch','new'].includes(activeSegment) ? activeSegment.charAt(0).toUpperCase() + activeSegment.slice(1) : 
                                (selectedFilter !== 'all' && selectedFilter !== 'unassigned') ? selectedFilter : undefined,
-                lifecycleStage: activeSegment === 'mm' ? '266772554' : activeSegment === 'customer' ? 'customer' : undefined,
+                lifecycleStage: activeSegment === 'mm' ? '266772554' : activeSegment === 'customer' ? 'customer' : activeSegment === 'opportunity' ? 'opportunity' : undefined,
                 dealType: searchTerm.startsWith('type:') ? searchTerm.replace('type:', '') : undefined,
+                dealStage: activeSegment === 'closed-lost' ? 'closedlost' : undefined,
                 daysInactive: daysInactive > 0 ? daysInactive : undefined,
                 hasDeal: hasDeal ? true : undefined,
                 leadSource: leadSource || undefined,

@@ -1,4 +1,5 @@
 import { pool } from "../services/backend/dataService.js";
+import { isLeadMagnet } from "./utils/leadMagnets.js";
 
 /**
  * /api/contacts-analytics - Aggregate contact data from JSONB for use across all tabs
@@ -42,18 +43,42 @@ export default async function handler(req, res) {
         LIMIT 20
       `;
 
-      // 3. LIFECYCLE DISTRIBUTION
+      // 3. LANDING PAGES (Entry Points) - Count contacts by landing page
+      const landingPagesQuery = `
+        SELECT 
+          COALESCE(NULLIF(raw_data->'properties'->>'hs_analytics_source_data_2', ''), 'Unknown') as landing_page,
+          COUNT(*) as count
+        FROM contacts
+        WHERE raw_data IS NOT NULL
+        GROUP BY landing_page
+        ORDER BY count DESC
+        LIMIT 20
+      `;
+
+      // 4. PAGE TITLES - Count contacts by first page title
+      const pageTitlesQuery = `
+        SELECT 
+          COALESCE(NULLIF(raw_data->'properties'->>'hs_analytics_source_data_1', ''), 'Unknown') as page_title,
+          COUNT(*) as count
+        FROM contacts
+        WHERE raw_data IS NOT NULL
+        GROUP BY page_title
+        ORDER BY count DESC
+        LIMIT 20
+      `;
+
+      // 5. LIFECYCLE DISTRIBUTION
       const lifecycleQuery = `
         SELECT 
           COALESCE(lifecyclestage, 'Unknown') as stage,
           COUNT(*) as count,
-          ROUND(AVG(COALESCE(health_score, 0))) as avg_score
+          ROUND(AVG(COALESCE(health_score, 0)), 1) as avg_score
         FROM contacts
         GROUP BY stage
         ORDER BY count DESC
       `;
 
-      // 4. RECENT ACTIVITY - Contacts modified in last 30/60/90 days
+      // 6. RECENT ACTIVITY - Contacts modified in last 30/60/90 days
       const activityQuery = `
         SELECT 
           COUNT(CASE WHEN last_modified > NOW() - INTERVAL '7 days' THEN 1 END) as last_7_days,
@@ -64,7 +89,7 @@ export default async function handler(req, res) {
         FROM contacts
       `;
 
-      // 5. OWNER DISTRIBUTION - Contacts per owner
+      // 7. OWNER DISTRIBUTION - Contacts per owner
       const ownerQuery = `
         SELECT 
           COALESCE(hubspot_owner_id, 'Unassigned') as owner_id,
@@ -75,18 +100,18 @@ export default async function handler(req, res) {
         LIMIT 10
       `;
 
-      // 6. CLASSIFICATION DISTRIBUTION (Hot, Nurture, etc.)
+      // 8. CLASSIFICATION DISTRIBUTION (Hot, Nurture, etc.)
       const classificationQuery = `
         SELECT 
           COALESCE(classification, 'Unclassified') as classification,
           COUNT(*) as count,
-          ROUND(AVG(COALESCE(health_score, 0))) as avg_score
+          ROUND(AVG(COALESCE(health_score, 0)), 1) as avg_score
         FROM contacts
         GROUP BY classification
         ORDER BY count DESC
       `;
 
-      // 7. HIGH-VALUE LEADS (Score >= 80)
+      // 9. HIGH-VALUE LEADS (Score >= 80)
       const hotLeadsQuery = `
         SELECT 
           id,
@@ -103,7 +128,7 @@ export default async function handler(req, res) {
         LIMIT 10
       `;
 
-      // 8. DEAL ASSOCIATIONS (from raw_data if available)
+      // 10. DEAL ASSOCIATIONS (from raw_data if available)
       const dealsQuery = `
         SELECT 
           COUNT(CASE WHEN NULLIF(raw_data->'properties'->>'num_associated_deals', '')::int > 0 THEN 1 END) as with_deals,
@@ -116,6 +141,8 @@ export default async function handler(req, res) {
       const [
         leadSourcesResult,
         formSubmissionsResult,
+        landingPagesResult,
+        pageTitlesResult,
         lifecycleResult,
         activityResult,
         ownerResult,
@@ -125,6 +152,8 @@ export default async function handler(req, res) {
       ] = await Promise.all([
         client.query(leadSourcesQuery),
         client.query(formSubmissionsQuery),
+        client.query(landingPagesQuery),
+        client.query(pageTitlesQuery),
         client.query(lifecycleQuery),
         client.query(activityQuery),
         client.query(ownerQuery),
@@ -141,8 +170,22 @@ export default async function handler(req, res) {
 
       const formSubmissions = {};
       formSubmissionsResult.rows.forEach((row) => {
-        if (row.form_name !== "No Form") {
+        if (row.form_name !== "No Form" && isLeadMagnet(row.form_name)) {
           formSubmissions[row.form_name] = parseInt(row.count);
+        }
+      });
+
+      const landingPages = {};
+      landingPagesResult.rows.forEach((row) => {
+        if (row.landing_page !== "Unknown" && isLeadMagnet(row.landing_page)) {
+          landingPages[row.landing_page] = parseInt(row.count);
+        }
+      });
+
+      const pageTitles = {};
+      pageTitlesResult.rows.forEach((row) => {
+        if (row.page_title !== "Unknown" && isLeadMagnet(row.page_title)) {
+          pageTitles[row.page_title] = parseInt(row.count);
         }
       });
 
@@ -150,7 +193,7 @@ export default async function handler(req, res) {
       lifecycleResult.rows.forEach((row) => {
         lifecycleBreakdown[row.stage] = {
           count: parseInt(row.count),
-          avgScore: parseInt(row.avg_score) || 0,
+          avgScore: parseFloat(row.avg_score) || 0,
         };
       });
 
@@ -158,7 +201,7 @@ export default async function handler(req, res) {
       classificationResult.rows.forEach((row) => {
         classificationBreakdown[row.classification] = {
           count: parseInt(row.count),
-          avgScore: parseInt(row.avg_score) || 0,
+          avgScore: parseFloat(row.avg_score) || 0,
         };
       });
 
@@ -176,6 +219,8 @@ export default async function handler(req, res) {
           // For Campaign/Form pages
           leadSources,
           formSubmissions,
+          landingPages,
+          pageTitles,
 
           // For Reports/Dashboard
           lifecycleBreakdown,

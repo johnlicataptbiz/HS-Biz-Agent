@@ -95,12 +95,16 @@ export const calculateHealthScore = (contact) => {
     let score = 5;
     const breakdown = [];
     const props = contact.properties || {};
+    const contactKey = contact.id || props.email || "";
 
     const email = (props.email || "").toLowerCase();
     const stage = (props.lifecyclestage || "").toLowerCase();
     const memType = (props.membership_type || "").toLowerCase();
     const memStatus = (props.membership_status || "").toLowerCase();
     const leadStatus = (props.hs_lead_status || "").toLowerCase();
+    const source = (props.hs_analytics_source || "").toLowerCase();
+
+    const hasAny = (value, list) => list.some((item) => value.includes(item));
 
     const isEmployee = email.endsWith("@physicaltherapybiz.com");
     const isActiveClient =
@@ -123,92 +127,182 @@ export const calculateHealthScore = (contact) => {
         };
     }
     
-    // 1. Engagement Intent (Up to +30)
+    // 1. Engagement Intent (Up to +25)
     const pageViews = parseInt(props.hs_analytics_num_page_views || 0);
     const visits = parseInt(props.hs_analytics_num_visits || 0);
     const conversions = parseInt(props.num_conversion_events || 0);
 
     if (pageViews > 20) {
-        score += 15;
-        breakdown.push('+15: High page depth (>20 views)');
+        score += 10;
+        breakdown.push('+10: High page depth (>20 views)');
     } else if (pageViews > 5) {
-        score += 8;
-        breakdown.push('+8: Moderate page depth');
+        score += 5;
+        breakdown.push('+5: Moderate page depth');
     }
 
     if (visits > 5) {
-        score += 10;
-        breakdown.push('+10: Frequent visitor (>5 visits)');
+        score += 6;
+        breakdown.push('+6: Frequent visitor (>5 visits)');
+    } else if (visits > 2) {
+        score += 3;
+        breakdown.push('+3: Repeat visitor (>2 visits)');
     }
 
     if (conversions > 0) {
-        const convBonus = Math.min(15, conversions * 5);
+        const convBonus = Math.min(8, conversions * 4);
         score += convBonus;
         breakdown.push(`+${convBonus}: ${conversions} conversion events`);
     }
 
-    // 2. Commercial Velocity (Up to +30)
+    // 2. Commercial Velocity (Up to +25)
     const deals = parseInt(props.num_associated_deals || 0);
     const stageRaw = props.lifecyclestage || '';
 
     if (deals > 0) {
-        score += 20;
-        breakdown.push('+20: Active deal associated');
+        score += 12;
+        breakdown.push('+12: Active deal associated');
     }
 
     if (['marketingqualifiedlead', 'salesqualifiedlead', 'opportunity'].includes(stageRaw)) {
-        score += 10;
-        breakdown.push(`+10: Mature lifecycle stage (${stageRaw})`);
+        score += 6;
+        breakdown.push(`+6: Mature lifecycle stage (${stageRaw})`);
     }
     
-    // 3. Create Date Recency (Up to +20)
+    // 3. Create Date Recency (Up to +15)
     const createDate = props.createdate ? new Date(props.createdate) : null;
     if (createDate && (now.getTime() - createDate.getTime()) < 7 * 24 * 60 * 60 * 1000) {
-        score += 20;
-        breakdown.push('+20: New Lead Bonus (Created in last 7 days)');
-    } else if (createDate && (now.getTime() - createDate.getTime()) < 30 * 24 * 60 * 60 * 1000) {
         score += 10;
-        breakdown.push('+10: Recent Lead Bonus (Created in last 30 days)');
+        breakdown.push('+10: New Lead Bonus (Created in last 7 days)');
+    } else if (createDate && (now.getTime() - createDate.getTime()) < 30 * 24 * 60 * 60 * 1000) {
+        score += 5;
+        breakdown.push('+5: Recent Lead Bonus (Created in last 30 days)');
     }
 
-    // 3. Activity Recency (Up to +20)
+    // 4. Activity Recency (Up to +20)
     const lastVisit = props.hs_analytics_last_visit_timestamp ? new Date(parseInt(props.hs_analytics_last_visit_timestamp)) : null;
     const lastEmailOpen = props.hs_email_last_open_date ? new Date(props.hs_email_last_open_date) : null;
 
     if (lastVisit && (now.getTime() - lastVisit.getTime()) < 7 * 24 * 60 * 60 * 1000) {
-        score += 10;
-        breakdown.push('+10: Visited in last 7 days');
+        score += 8;
+        breakdown.push('+8: Visited in last 7 days');
     } else if (lastVisit && (now.getTime() - lastVisit.getTime()) < 30 * 24 * 60 * 60 * 1000) {
-        score += 5;
-        breakdown.push('+5: Visited in last 30 days');
+        score += 4;
+        breakdown.push('+4: Visited in last 30 days');
     }
 
     if (lastEmailOpen && (now.getTime() - lastEmailOpen.getTime()) < 7 * 24 * 60 * 60 * 1000) {
-        score += 10;
-        breakdown.push('+10: Email engagement in last 7 days');
+        score += 8;
+        breakdown.push('+8: Email engagement in last 7 days');
+    } else if (lastEmailOpen && (now.getTime() - lastEmailOpen.getTime()) < 30 * 24 * 60 * 60 * 1000) {
+        score += 4;
+        breakdown.push('+4: Email engagement in last 30 days');
     }
 
-    // 4. Sales Intensity (Up to +10)
+    // 5. Email Interaction Depth (Up to +10)
+    const emailOpens = parseInt(props.hs_email_open_count || 0);
+    const emailClicks = parseInt(props.hs_email_click_count || 0);
+    if (emailOpens >= 5) {
+        score += 5;
+        breakdown.push('+5: Email opens (5+)');
+    } else if (emailOpens >= 1) {
+        score += 2;
+        breakdown.push('+2: Email opens');
+    }
+    if (emailClicks >= 2) {
+        score += 6;
+        breakdown.push('+6: Email clicks (2+)');
+    } else if (emailClicks >= 1) {
+        score += 3;
+        breakdown.push('+3: Email click');
+    }
+
+    // 6. Sales Intensity (Up to +12)
     const lastNote = props.notes_last_updated ? new Date(props.notes_last_updated) : null;
     if (lastNote && (now.getTime() - lastNote.getTime()) < 14 * 24 * 60 * 60 * 1000) {
-        score += 10;
-        breakdown.push('+10: Recent CRM note update (Sales active)');
+        score += 8;
+        breakdown.push('+8: Recent CRM note update (Sales active)');
     }
 
-    // 5. Penalties
+    // 7. Intent & Fit Signals (Up to +12)
+    if (hasAny(leadStatus, ['qualifiedtobuy', 'open_deal', 'open deal', 'presentation', 'demo'])) {
+        score += 8;
+        breakdown.push('+8: Sales-ready lead status');
+    } else if (hasAny(leadStatus, ['connected', 'attempted', 'working'])) {
+        score += 4;
+        breakdown.push('+4: Sales working status');
+    }
+
+    if (props.hubspot_owner_id) {
+        score += 3;
+        breakdown.push('+3: Assigned owner');
+    }
+    if (props.phone) {
+        score += 2;
+        breakdown.push('+2: Phone on record');
+    }
+    if (props.jobtitle) {
+        score += 2;
+        breakdown.push('+2: Job title on record');
+    }
+    if (props.company) {
+        score += 2;
+        breakdown.push('+2: Company on record');
+    }
+
+    if (hasAny(source, ['paid', 'organic', 'referral', 'email', 'social'])) {
+        score += 2;
+        breakdown.push('+2: Qualified lead source');
+    }
+
+    // 8. Penalties
     if (props.hs_email_bounce > 0) {
         score -= 50;
         breakdown.push('-50: Hard bounce detected');
     }
+    if (hasAny(leadStatus, ['unqualified', 'bad timing', 'closedlost', 'closed lost', 'dead'])) {
+        score -= 25;
+        breakdown.push('-25: Disqualified lead status');
+    }
 
     const lastModified = props.lastmodifieddate ? new Date(props.lastmodifieddate) : null;
-    if (lastModified && (now.getTime() - lastModified.getTime()) > 90 * 24 * 60 * 60 * 1000) {
-        score -= 20;
-        breakdown.push('-20: Stale record (>90 days)');
+    if (lastModified && (now.getTime() - lastModified.getTime()) > 120 * 24 * 60 * 60 * 1000) {
+        score -= 15;
+        breakdown.push('-15: Stale record (>120 days)');
+    }
+    if (lastVisit && (now.getTime() - lastVisit.getTime()) > 180 * 24 * 60 * 60 * 1000) {
+        score -= 10;
+        breakdown.push('-10: No web activity (>180 days)');
+    }
+
+    // 9. High-score gating to make 90+ rare
+    const strongSignals = [
+        deals > 0,
+        lastVisit && (now.getTime() - lastVisit.getTime()) < 7 * 24 * 60 * 60 * 1000,
+        lastEmailOpen && (now.getTime() - lastEmailOpen.getTime()) < 7 * 24 * 60 * 60 * 1000,
+        conversions >= 2,
+        hasAny(leadStatus, ['qualifiedtobuy', 'open_deal', 'presentation', 'demo']),
+        ['salesqualifiedlead', 'opportunity'].includes(stageRaw)
+    ].filter(Boolean).length;
+
+    const hashString = (value) => {
+        let hash = 0;
+        for (let i = 0; i < value.length; i++) {
+            hash = (hash << 5) - hash + value.charCodeAt(i);
+            hash |= 0;
+        }
+        return Math.abs(hash);
+    };
+
+    const jitter = contactKey ? (hashString(String(contactKey)) % 10) / 10 : 0;
+
+    let finalScore = Math.min(100, Math.max(0, score + jitter));
+    if (finalScore >= 90 && strongSignals < 3) {
+        finalScore = 89.9;
+        breakdown.push('Cap: 90+ requires 3+ strong signals');
     }
 
     return {
-        score: Math.min(100, Math.max(0, score)),
+        score: Number(finalScore.toFixed(1)),
         breakdown
     };
 };

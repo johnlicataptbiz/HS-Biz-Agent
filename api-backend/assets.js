@@ -1,9 +1,10 @@
 import { pool } from '../services/backend/dataService.js';
+import { filterLeadMagnets } from './utils/leadMagnets.js';
 
 /**
  * /api/assets - Asset Intelligence (Lead Magnet Analytics)
  * 
- * Aggregates performance metrics for each unique "Lead Magnet" or Entry Point (Form).
+ * Aggregates performance metrics for each unique entry point (form, landing page, or page title).
  * Metrics:
  * - Volume: Total contacts who entered via this form
  * - Quality: Average Health Score of those contacts
@@ -21,8 +22,7 @@ export default async function handler(req, res) {
         const client = await pool.connect();
         try {
             // Aggregation Query
-            // We look at 'first_form' (from deals) or 'hs_analytics_source_data_2' / 'hs_analytics_first_conversion_event_name' (from contacts)
-            // We group by the form name.
+            // We look at first conversion event name, landing pages, then page titles as entry points.
             
             const query = `
                 WITH form_stats AS (
@@ -30,6 +30,7 @@ export default async function handler(req, res) {
                         COALESCE(
                             NULLIF(raw_data->'properties'->>'hs_analytics_first_conversion_event_name', ''),
                             NULLIF(raw_data->'properties'->>'hs_analytics_source_data_2', ''),
+                            NULLIF(raw_data->'properties'->>'hs_analytics_source_data_1', ''),
                             'Direct / Unknown'
                         ) as form_name,
                         COUNT(*) as total_contacts,
@@ -40,10 +41,17 @@ export default async function handler(req, res) {
                 ),
                 revenue_stats AS (
                     SELECT
-                        COALESCE(first_form, 'Direct / Unknown') as form_name,
+                        COALESCE(
+                            NULLIF(d.first_form, ''),
+                            NULLIF(c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name', ''),
+                            NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_2', ''),
+                            NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_1', ''),
+                            'Direct / Unknown'
+                        ) as form_name,
                         SUM(amount) as total_revenue,
                         COUNT(*) as deal_count
-                    FROM deals
+                    FROM deals d
+                    LEFT JOIN contacts c ON d.contact_id = c.id
                     WHERE dealstage IN ('closedwon', 'closed won', '9567249') OR dealstage ILIKE '%won%'
                     GROUP BY 1
                 )
@@ -62,10 +70,14 @@ export default async function handler(req, res) {
             `;
 
             const result = await client.query(query);
+            const filteredAssets = filterLeadMagnets(
+                result.rows,
+                (row) => row.form_name
+            );
             
             return res.status(200).json({
                 success: true,
-                assets: result.rows
+                assets: filteredAssets
             });
 
         } finally {

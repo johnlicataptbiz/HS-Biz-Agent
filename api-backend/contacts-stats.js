@@ -34,7 +34,7 @@ export default async function handler(req, res) {
           COUNT(CASE WHEN hubspot_owner_id IS NULL OR hubspot_owner_id = '' THEN 1 END) as unassigned,
           COUNT(CASE WHEN last_modified < NOW() - INTERVAL '90 days' THEN 1 END) as stale_records,
           COUNT(CASE WHEN lifecyclestage = 'opportunity' AND last_modified < NOW() - INTERVAL '30 days' THEN 1 END) as ghost_opportunities,
-          AVG(COALESCE(health_score, 0)) as avg_health_score,
+          ROUND(AVG(COALESCE(health_score, 0)), 1) as avg_health_score,
           COUNT(CASE WHEN health_score >= 80 THEN 1 END) as high_priority_leads
         FROM contacts
       `;
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
             ghostOpportunities: parseInt(stats.ghost_opportunities) || 0
           },
           healthScore,
-          avgHealthScore: Math.round(parseFloat(stats.avg_health_score) || 0),
+          avgHealthScore: parseFloat(stats.avg_health_score) || 0,
           highPriorityLeads: parseInt(stats.high_priority_leads) || 0,
           lifecycleBreakdown,
           classificationBreakdown

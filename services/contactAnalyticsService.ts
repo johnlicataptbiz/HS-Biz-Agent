@@ -3,6 +3,8 @@ import { getApiUrl } from './config';
 interface ContactAnalytics {
   leadSources: Record<string, number>;
   formSubmissions: Record<string, number>;
+  landingPages: Record<string, number>;
+  pageTitles: Record<string, number>;
   lifecycleBreakdown: Record<string, { count: number; avgScore: number }>;
   classificationBreakdown: Record<string, { count: number; avgScore: number }>;
   ownerDistribution: Record<string, number>;

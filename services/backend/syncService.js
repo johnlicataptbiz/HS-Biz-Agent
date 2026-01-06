@@ -42,7 +42,7 @@ export const startBackgroundSync = async (token) => {
                                     {
                                         propertyName: 'lastmodifieddate',
                                         operator: 'GT',
-                                        value: new Date(lastSyncTime).getTime()
+                                        value: String(new Date(lastSyncTime).getTime())
                                     }
                                 ]
                             }
@@ -84,8 +84,20 @@ export const startBackgroundSync = async (token) => {
                     const propsResp = await axios.get('https://api.hubapi.com/crm/v3/properties/contacts', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
-                    properties = propsResp.data.results.map(p => p.name).join(',');
-                    console.log(`📋 Synced ${propsResp.data.results.length} total properties for deep discovery.`);
+                    const discovered = propsResp.data.results.map(p => p.name);
+                    const coreProps = new Set([
+                        'email', 'firstname', 'lastname', 'phone', 'company', 'jobtitle',
+                        'lifecyclestage', 'hubspot_owner_id', 'hs_lead_status',
+                        'hs_analytics_source', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2',
+                        'hs_analytics_num_page_views', 'hs_analytics_num_visits', 'hs_analytics_last_visit_timestamp',
+                        'num_associated_deals', 'notes_last_updated', 'hs_email_last_open_date',
+                        'hs_email_bounce', 'num_conversion_events', 'associatedcompanyid',
+                        'createdate', 'lastmodifieddate',
+                        'membership_type', 'membership_status', 'hs_email_open_count', 'hs_email_click_count'
+                    ]);
+                    // Keep only known-safe or present core props to avoid 400s on too-long URLs
+                    properties = discovered.filter((name) => coreProps.has(name)).join(',');
+                    console.log(`📋 Synced ${properties.split(',').length} core properties for discovery.`);
                 } catch (e) {
                     console.warn('⚠️ Property discovery failed, falling back to core set:', e.message);
                     properties = [
@@ -95,7 +107,8 @@ export const startBackgroundSync = async (token) => {
                         'hs_analytics_num_page_views', 'hs_analytics_num_visits', 'hs_analytics_last_visit_timestamp',
                         'num_associated_deals', 'notes_last_updated', 'hs_email_last_open_date',
                         'hs_email_bounce', 'num_conversion_events', 'associatedcompanyid',
-                        'createdate', 'lastmodifieddate'
+                        'createdate', 'lastmodifieddate',
+                        'membership_type', 'membership_status', 'hs_email_open_count', 'hs_email_click_count'
                     ].join(',');
                 }
                 
@@ -150,7 +163,7 @@ export const startBackgroundSync = async (token) => {
             while (true) {
                 dealBatchCount++;
                 // Fetch deals with contact associations and attribution fields
-                const dealUrl = `https://api.hubapi.com/crm/v3/objects/deals?limit=100&associations=contacts&properties=dealname,amount,dealstage,pipeline,closedate,createdate,hs_analytics_source,hs_analytics_source_data_1,hs_analytics_source_data_2,dealtype,description,hs_lastmodifieddate`;
+                const dealUrl = `https://api.hubapi.com/crm/v3/objects/deals?limit=100&associations=contacts&properties=dealname,amount,dealstage,pipeline,closedate,createdate,hs_analytics_source,hs_analytics_source_data_1,hs_analytics_source_data_2,dealtype,description,hs_lastmodifieddate,hs_is_closed,hs_is_closed_won,hs_is_closed_lost`;
                 const url = dealAfter ? `${dealUrl}&after=${dealAfter}` : dealUrl;
 
                 console.log(`📡 Deal Batch ${dealBatchCount}: Fetching deals...`);
@@ -196,9 +209,27 @@ export const startBackgroundSync = async (token) => {
             console.log(`✅ DEAL SYNC COMPLETED: ${totalDealsSynced} deals synced`);
             updateSyncStatus('completed', '');
         } catch (e) {
+            const responseData = e.response?.data;
+            const status = e.response?.status;
+            const statusText = e.response?.statusText;
+            const code = e.code;
+            const url = e.config?.url;
+            const errorParts = [];
+            if (status) errorParts.push(`HTTP ${status}`);
+            if (statusText) errorParts.push(statusText);
+            if (code) errorParts.push(`code=${code}`);
+            if (url) errorParts.push(`url=${url}`);
+            if (responseData?.message) errorParts.push(responseData.message);
+            if (responseData?.error) errorParts.push(responseData.error);
+            if (responseData?.correlationId) errorParts.push(`correlationId=${responseData.correlationId}`);
+            if (Array.isArray(responseData?.errors) && responseData.errors.length > 0) {
+                errorParts.push(`details=${responseData.errors.map(err => err.message || JSON.stringify(err)).join(' | ')}`);
+            }
+            const errorMessage = errorParts.length > 0
+                ? errorParts.join(' · ')
+                : (e.message || 'Unknown sync error');
             console.error('❌ ========================================');
             console.error('❌ SYNC FAILED:');
-            const errorMessage = e.response?.data?.message || e.response?.data?.error || e.message || 'Unknown sync error';
             console.error('❌ Error:', errorMessage);
             console.error('❌ Response:', e.response?.data);
             updateSyncStatus('failed', errorMessage);

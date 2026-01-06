@@ -1,5 +1,6 @@
 import { pool } from '../services/backend/dataService.js';
-import { dealStageFilters } from './utils/dealStage.js';
+import { buildDealStageFilters, dealStageFilters } from './utils/dealStage.js';
+import { filterLeadMagnets } from './utils/leadMagnets.js';
 
 /**
  * /api/win-loss - Win/Loss Laboratory
@@ -40,16 +41,41 @@ export default async function handler(req, res) {
                 GROUP BY 1
             `;
 
-            // 2. Win Rate by Lead Source
+            // 2. Win Rate by Entry Source (Form, Landing Page, Page Title, or Lead Source)
+            const dealFilters = buildDealStageFilters({
+                dealstage: "d.dealstage",
+                rawData: "d.raw_data",
+            });
+
             const sourceQuery = `
                 SELECT 
-                    COALESCE(lead_source, 'Unknown') as source,
+                    CASE
+                        WHEN jsonb_typeof(to_jsonb(c.raw_data)) = 'object'
+                          AND NULLIF(to_jsonb(c.raw_data)->'properties'->>'hs_analytics_first_conversion_event_name', '') IS NOT NULL THEN
+                            'Form: ' || to_jsonb(c.raw_data)->'properties'->>'hs_analytics_first_conversion_event_name'
+                        WHEN jsonb_typeof(to_jsonb(c.raw_data)) = 'object'
+                          AND NULLIF(to_jsonb(c.raw_data)->'properties'->>'hs_analytics_source_data_2', '') IS NOT NULL THEN
+                            'Landing: ' || to_jsonb(c.raw_data)->'properties'->>'hs_analytics_source_data_2'
+                        WHEN jsonb_typeof(to_jsonb(c.raw_data)) = 'object'
+                          AND NULLIF(to_jsonb(c.raw_data)->'properties'->>'hs_analytics_source_data_1', '') IS NOT NULL THEN
+                            'Page: ' || to_jsonb(c.raw_data)->'properties'->>'hs_analytics_source_data_1'
+                        ELSE 'Source: ' || COALESCE(
+                          d.lead_source,
+                          CASE
+                            WHEN jsonb_typeof(to_jsonb(c.raw_data)) = 'object'
+                              THEN to_jsonb(c.raw_data)->'properties'->>'hs_analytics_source'
+                            ELSE NULL
+                          END,
+                          'Unknown'
+                        )
+                    END as source,
                     COUNT(*) as total_deals,
                     COUNT(CASE WHEN ${dealStageFilters.wonFilter} THEN 1 END) as won_count,
                     COUNT(CASE WHEN ${dealStageFilters.lostFilter} THEN 1 END) as lost_count,
                     ROUND(SUM(CASE WHEN ${dealStageFilters.wonFilter} THEN amount ELSE 0 END)) as won_revenue
-                FROM deals
-                WHERE ${dealStageFilters.closedFilter}
+                FROM deals d
+                LEFT JOIN contacts c ON d.contact_id = c.id
+                WHERE ${dealFilters.closedFilter}
                 GROUP BY 1
                 HAVING COUNT(*) > 0
                 ORDER BY won_count DESC
@@ -87,10 +113,14 @@ export default async function handler(req, res) {
                 };
             });
 
+            const filteredSources = filterLeadMagnets(sourceAnalysis, (row) => {
+                return row.source.replace(/^(Form|Landing|Page|Source):\\s*/i, '');
+            });
+
             return res.status(200).json({
                 success: true,
                 cohorts: cohorts.rows.reduce((acc, row) => ({ ...acc, [row.status]: row }), {}),
-                sources: sourceAnalysis,
+                sources: filteredSources,
                 types: types.rows
             });
 

@@ -34,7 +34,10 @@ interface Attribution {
   revenueByType: Array<{ type: string; count: number; revenue: number; avgDealSize: number }>;
   revenueBySource: Array<{ source: string; deals: number; revenue: number }>;
   revenueByForm: Array<{ form: string; dealType: string; deals: number; revenue: number }>;
+  revenueByLandingPage: Array<{ landingPage: string; deals: number; revenue: number }>;
+  revenueByPageTitle: Array<{ pageTitle: string; deals: number; revenue: number }>;
   topPaths: Array<{ source: string; form: string; dealType: string; conversions: number; revenue: number }>;
+  clientTypeByEntry: Array<{ entryType: string; entryName: string; mmCount: number; crmCount: number; totalCount: number }>;
 }
 
 const COLORS = ['#818cf8', '#34d399', '#f472b6', '#fbbf24', '#22d3ee', '#a78bfa', '#fb7185'];
@@ -88,7 +91,7 @@ const Attribution: React.FC = () => {
             Revenue <span className="gradient-text">Attribution.</span>
           </h1>
           <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
-            Track which lead magnets, forms, and sources generate Mastermind vs Clinical Rainmaker clients.
+            Track which sources, landing pages, forms, and page titles generate Mastermind vs Clinical Rainmaker clients.
           </p>
         </div>
         <button 
@@ -249,6 +252,74 @@ const Attribution: React.FC = () => {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Revenue by Landing Page */}
+        <div className="glass-card p-8 border-amber-500/20">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400">
+              <Route size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Revenue by Landing Page</h3>
+              <p className="text-xs text-slate-600 uppercase tracking-wider">Top entry pages that close</p>
+            </div>
+          </div>
+
+          {data?.revenueByLandingPage && data.revenueByLandingPage.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.revenueByLandingPage.slice(0, 8).map((item, i) => (
+                <div key={i} className="p-4 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all">
+                  <p className="text-sm font-bold text-slate-900 truncate" title={item.landingPage}>{item.landingPage}</p>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">Landing Page</span>
+                    <span className="text-emerald-400 font-black">{formatCurrency(item.revenue)}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1">{item.deals} deals</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+              <Route size={32} className="mx-auto mb-2 text-slate-600" />
+              <p className="text-slate-600 font-bold">No landing page attribution data</p>
+            </div>
+          )}
+        </div>
+
+        {/* Revenue by Page Title */}
+        <div className="glass-card p-8 border-slate-500/20">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-slate-500/10 rounded-lg text-slate-500">
+              <BarChart3 size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Revenue by Page Title</h3>
+              <p className="text-xs text-slate-600 uppercase tracking-wider">Highest value page titles</p>
+            </div>
+          </div>
+
+          {data?.revenueByPageTitle && data.revenueByPageTitle.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.revenueByPageTitle.slice(0, 8).map((item, i) => (
+                <div key={i} className="p-4 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all">
+                  <p className="text-sm font-bold text-slate-900 truncate" title={item.pageTitle}>{item.pageTitle}</p>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-500/10 text-slate-600">Page Title</span>
+                    <span className="text-emerald-400 font-black">{formatCurrency(item.revenue)}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1">{item.deals} deals</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+              <BarChart3 size={32} className="mx-auto mb-2 text-slate-600" />
+              <p className="text-slate-600 font-bold">No page title attribution data</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Top Converting Paths */}
       <div className="glass-card p-8">
         <div className="flex items-center gap-3 mb-6">
@@ -306,7 +377,7 @@ const Attribution: React.FC = () => {
             <BarChart3 size={24} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Revenue by Lead Magnet / Form</h3>
+            <h3 className="text-lg font-bold text-slate-900">Revenue by Form Submissions</h3>
             <p className="text-xs text-slate-600 uppercase tracking-wider">Which assets generate paying clients</p>
           </div>
         </div>
@@ -332,6 +403,49 @@ const Attribution: React.FC = () => {
           <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl">
             <BarChart3 size={32} className="mx-auto mb-2 text-slate-600" />
             <p className="text-slate-600 font-bold">No form attribution data</p>
+          </div>
+        )}
+      </div>
+
+      {/* Client Type by Entry Source */}
+      <div className="glass-card p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+            <Target size={24} />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">Client Type by Entry Source</h3>
+            <p className="text-xs text-slate-600 uppercase tracking-wider">CRM vs MM conversion counts</p>
+          </div>
+        </div>
+
+        {data?.clientTypeByEntry && data.clientTypeByEntry.length > 0 ? (
+          <div className="space-y-3">
+            {data.clientTypeByEntry.slice(0, 12).map((item, i) => (
+              <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all">
+                <div className="w-10 text-center text-sm font-black text-slate-600">#{i + 1}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase">
+                      {item.entryType}
+                    </span>
+                    <span className="text-sm font-bold text-slate-900 truncate" title={item.entryName}>
+                      {item.entryName}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 text-[10px] uppercase text-slate-500 font-bold">
+                    <span>MM: {item.mmCount}</span>
+                    <span>CRM: {item.crmCount}</span>
+                    <span>Total: {item.totalCount}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+            <Target size={32} className="mx-auto mb-2 text-slate-600" />
+            <p className="text-slate-600 font-bold">No entry source client-type data yet</p>
           </div>
         )}
       </div>

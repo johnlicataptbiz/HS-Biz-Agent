@@ -23,7 +23,7 @@ export const initDb = async () => {
                 lastname TEXT,
                 lifecyclestage TEXT,
                 hubspot_owner_id TEXT,
-                health_score INTEGER,
+                health_score NUMERIC(5,2),
                 classification TEXT,
                 last_modified TIMESTAMP,
                 raw_data JSONB,
@@ -67,7 +67,8 @@ export const initDb = async () => {
             -- Migrations (Idempotent)
             ALTER TABLE deals ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP;
             ALTER TABLE contacts ADD COLUMN IF NOT EXISTS classification TEXT;
-            ALTER TABLE contacts ADD COLUMN IF NOT EXISTS health_score INTEGER;
+            ALTER TABLE contacts ADD COLUMN IF NOT EXISTS health_score NUMERIC(5,2);
+            ALTER TABLE contacts ALTER COLUMN health_score TYPE NUMERIC(5,2) USING health_score::numeric;
         `);
     console.log("✅ PostgreSQL Schema Initialized (with deals table)");
     return true;

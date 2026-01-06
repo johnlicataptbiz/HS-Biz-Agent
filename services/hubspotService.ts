@@ -658,7 +658,14 @@ export class HubSpotService {
       let response: Response;
       let sequenceSource: "v2" | "v4" | "unknown" = "unknown";
       let sequenceUserId: string | null = null;
+      let allowDetailFetch = true;
+      let allowPerformanceFetch = true;
+
+      const shouldDisableFetch = (resp: Response) =>
+        [400, 401, 403, 404].includes(resp.status);
+
       const fetchDetail = async (sequenceId: string, userId?: string | null) => {
+        if (!allowDetailFetch) return null;
         const detailPaths = [
           `/automation/v4/sequences/${sequenceId}`,
           userId ? `/automation/v4/sequences/${sequenceId}?userId=${userId}` : null,
@@ -672,8 +679,13 @@ export class HubSpotService {
             if (detailResp.ok) {
               return await detailResp.json();
             }
+            if (shouldDisableFetch(detailResp)) {
+              allowDetailFetch = false;
+              break;
+            }
           } catch (e) {
-            console.warn(`Failed sequence detail request ${path}:`, e);
+            allowDetailFetch = false;
+            break;
           }
         }
         return null;
@@ -683,6 +695,7 @@ export class HubSpotService {
         sequenceId: string,
         userId?: string | null
       ) => {
+        if (!allowPerformanceFetch) return null;
         const perfPaths = [
           `/automation/v4/sequences/${sequenceId}/performance`,
           userId
@@ -699,8 +712,13 @@ export class HubSpotService {
             if (perfResp.ok) {
               return await perfResp.json();
             }
+            if (shouldDisableFetch(perfResp)) {
+              allowPerformanceFetch = false;
+              break;
+            }
           } catch (e) {
-            console.warn(`Failed sequence performance request ${path}:`, e);
+            allowPerformanceFetch = false;
+            break;
           }
         }
         return null;
@@ -797,7 +815,8 @@ export class HubSpotService {
         sequenceSource === "v2" &&
         !sequences[0].steps &&
         !sequences[0].stats &&
-        !sequences[0].enrollmentStats
+        !sequences[0].enrollmentStats &&
+        allowDetailFetch
       ) {
         console.log(
           "🧩 Initial sequence data is thin, performing deep scan on top 10 sequences..."
@@ -831,47 +850,7 @@ export class HubSpotService {
         sequences = [...detailedSeqs, ...sequences.slice(deepScanLimit)];
       }
 
-      if (
-        sequences.length > 0 &&
-        sequenceSource === "v4" &&
-        !sequences[0].stats &&
-        !sequences[0].enrollmentStats &&
-        !sequences[0].performance
-      ) {
-        if (!sequenceUserId) {
-          sequenceUserId = await this.getCurrentUserId();
-        }
-        console.log(
-          "🧩 V4 sequence data is thin, fetching detail for top 10 sequences..."
-        );
-        const deepScanLimit = Math.min(sequences.length, 10);
-        const detailedSeqs: any[] = [];
-        for (const s of sequences.slice(0, deepScanLimit)) {
-          try {
-            const sequenceId = String(s.id || s.hs_id || s.guid);
-            const detail = await fetchDetail(sequenceId, sequenceUserId);
-            const performance = await fetchPerformance(sequenceId, sequenceUserId);
-            if (detail) {
-              if (performance) {
-                detail.performance = performance;
-              }
-              detailedSeqs.push(detail);
-            } else {
-              if (performance) {
-                s.performance = performance;
-              }
-              detailedSeqs.push(s);
-            }
-          } catch (e) {
-            console.warn(
-              `Failed to deep scan V4 sequence ${s.id || s.hs_id || s.guid}:`,
-              e
-            );
-            detailedSeqs.push(s);
-          }
-        }
-        sequences = [...detailedSeqs, ...sequences.slice(deepScanLimit)];
-      }
+      // Skip V4 deep scan to avoid noisy 400/404s on unsupported endpoints
 
       const normalizeRate = (value: any) => {
         const num = Number(value) || 0;
@@ -1982,8 +1961,7 @@ export class HubSpotService {
         "lifecyclestage,hubspot_owner_id,lastmodifieddate,createdate,hs_lead_status," +
         "hs_email_bounce,num_associated_deals,hs_analytics_last_visit_timestamp,notes_last_updated," +
         "associatedcompanyid,firstname,email,hs_email_last_open_date,membership_type,membership_status," +
-        "num_conversion_events,hs_analytics_num_page_views,hs_latest_source_data_1," +
-        "hs_email_open_count,hs_email_click_count";
+        "num_conversion_events,hs_analytics_num_page_views,hs_email_open_count,hs_email_click_count";
 
       let after: string | null = null;
       let contacts: any[] = [];

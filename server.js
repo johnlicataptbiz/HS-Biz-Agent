@@ -85,6 +85,11 @@ apiRouter.all("/segments", wrap("./api-backend/segments.js"));
 apiRouter.all("/assets", wrap("./api-backend/assets.js"));
 apiRouter.all("/velocity", wrap("./api-backend/velocity.js"));
 apiRouter.all("/win-loss", wrap("./api-backend/win-loss.js"));
+apiRouter.all(
+  "/attribution-analytics",
+  wrap("./api-backend/attribution-analytics.js")
+);
+apiRouter.all("/notes", wrap("./api-backend/notes.js"));
 apiRouter.all("/sync", wrap("./api-backend/sync.js"));
 apiRouter.all("/sync/status", wrap("./api-backend/sync.js"));
 apiRouter.all("/sync/start", wrap("./api-backend/sync.js"));

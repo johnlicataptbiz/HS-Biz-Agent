@@ -58,8 +58,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
   ];
 
   return (
-    <div id="sidebar-container" className="w-72 bg-white text-slate-900 flex flex-col h-screen fixed left-0 top-0 border-r border-slate-200 z-50 shadow-xl">
-      <div className="p-8 pb-4">
+    <div id="sidebar-container" className="w-72 bg-white text-slate-900 flex flex-col h-screen fixed left-0 top-0 border-r border-slate-200 z-50 shadow-xl overflow-y-auto">
+      <div className="p-6 pb-2">
         <div className="flex items-center gap-4 group cursor-pointer" onClick={() => onTabChange('dashboard')}>
           <div className="relative">
             <div className="absolute inset-0 bg-indigo-500/15 blur-2xl rounded-full group-hover:bg-indigo-500/25 transition-all duration-500"></div>
@@ -72,7 +72,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
         </div>
       </div>
 
-      <nav className="flex-1 px-4 mt-8 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent space-y-8">
+      <nav className="flex-1 px-4 mt-4 space-y-8">
         {navGroups.map((group) => (
           <div key={group.title} className="space-y-2">
             <div className="px-4 mb-2">
@@ -102,8 +102,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
         ))}
       </nav>
 
-      <div className="p-6">
-        <div className="bg-slate-100 rounded-3xl p-5 border border-slate-200 space-y-4">
+      <div className="p-4">
+        <div className="bg-slate-100 rounded-3xl p-4 border border-slate-200 space-y-3">
             <div id="connection-status" className="flex items-center justify-between">
                 <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">Portal Connection</p>
                 <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-amber-500 animate-pulse'}`}></div>
@@ -120,12 +120,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
             </div>
         </div>
         
-      <div className="p-6 border-t border-slate-200 space-y-4">
+      <div className="p-4 border-t border-slate-200 space-y-3">
         <SyncStatus />
         <div className="flex gap-2">
            <button 
              id="sidebar-settings-btn"
-             className="flex-1 py-3 px-4 glass-button rounded-2xl flex items-center justify-center gap-2 group transition-all hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200" 
+             className="flex-1 py-2 px-3 glass-button rounded-2xl flex items-center justify-center gap-2 group transition-all hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200" 
              onClick={onSettingsClick} 
              title="Settings"
            >
@@ -133,7 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
            </button>
            <button 
              id="sidebar-guide-btn"
-             className="flex-1 py-3 px-4 glass-button rounded-2xl flex items-center justify-center gap-2 group transition-all hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200" 
+             className="flex-1 py-2 px-3 glass-button rounded-2xl flex items-center justify-center gap-2 group transition-all hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200" 
              onClick={onTourClick} 
              title="Replay Tour"
            >

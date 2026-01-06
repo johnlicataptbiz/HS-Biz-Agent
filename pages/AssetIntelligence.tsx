@@ -96,7 +96,7 @@ const AssetIntelligence: React.FC<{ onNavigate: (tab: string) => void }> = ({ on
             Asset <span className="gradient-text">Intelligence.</span>
           </h1>
           <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
-            Analyze your Lead Magnets and Entry Points. Identify which assets attract the highest quality, highest value leads.
+            Analyze your entry points (landing pages, forms, and page titles). Identify which assets attract the highest quality, highest value leads.
           </p>
         </div>
 
@@ -136,7 +136,7 @@ const AssetIntelligence: React.FC<{ onNavigate: (tab: string) => void }> = ({ on
                            <FileText size={22} />
                         </div>
                         <div className={`px-3 py-1 rounded-lg border text-xs font-black uppercase tracking-widest ${getScoreColor(asset.avg_health_score)}`}>
-                           {asset.avg_health_score} Quality
+                           {Number(asset.avg_health_score).toFixed(1)} Quality
                         </div>
                      </div>
                      

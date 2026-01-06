@@ -168,7 +168,6 @@ const MCP_TOOLS_CONFIG = [
               type: "OBJECT",
               description:
                 "Key-value pairs of properties to update (e.g., { jobtitle: 'CEO' })",
-              additionalProperties: { type: "STRING" },
             },
           },
           required: ["id", "properties"],

@@ -1,10 +1,11 @@
 import { pool } from '../services/backend/dataService.js';
-import { dealStageFilters } from './utils/dealStage.js';
+import { buildDealStageFilters, dealStageFilters } from './utils/dealStage.js';
+import { filterLeadMagnets } from './utils/leadMagnets.js';
 
 /**
  * /api/attribution-analytics - Customer Journey Attribution
  * 
- * Tracks: Lead Source → Form → Deal Type → Revenue
+ * Tracks: Lead Source → Landing Page → Form → Page Title → Deal Type → Revenue
  * Segments by: Mastermind vs Clinical Rainmaker vs Other
  */
 export default async function handler(req, res) {
@@ -32,6 +33,11 @@ export default async function handler(req, res) {
         ORDER BY total_revenue DESC
       `;
 
+      const dealFilters = buildDealStageFilters({
+        dealstage: "d.dealstage",
+        rawData: "d.raw_data",
+      });
+
       // 2. REVENUE BY LEAD SOURCE (joining deals with contacts)
       const revenueBySourceQuery = `
         SELECT 
@@ -40,28 +46,60 @@ export default async function handler(req, res) {
           SUM(COALESCE(d.amount, 0)) as total_revenue
         FROM deals d
         LEFT JOIN contacts c ON d.contact_id = c.id
-        WHERE ${dealStageFilters.wonFilter.replace(/dealstage/g, "d.dealstage")}
+        WHERE ${dealFilters.wonFilter}
         GROUP BY source
         ORDER BY total_revenue DESC
         LIMIT 10
       `;
 
-      // 3. REVENUE BY FORM/LEAD MAGNET
+      // 3. REVENUE BY FORM SUBMISSION
       const revenueByFormQuery = `
         SELECT 
-          COALESCE(d.first_form, c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name', 'Direct/Unknown') as form_name,
+          COALESCE(
+            NULLIF(c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name', ''),
+            NULLIF(d.first_form, ''),
+            'Direct/Unknown'
+          ) as form_name,
           COUNT(d.id) as deals_count,
           SUM(COALESCE(d.amount, 0)) as total_revenue,
           d.deal_type
         FROM deals d
         LEFT JOIN contacts c ON d.contact_id = c.id
-        WHERE ${dealStageFilters.wonFilter.replace(/dealstage/g, "d.dealstage")}
+        WHERE ${dealFilters.wonFilter}
         GROUP BY form_name, d.deal_type
         ORDER BY total_revenue DESC
         LIMIT 15
       `;
 
-      // 4. CONVERSION FUNNEL BY STAGE
+      // 4. REVENUE BY LANDING PAGE
+      const revenueByLandingPageQuery = `
+        SELECT 
+          COALESCE(NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_2', ''), 'Direct/Unknown') as landing_page,
+          COUNT(d.id) as deals_count,
+          SUM(COALESCE(d.amount, 0)) as total_revenue
+        FROM deals d
+        LEFT JOIN contacts c ON d.contact_id = c.id
+        WHERE ${dealFilters.wonFilter}
+        GROUP BY landing_page
+        ORDER BY total_revenue DESC
+        LIMIT 15
+      `;
+
+      // 5. REVENUE BY PAGE TITLE
+      const revenueByPageTitleQuery = `
+        SELECT 
+          COALESCE(NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_1', ''), 'Unknown') as page_title,
+          COUNT(d.id) as deals_count,
+          SUM(COALESCE(d.amount, 0)) as total_revenue
+        FROM deals d
+        LEFT JOIN contacts c ON d.contact_id = c.id
+        WHERE ${dealFilters.wonFilter}
+        GROUP BY page_title
+        ORDER BY total_revenue DESC
+        LIMIT 15
+      `;
+
+      // 6. CONVERSION FUNNEL BY STAGE
       const funnelQuery = `
         SELECT 
           COALESCE(dealstage, 'unknown') as stage,
@@ -72,23 +110,27 @@ export default async function handler(req, res) {
         ORDER BY count DESC
       `;
 
-      // 5. TOP PERFORMING PATHS (Source → Form → Deal Type)
+      // 7. TOP PERFORMING PATHS (Source → Form → Deal Type)
       const pathsQuery = `
         SELECT 
           COALESCE(d.lead_source, c.raw_data->'properties'->>'hs_analytics_source', 'Unknown') as source,
-          COALESCE(d.first_form, c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name', 'Direct') as form,
+          COALESCE(
+            NULLIF(c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name', ''),
+            NULLIF(d.first_form, ''),
+            'Direct'
+          ) as form,
           d.deal_type,
           COUNT(*) as conversions,
           SUM(COALESCE(d.amount, 0)) as revenue
         FROM deals d
         LEFT JOIN contacts c ON d.contact_id = c.id
-        WHERE ${dealStageFilters.wonFilter.replace(/dealstage/g, "d.dealstage")}
+        WHERE ${dealFilters.wonFilter}
         GROUP BY source, form, d.deal_type
         ORDER BY revenue DESC
         LIMIT 10
       `;
 
-      // 6. SUMMARY METRICS
+      // 8. SUMMARY METRICS
       const summaryQuery = `
         SELECT 
           COUNT(*) as total_deals,
@@ -99,51 +141,107 @@ export default async function handler(req, res) {
         FROM deals
       `;
 
-      // Execute all queries
+      // 9. CLIENT TYPE COUNTS BY ENTRY SOURCE
+      const clientTypeByEntryQuery = `
+        SELECT
+          CASE
+            WHEN NULLIF(c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name', '') IS NOT NULL THEN 'Form'
+            WHEN NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_2', '') IS NOT NULL THEN 'Landing Page'
+            WHEN NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_1', '') IS NOT NULL THEN 'Page Title'
+            ELSE 'Lead Source'
+          END as entry_type,
+          CASE
+            WHEN NULLIF(c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name', '') IS NOT NULL
+              THEN c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name'
+            WHEN NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_2', '') IS NOT NULL
+              THEN c.raw_data->'properties'->>'hs_analytics_source_data_2'
+            WHEN NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_1', '') IS NOT NULL
+              THEN c.raw_data->'properties'->>'hs_analytics_source_data_1'
+            ELSE COALESCE(d.lead_source, c.raw_data->'properties'->>'hs_analytics_source', 'Unknown')
+          END as entry_name,
+          SUM(CASE WHEN d.deal_type ILIKE '%mastermind%' THEN 1 ELSE 0 END) as mm_count,
+          SUM(CASE WHEN d.deal_type ILIKE '%rainmaker%' OR d.deal_type ILIKE '%clinical%' THEN 1 ELSE 0 END) as crm_count,
+          COUNT(*) as total_count
+        FROM deals d
+        LEFT JOIN contacts c ON d.contact_id = c.id
+        WHERE ${dealFilters.wonFilter}
+        GROUP BY entry_type, entry_name
+        ORDER BY total_count DESC
+        LIMIT 20
+      `;
+
+      const querySafely = async (label, query) => {
+        try {
+          const result = await client.query(query);
+          return { result, error: null };
+        } catch (error) {
+          console.error(`Attribution query failed: ${label}`, error);
+          return { result: { rows: [] }, error: error.message };
+        }
+      };
+
       const [
         revenueByTypeResult,
         revenueBySourceResult,
         revenueByFormResult,
+        revenueByLandingPageResult,
+        revenueByPageTitleResult,
         funnelResult,
         pathsResult,
-        summaryResult
+        summaryResult,
+        clientTypeByEntryResult
       ] = await Promise.all([
-        client.query(revenueByTypeQuery),
-        client.query(revenueBySourceQuery),
-        client.query(revenueByFormQuery),
-        client.query(funnelQuery),
-        client.query(pathsQuery),
-        client.query(summaryQuery)
+        querySafely('revenueByType', revenueByTypeQuery),
+        querySafely('revenueBySource', revenueBySourceQuery),
+        querySafely('revenueByForm', revenueByFormQuery),
+        querySafely('revenueByLandingPage', revenueByLandingPageQuery),
+        querySafely('revenueByPageTitle', revenueByPageTitleQuery),
+        querySafely('funnel', funnelQuery),
+        querySafely('topPaths', pathsQuery),
+        querySafely('summary', summaryQuery),
+        querySafely('clientTypeByEntry', clientTypeByEntryQuery)
       ]);
 
       // Transform results
-      const revenueByType = revenueByTypeResult.rows.map(row => ({
+      const revenueByType = revenueByTypeResult.result.rows.map(row => ({
         type: row.deal_type,
         count: parseInt(row.count),
         revenue: parseFloat(row.total_revenue) || 0,
         avgDealSize: parseFloat(row.avg_deal_size) || 0
       }));
 
-      const revenueBySource = revenueBySourceResult.rows.map(row => ({
+      const revenueBySource = revenueBySourceResult.result.rows.map(row => ({
         source: row.source,
         deals: parseInt(row.deals_count),
         revenue: parseFloat(row.total_revenue) || 0
       }));
 
-      const revenueByForm = revenueByFormResult.rows.map(row => ({
+      let revenueByForm = revenueByFormResult.result.rows.map(row => ({
         form: row.form_name,
         dealType: row.deal_type,
         deals: parseInt(row.deals_count),
         revenue: parseFloat(row.total_revenue) || 0
       }));
 
-      const funnel = funnelResult.rows.map(row => ({
+      let revenueByLandingPage = revenueByLandingPageResult.result.rows.map(row => ({
+        landingPage: row.landing_page,
+        deals: parseInt(row.deals_count),
+        revenue: parseFloat(row.total_revenue) || 0
+      }));
+
+      let revenueByPageTitle = revenueByPageTitleResult.result.rows.map(row => ({
+        pageTitle: row.page_title,
+        deals: parseInt(row.deals_count),
+        revenue: parseFloat(row.total_revenue) || 0
+      }));
+
+      const funnel = funnelResult.result.rows.map(row => ({
         stage: row.stage,
         count: parseInt(row.count),
         value: parseFloat(row.pipeline_value) || 0
       }));
 
-      const topPaths = pathsResult.rows.map(row => ({
+      let topPaths = pathsResult.result.rows.map(row => ({
         source: row.source,
         form: row.form,
         dealType: row.deal_type,
@@ -151,7 +249,29 @@ export default async function handler(req, res) {
         revenue: parseFloat(row.revenue) || 0
       }));
 
-      const summary = summaryResult.rows[0];
+      const summary = summaryResult.result.rows[0] || {};
+      let clientTypeByEntry = clientTypeByEntryResult.result.rows.map(row => ({
+        entryType: row.entry_type,
+        entryName: row.entry_name,
+        mmCount: parseInt(row.mm_count),
+        crmCount: parseInt(row.crm_count),
+        totalCount: parseInt(row.total_count)
+      }));
+
+      revenueByForm = filterLeadMagnets(revenueByForm, (row) => row.form);
+      revenueByLandingPage = filterLeadMagnets(
+        revenueByLandingPage,
+        (row) => row.landingPage
+      );
+      revenueByPageTitle = filterLeadMagnets(
+        revenueByPageTitle,
+        (row) => row.pageTitle
+      );
+      topPaths = filterLeadMagnets(topPaths, (row) => row.form);
+      clientTypeByEntry = filterLeadMagnets(
+        clientTypeByEntry,
+        (row) => row.entryName
+      );
 
       return res.status(200).json({
         success: true,
@@ -166,9 +286,23 @@ export default async function handler(req, res) {
           revenueByType,
           revenueBySource,
           revenueByForm,
+          revenueByLandingPage,
+          revenueByPageTitle,
           funnel,
-          topPaths
-        }
+          topPaths,
+          clientTypeByEntry
+        },
+        warnings: [
+          revenueByTypeResult.error && 'revenueByType',
+          revenueBySourceResult.error && 'revenueBySource',
+          revenueByFormResult.error && 'revenueByForm',
+          revenueByLandingPageResult.error && 'revenueByLandingPage',
+          revenueByPageTitleResult.error && 'revenueByPageTitle',
+          funnelResult.error && 'funnel',
+          pathsResult.error && 'topPaths',
+          summaryResult.error && 'summary',
+          clientTypeByEntryResult.error && 'clientTypeByEntry'
+        ].filter(Boolean)
       });
     } finally {
       client.release();

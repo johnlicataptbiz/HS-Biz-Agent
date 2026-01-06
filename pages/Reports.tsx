@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { hubSpotService } from '../services/hubspotService';
 import { fetchContactAnalytics } from '../services/contactAnalyticsService';
 import { Form } from '../types';
-import { BarChart3, TrendingUp, Download, PieChart, Info, ShieldCheck, Database, Users, Zap, Activity, RefreshCw } from 'lucide-react';
+import { BarChart3, TrendingUp, Download, PieChart, Info, ShieldCheck, Database, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart as RechartsPie, Pie } from 'recharts';
 
 interface Analytics {
   formSubmissions: Record<string, number>;
   leadSources: Record<string, number>;
+  landingPages: Record<string, number>;
+  pageTitles: Record<string, number>;
   lifecycleBreakdown: Record<string, { count: number; avgScore: number }>;
   activity: { last7Days: number; last30Days: number; last60Days: number; last90Days: number; total: number };
 }
@@ -45,23 +47,21 @@ const Reports: React.FC = () => {
     setIsLoading(false);
   };
 
-  const leadMagnets = forms.filter(f => f.leadMagnet);
-  
-  // ENHANCED: Merge HubSpot form data with database analytics
-  const chartData = leadMagnets
-    .map((lm) => {
-      // Use database submission count if available and higher
-      const dbCount = analytics?.formSubmissions?.[lm.name] || 0;
-      const apiCount = lm.submissions || 0;
-      const submissions = Math.max(dbCount, apiCount);
-      return {
-        name: lm.name.length > 20 ? lm.name.substring(0, 20) + '...' : lm.name,
-        conversions: Number(submissions),
-      };
-    })
-    .filter(lm => lm.conversions > 0)
-    .sort((a, b) => b.conversions - a.conversions)
-    .slice(0, 5);
+  const buildBarData = (entries?: Record<string, number>, limit = 5) => {
+    if (!entries) return [];
+    return Object.entries(entries)
+      .map(([name, count]) => ({
+        name: name.length > 22 ? `${name.substring(0, 22)}...` : name,
+        conversions: Number(count)
+      }))
+      .filter(item => item.conversions > 0)
+      .sort((a, b) => b.conversions - a.conversions)
+      .slice(0, limit);
+  };
+
+  const landingPageData = buildBarData(analytics?.landingPages, 6);
+  const formSubmissionData = buildBarData(analytics?.formSubmissions, 6);
+  const pageTitleData = buildBarData(analytics?.pageTitles, 6);
 
   // Lead source chart data from database
   const leadSourceData = analytics?.leadSources 
@@ -69,6 +69,10 @@ const Reports: React.FC = () => {
         .map(([name, count]) => ({ name: name.replace('_', ' '), value: count }))
         .slice(0, 6)
     : [];
+
+  const landingPageCount = Object.keys(analytics?.landingPages || {}).length;
+  const formSubmissionCount = Object.keys(analytics?.formSubmissions || {}).length;
+  const pageTitleCount = Object.keys(analytics?.pageTitles || {}).length;
 
   const COLORS = ['#818cf8', '#34d399', '#f472b6', '#fbbf24', '#22d3ee', '#a78bfa'];
 
@@ -130,14 +134,14 @@ const Reports: React.FC = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Top Lead Magnets Chart */}
+            {/* Top Landing Pages */}
             <div className="glass-card p-8 border-indigo-500/20">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
                         <BarChart3 size={24} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-slate-900">Top Performing Lead Magnets</h3>
+                        <h3 className="text-lg font-bold text-slate-900">Top Landing Pages</h3>
                         <p className="text-xs text-slate-600 uppercase tracking-wider">
                           Conversions {analytics ? '(DB Enhanced)' : '(API Only)'}
                         </p>
@@ -145,9 +149,9 @@ const Reports: React.FC = () => {
                 </div>
                 
                 <div className="h-64 w-full">
-                    {chartData.length > 0 ? (
+                    {landingPageData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} layout="vertical" margin={{ left: 0 }}>
+                            <BarChart data={landingPageData} layout="vertical" margin={{ left: 0 }}>
                                 <XAxis type="number" hide />
                                 <YAxis dataKey="name" type="category" width={150} tick={{fill: '#94a3b8', fontSize: 10}} axisLine={false} tickLine={false} />
                                 <Tooltip 
@@ -156,7 +160,7 @@ const Reports: React.FC = () => {
                                     cursor={{fill: 'rgba(255,255,255,0.05)'}}
                                 />
                                 <Bar dataKey="conversions" radius={[0, 4, 4, 0]}>
-                                    {chartData.map((entry, index) => (
+                                    {landingPageData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={index === 0 ? '#fb7185' : '#818cf8'} />
                                     ))}
                                 </Bar>
@@ -165,9 +169,95 @@ const Reports: React.FC = () => {
                     ) : (
                         <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-2xl">
                             <BarChart3 size={32} className="mb-2 opacity-50" />
-                            <p className="font-bold">No Data Available</p>
+                            <p className="font-bold">No Landing Page Data</p>
                             <p className="text-xs mt-1 text-slate-600 px-10 text-center">
-                                Run a sync to populate lead magnet data from your database.
+                                Sync contacts to populate landing page performance.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Top Form Submissions */}
+            <div className="glass-card p-8 border-emerald-500/20">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+                        <BarChart3 size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900">Top Form Submissions</h3>
+                        <p className="text-xs text-slate-600 uppercase tracking-wider">First conversion events</p>
+                    </div>
+                </div>
+                
+                <div className="h-64 w-full">
+                    {formSubmissionData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={formSubmissionData} layout="vertical" margin={{ left: 0 }}>
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" width={150} tick={{fill: '#94a3b8', fontSize: 10}} axisLine={false} tickLine={false} />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
+                                    itemStyle={{ color: '#fff' }}
+                                    cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                                />
+                                <Bar dataKey="conversions" radius={[0, 4, 4, 0]}>
+                                    {formSubmissionData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={index === 0 ? '#34d399' : '#22d3ee'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-2xl">
+                            <BarChart3 size={32} className="mb-2 opacity-50" />
+                            <p className="font-bold">No Form Data</p>
+                            <p className="text-xs mt-1 text-slate-600 px-10 text-center">
+                                Sync contacts to populate form submissions.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Top Page Titles */}
+            <div className="glass-card p-8 border-slate-500/20">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-slate-500/10 rounded-lg text-slate-500">
+                        <BarChart3 size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900">Top Page Titles</h3>
+                        <p className="text-xs text-slate-600 uppercase tracking-wider">Page titles driving entries</p>
+                    </div>
+                </div>
+                
+                <div className="h-64 w-full">
+                    {pageTitleData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={pageTitleData} layout="vertical" margin={{ left: 0 }}>
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" width={150} tick={{fill: '#94a3b8', fontSize: 10}} axisLine={false} tickLine={false} />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
+                                    itemStyle={{ color: '#fff' }}
+                                    cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                                />
+                                <Bar dataKey="conversions" radius={[0, 4, 4, 0]}>
+                                    {pageTitleData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={index === 0 ? '#a78bfa' : '#94a3b8'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-2xl">
+                            <BarChart3 size={32} className="mb-2 opacity-50" />
+                            <p className="font-bold">No Page Title Data</p>
+                            <p className="text-xs mt-1 text-slate-600 px-10 text-center">
+                                Sync contacts to populate page title performance.
                             </p>
                         </div>
                     )}
@@ -224,11 +314,11 @@ const Reports: React.FC = () => {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
              <div className="glass-card p-6 flex items-center justify-between group hover:border-indigo-500/30 transition-all">
                 <div>
-                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">Total Lead Magnets</p>
-                    <h2 className="text-4xl font-extrabold text-slate-900 mt-2">{leadMagnets.length}</h2>
+                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">Landing Pages Tracked</p>
+                    <h2 className="text-4xl font-extrabold text-slate-900 mt-2">{landingPageCount}</h2>
                 </div>
                 <div className="w-12 h-12 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
                     <Download size={24} />
@@ -237,11 +327,21 @@ const Reports: React.FC = () => {
 
              <div className="glass-card p-6 flex items-center justify-between group hover:border-emerald-500/30 transition-all">
                 <div>
-                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">Active Forms</p>
-                    <h2 className="text-4xl font-extrabold text-slate-900 mt-2">{forms.length}</h2>
+                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">Forms Tracked</p>
+                    <h2 className="text-4xl font-extrabold text-slate-900 mt-2">{formSubmissionCount || forms.length}</h2>
                 </div>
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
                     <TrendingUp size={24} />
+                </div>
+             </div>
+
+             <div className="glass-card p-6 flex items-center justify-between group hover:border-slate-500/30 transition-all">
+                <div>
+                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">Page Titles Tracked</p>
+                    <h2 className="text-4xl font-extrabold text-slate-900 mt-2">{pageTitleCount}</h2>
+                </div>
+                <div className="w-12 h-12 bg-slate-500/10 rounded-full flex items-center justify-center text-slate-500 group-hover:scale-110 transition-transform">
+                    <BarChart3 size={24} />
                 </div>
              </div>
 
@@ -265,4 +365,3 @@ const Reports: React.FC = () => {
 };
 
 export default Reports;
-
