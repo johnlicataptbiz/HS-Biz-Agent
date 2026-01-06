@@ -1,4 +1,5 @@
 import { pool } from '../services/backend/dataService.js';
+import { dealStageFilters } from './utils/dealStage.js';
 
 /**
  * /api/velocity - Pipeline Velocity & Forecast
@@ -24,12 +25,13 @@ export default async function handler(req, res) {
             const historicalQuery = `
                 SELECT 
                     COUNT(*) as closed_total,
-                    COUNT(CASE WHEN dealstage ILIKE '%won%' OR dealstage IN ('closedwon', 'closed won', '9567249') THEN 1 END) as closed_won,
-                    AVG(CASE WHEN dealstage ILIKE '%won%' OR dealstage IN ('closedwon', 'closed won', '9567249') 
+                    COUNT(CASE WHEN ${dealStageFilters.wonFilter} THEN 1 END) as closed_won,
+                    COUNT(CASE WHEN ${dealStageFilters.lostFilter} THEN 1 END) as closed_lost,
+                    AVG(CASE WHEN ${dealStageFilters.wonFilter} 
                         THEN EXTRACT(EPOCH FROM (closedate - created_at))/86400 ELSE NULL END
                     ) as avg_sales_cycle_days
                 FROM deals
-                WHERE dealstage ILIKE '%won%' OR dealstage ILIKE '%lost%' OR dealstage IN ('closedwon', 'closedlost')
+                WHERE ${dealStageFilters.closedFilter}
             `;
 
             // 2. Current Pipeline State (Open Deals)
@@ -39,7 +41,7 @@ export default async function handler(req, res) {
                     AVG(COALESCE(amount, 0)) as avg_deal_value,
                     SUM(COALESCE(amount, 0)) as total_pipeline_value
                 FROM deals
-                WHERE NOT (dealstage ILIKE '%won%' OR dealstage ILIKE '%lost%' OR dealstage IN ('closedwon', 'closedlost'))
+                WHERE ${dealStageFilters.openFilter}
             `;
 
             // 3. Deal Aging Analysis (Buckets)
@@ -51,7 +53,7 @@ export default async function handler(req, res) {
                         EXTRACT(EPOCH FROM (NOW() - created_at))/86400 as age_days,
                         amount
                     FROM deals
-                    WHERE NOT (dealstage ILIKE '%won%' OR dealstage ILIKE '%lost%' OR dealstage IN ('closedwon', 'closedlost'))
+                    WHERE ${dealStageFilters.openFilter}
                 )
                 SELECT 
                     CASE 
@@ -100,7 +102,10 @@ export default async function handler(req, res) {
                     avgCycleDays: avgCycle.toFixed(1),
                     openOpportunities: openOpps,
                     avgDealValue: avgValue,
-                    totalPipeline: parseFloat(pipe.total_pipeline_value) || 0
+                    totalPipeline: parseFloat(pipe.total_pipeline_value) || 0,
+                    closedWon: parseInt(hist.closed_won) || 0,
+                    closedLost: parseInt(hist.closed_lost) || 0,
+                    closedTotal: parseInt(hist.closed_total) || 0
                 },
                 aging: ageResult.rows.map(row => ({
                     bucket: row.age_bucket,

@@ -29,6 +29,7 @@ export class HubSpotService {
     REFRESH_TOKEN: "hubspot_refresh_token",
     EXPIRES_AT: "hubspot_expires_at",
     CONNECTED_CLIENT_ID: "hubspot_client_id",
+    PORTAL_ID: "hubspot_portal_id",
   };
 
   private constructor() {
@@ -43,6 +44,29 @@ export class HubSpotService {
       HubSpotService.instance = new HubSpotService();
     }
     return HubSpotService.instance;
+  }
+
+  public async getPortalId(): Promise<number | null> {
+    const cached = localStorage.getItem(this.STORAGE_KEYS.PORTAL_ID);
+    if (cached) {
+      const parsed = Number(cached);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+
+    try {
+      const resp = await this.request("/account-info/v3/details");
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      const portalId = Number(data.portalId || data.hubId);
+      if (!Number.isNaN(portalId)) {
+        localStorage.setItem(this.STORAGE_KEYS.PORTAL_ID, String(portalId));
+        return portalId;
+      }
+      return null;
+    } catch (err) {
+      console.warn("Failed to fetch portal ID:", err);
+      return null;
+    }
   }
 
   // --- OAUTH FLOW ---
@@ -632,6 +656,55 @@ export class HubSpotService {
       console.log("🧩 Fetching sequences...");
       let sequences: any[] = [];
       let response: Response;
+      let sequenceSource: "v2" | "v4" | "unknown" = "unknown";
+      let sequenceUserId: string | null = null;
+      const fetchDetail = async (sequenceId: string, userId?: string | null) => {
+        const detailPaths = [
+          `/automation/v4/sequences/${sequenceId}`,
+          userId ? `/automation/v4/sequences/${sequenceId}?userId=${userId}` : null,
+          `/automation/v3/sequences/${sequenceId}`,
+          `/automation/v2/sequences/${sequenceId}`,
+        ].filter(Boolean) as string[];
+
+        for (const path of detailPaths) {
+          try {
+            const detailResp = await this.request(path);
+            if (detailResp.ok) {
+              return await detailResp.json();
+            }
+          } catch (e) {
+            console.warn(`Failed sequence detail request ${path}:`, e);
+          }
+        }
+        return null;
+      };
+
+      const fetchPerformance = async (
+        sequenceId: string,
+        userId?: string | null
+      ) => {
+        const perfPaths = [
+          `/automation/v4/sequences/${sequenceId}/performance`,
+          userId
+            ? `/automation/v4/sequences/${sequenceId}/performance?userId=${userId}`
+            : null,
+          `/automation/v3/sequences/${sequenceId}/performance`,
+          `/automation/v3/sequences/${sequenceId}/metrics`,
+          `/automation/v2/sequences/${sequenceId}/metrics`,
+        ].filter(Boolean) as string[];
+
+        for (const path of perfPaths) {
+          try {
+            const perfResp = await this.request(path);
+            if (perfResp.ok) {
+              return await perfResp.json();
+            }
+          } catch (e) {
+            console.warn(`Failed sequence performance request ${path}:`, e);
+          }
+        }
+        return null;
+      };
 
       // Try V2 first for comprehensive data
       try {
@@ -639,9 +712,11 @@ export class HubSpotService {
         if (response.ok) {
           const data = await response.json();
           sequences = data.sequences || data.results || data.objects || [];
+          sequenceSource = "v2";
           console.log(`🧩 Found ${sequences.length} sequences via V2.`);
         } else if (response.status === 404) {
           console.log("🧩 V2 sequences endpoint not found (404), trying V4.");
+          sequenceSource = "v4";
         } else {
           console.warn(
             `🧩 V2 sequences fetch failed (${response.status}), trying V4.`
@@ -656,12 +731,14 @@ export class HubSpotService {
         try {
           const userId = await this.getCurrentUserId();
           if (userId) {
+            sequenceUserId = userId;
             response = await this.request(
               `/automation/v4/sequences?userId=${userId}&limit=100`
             );
             if (response.ok) {
               const data = await response.json();
               sequences = data.results || data.objects || [];
+              sequenceSource = "v4";
               console.log(
                 `🧩 Found ${sequences.length} sequences via V4 (user-specific).`
               );
@@ -690,6 +767,7 @@ export class HubSpotService {
           if (response.ok) {
             const data = await response.json();
             sequences = data.results || data.objects || [];
+            sequenceSource = "v4";
             console.log(
               `🧩 Found ${sequences.length} sequences via V4 (general).`
             );
@@ -716,6 +794,7 @@ export class HubSpotService {
       // This is primarily for V4 list endpoints which might be thin
       if (
         sequences.length > 0 &&
+        sequenceSource === "v2" &&
         !sequences[0].steps &&
         !sequences[0].stats &&
         !sequences[0].enrollmentStats
@@ -727,19 +806,65 @@ export class HubSpotService {
         const detailedSeqs: any[] = [];
         for (const s of sequences.slice(0, deepScanLimit)) {
           try {
-            // Try V2 detail endpoint first, then V4
-            let detailResp = await this.request(
-              `/automation/v2/sequences/${s.id || s.hs_id || s.guid}`
-            );
-            if (!detailResp.ok) {
-              detailResp = await this.request(
-                `/automation/v4/sequences/${s.id || s.hs_id || s.guid}`
-              );
+            const sequenceId = String(s.id || s.hs_id || s.guid);
+            const detail = await fetchDetail(sequenceId, sequenceUserId);
+            const performance = await fetchPerformance(sequenceId, sequenceUserId);
+            if (detail) {
+              if (performance) {
+                detail.performance = performance;
+              }
+              detailedSeqs.push(detail);
+            } else {
+              if (performance) {
+                s.performance = performance;
+              }
+              detailedSeqs.push(s);
             }
-            detailedSeqs.push(detailResp.ok ? await detailResp.json() : s);
           } catch (e) {
             console.warn(
               `Failed to deep scan sequence ${s.id || s.hs_id || s.guid}:`,
+              e
+            );
+            detailedSeqs.push(s);
+          }
+        }
+        sequences = [...detailedSeqs, ...sequences.slice(deepScanLimit)];
+      }
+
+      if (
+        sequences.length > 0 &&
+        sequenceSource === "v4" &&
+        !sequences[0].stats &&
+        !sequences[0].enrollmentStats &&
+        !sequences[0].performance
+      ) {
+        if (!sequenceUserId) {
+          sequenceUserId = await this.getCurrentUserId();
+        }
+        console.log(
+          "🧩 V4 sequence data is thin, fetching detail for top 10 sequences..."
+        );
+        const deepScanLimit = Math.min(sequences.length, 10);
+        const detailedSeqs: any[] = [];
+        for (const s of sequences.slice(0, deepScanLimit)) {
+          try {
+            const sequenceId = String(s.id || s.hs_id || s.guid);
+            const detail = await fetchDetail(sequenceId, sequenceUserId);
+            const performance = await fetchPerformance(sequenceId, sequenceUserId);
+            if (detail) {
+              if (performance) {
+                detail.performance = performance;
+              }
+              detailedSeqs.push(detail);
+            } else {
+              if (performance) {
+                s.performance = performance;
+              }
+              detailedSeqs.push(s);
+            }
+          } catch (e) {
+            console.warn(
+              `Failed to deep scan V4 sequence ${s.id || s.hs_id || s.guid}:`,
               e
             );
             detailedSeqs.push(s);
@@ -773,12 +898,18 @@ export class HubSpotService {
         const stats =
           seq.stats ||
           seq.enrollmentStats ||
+          seq.performance?.summary ||
           seq.performance ||
+          seq.metrics ||
+          seq.statistics ||
+          seq.engagement ||
           seq.enrollment_stats ||
           {};
         const replyRate = normalizeRate(
           stats.reply_rate ||
             stats.replyRate ||
+            stats.reply_ratio ||
+            stats.replyRatio ||
             stats.replied ||
             (stats.replyCount && stats.enrolledCount
               ? stats.replyCount / stats.enrolledCount
@@ -787,6 +918,8 @@ export class HubSpotService {
         const openRate = normalizeRate(
           stats.open_rate ||
             stats.openRate ||
+            stats.open_ratio ||
+            stats.openRatio ||
             stats.opened ||
             (stats.openCount && stats.enrolledCount
               ? stats.openCount / stats.enrolledCount
@@ -797,6 +930,8 @@ export class HubSpotService {
         let stepsCount = 0;
         if (Array.isArray(seq.steps)) {
           stepsCount = seq.steps.length;
+        } else if (Array.isArray(seq.sequenceSteps)) {
+          stepsCount = seq.sequenceSteps.length;
         } else if (typeof seq.stepCount === "number") {
           stepsCount = seq.stepCount;
         } else if (typeof seq.step_count === "number") {
@@ -1155,12 +1290,27 @@ export class HubSpotService {
     if (camp.type === "EMAIL_BLAST" && camp.contacts > 0) {
       const sent = camp.contacts || 1;
       const opens = camp.opens || 0;
+      const clicks = camp.clicks || 0;
       const openRate = (opens / sent) * 100;
+      const clickRate = (clicks / sent) * 100;
 
-      let score = 50 + openRate * 2;
+      let score = 45 + openRate * 1.8 + clickRate * 2.2;
       if (openRate > 30) score += 10;
       if (openRate < 10) score -= 15;
 
+      return Math.min(99, Math.max(5, Math.round(score)));
+    }
+
+    if (
+      (camp.type === "LANDING_PAGE" || camp.type === "SITE_PAGE") &&
+      (camp.submissions || camp.visits)
+    ) {
+      const visits = camp.visits || 0;
+      const submissions = camp.submissions || 0;
+      const conversionRate = visits > 0 ? (submissions / visits) * 100 : 0;
+      let score = 50 + conversionRate * 2;
+      if (submissions > 100) score += 10;
+      if (conversionRate > 5) score += 10;
       return Math.min(99, Math.max(5, Math.round(score)));
     }
 
@@ -1205,29 +1355,45 @@ export class HubSpotService {
   public async fetchCampaigns(): Promise<Campaign[]> {
     try {
       const allCampaigns: Campaign[] = [];
+      const toNumber = (value: any) => (Number(value) ? Number(value) : 0);
+      const toDateValue = (value: any) => (value ? value : null);
 
       // 1. Marketing Containers (V3)
       const v3Resp = await this.request("/marketing/v3/campaigns");
       if (v3Resp.ok) {
         const data = await v3Resp.json();
-        const v3Items = (data.results || []).map((camp: any) => ({
-          id: camp.id,
-          name:
-            camp.properties?.name ||
-            camp.name ||
-            camp.appName ||
-            `Campaign ${camp.id?.slice(0, 8)}`,
-          status: camp.status || camp.properties?.status || "ACTIVE",
-          budget: camp.budget || camp.properties?.budget || null,
-          revenue: null,
-          contacts: 0,
-          aiScore: this.calculateCampaignHeuristic({
+        const v3Items = (data.results || []).map((camp: any) => {
+          const props = camp.properties || {};
+          const contacts =
+            toNumber(props.hs_campaign_members_count) ||
+            toNumber(props.numContactAssociations) ||
+            0;
+          return {
             id: camp.id,
-            name: camp.name,
-            type: "MARKETING_CONTAINER",
-          }),
-          type: "MARKETING_CONTAINER" as const,
-        }));
+            name:
+              props.name ||
+              camp.name ||
+              camp.appName ||
+              `Campaign ${camp.id?.slice(0, 8)}`,
+            status: camp.status || props.status || "ACTIVE",
+            budget: toNumber(props.budget) || null,
+            revenue: null,
+            contacts,
+            createdAt: toDateValue(camp.createdAt || props.createdAt),
+            updatedAt: toDateValue(camp.updatedAt || props.updatedAt),
+            startDate: toDateValue(props.startDate),
+            endDate: toDateValue(props.endDate),
+            channel: props.channel || null,
+            source: props.source || null,
+            aiScore: this.calculateCampaignHeuristic({
+              id: camp.id,
+              name: props.name || camp.name,
+              type: "MARKETING_CONTAINER",
+              contacts,
+            }),
+            type: "MARKETING_CONTAINER" as const,
+          };
+        });
         allCampaigns.push(...v3Items);
       }
 
@@ -1238,16 +1404,34 @@ export class HubSpotService {
       if (emailResp.ok) {
         const emailData = await emailResp.json();
         const emailItems = (emailData.objects || emailData.campaigns || []).map(
-          (c: any) => ({
-            id: String(c.id),
-            name: c.name || c.appName || c.subject || "Unnamed Email Campaign",
-            status: "SENT",
-            budget: null,
-            revenue: null,
-            contacts: c.counters?.sent || 0,
-            aiScore: this.calculateCampaignHeuristic(c),
-            type: "EMAIL_BLAST" as const,
-          })
+          (c: any) => {
+            const counters = c.counters || {};
+            const sent = toNumber(counters.sent || counters.numSent);
+            const opens = toNumber(counters.opened || counters.numOpened);
+            const clicks = toNumber(counters.clicks || counters.numClicks);
+            return {
+              id: String(c.id),
+              name: c.name || c.appName || c.subject || "Unnamed Email Campaign",
+              status: c.status || "SENT",
+              budget: null,
+              revenue: null,
+              contacts: sent,
+              sent,
+              opens,
+              clicks,
+              createdAt: toDateValue(c.createdAt),
+              updatedAt: toDateValue(c.updatedAt),
+              channel: "Email",
+              source: c.appName || null,
+              aiScore: this.calculateCampaignHeuristic({
+                ...c,
+                sent,
+                opens,
+                clicks,
+              }),
+              type: "EMAIL_BLAST" as const,
+            };
+          }
         );
 
         allCampaigns.push(...emailItems);
@@ -1274,6 +1458,11 @@ export class HubSpotService {
           page.performance?.submissionsCount ||
           page.totalStats?.submissions ||
           0;
+        const visits =
+          page.stats?.visits ||
+          page.performance?.visitsCount ||
+          page.totalStats?.visits ||
+          0;
         return {
           id: page.id,
           name: `[Page] ${page.name || page.htmlTitle}`,
@@ -1281,8 +1470,14 @@ export class HubSpotService {
           budget: null,
           revenue: null,
           contacts: Number(subs),
+          submissions: Number(subs),
+          visits: Number(visits),
+          createdAt: toDateValue(page.createdAt),
+          updatedAt: toDateValue(page.updatedAt),
+          channel: "Web",
+          source: page.url || null,
           aiScore: subs > 50 ? 92 : 75,
-          type: "LANDING_PAGE" as const,
+          type: page.contentType === "SITE_PAGE" ? "SITE_PAGE" : "LANDING_PAGE",
           rawName: (page.name || "").toLowerCase(),
         };
       });
@@ -1684,7 +1879,7 @@ export class HubSpotService {
       memType.includes("crm") ||
       memStatus.includes("active") ||
       memStatus.includes("member") ||
-      ["customer", "evangelist", "subscriber"].includes(stage);
+      ["customer", "evangelist"].includes(stage);
 
     // 1. EMPLOYEE (internal accounts should be cordoned off)
     if (isEmployee) {

@@ -35,6 +35,13 @@ This document serves as the source of truth for API endpoints used in the applic
 *   **Scopes**: `automation.sequences.read`, `sales-email-read`
 *   **Note**: Requires **Sales Hub Professional** or **Enterprise**. Returns 404/403 if tier is missing.
 
+### **Sequence Details**
+*   **Endpoint**: `GET /automation/v4/sequences/{sequenceId}?userId={userId}`
+*   **Purpose**: Retrieves details and performance metadata for a specific sequence.
+*   **Version**: **V4**
+*   **Scopes**: `automation.sequences.read`, `sales-email-read`
+*   **Note**: Requires userId for access; returns 400/403 if userId or tier is missing.
+
 ---
 
 ## 3. Data Model (Properties)

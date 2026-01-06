@@ -194,13 +194,14 @@ export const startBackgroundSync = async (token) => {
             }
             
             console.log(`✅ DEAL SYNC COMPLETED: ${totalDealsSynced} deals synced`);
-            updateSyncStatus('completed');
+            updateSyncStatus('completed', '');
         } catch (e) {
             console.error('❌ ========================================');
             console.error('❌ SYNC FAILED:');
-            console.error('❌ Error:', e.message);
+            const errorMessage = e.response?.data?.message || e.response?.data?.error || e.message || 'Unknown sync error';
+            console.error('❌ Error:', errorMessage);
             console.error('❌ Response:', e.response?.data);
-            updateSyncStatus('failed');
+            updateSyncStatus('failed', errorMessage);
         } finally {
             console.log(`🏁 Sync process ended. Setting isSyncing = false`);
             isSyncing = false;

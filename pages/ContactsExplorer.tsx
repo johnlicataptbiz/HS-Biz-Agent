@@ -344,7 +344,7 @@ const ContactsExplorer: React.FC = () => {
           </div>
         </header>
 
-        <div className="flex flex-wrap gap-3 mb-8">
+        <div id="contacts-segments-row" className="flex flex-wrap gap-3 mb-8">
           {[
             { id: 'all', label: 'Strategic Directory' },
             { id: 'hot', label: 'Hot Targets' },
@@ -373,12 +373,12 @@ const ContactsExplorer: React.FC = () => {
         </div>
 
         {/* --- DATAGRID --- */}
-        <div className="glass-panel border-slate-200 shadow-2xl overflow-hidden mb-10">
+        <div id="contacts-data-grid" className="glass-panel border-slate-200 shadow-2xl overflow-hidden mb-10">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="w-12 px-8 py-6">
+                  <th className="w-12 px-4 py-3">
                     <input 
                       aria-label="Select all contacts" 
                       type="checkbox" 
@@ -390,17 +390,17 @@ const ContactsExplorer: React.FC = () => {
                       className="accent-indigo-500"
                     />
                   </th>
-                  <th id="contacts-ai-rank-header" onClick={() => handleSort('health_score')} className="px-8 py-6 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-900 transition-colors group">
+                  <th id="contacts-ai-rank-header" onClick={() => handleSort('health_score')} className="px-4 py-3 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-900 transition-colors group">
                     <div className="flex items-center gap-2">
                        A.I. RANK <ChevronDown size={14} className={`transition-transform ${sortField === 'health_score' ? 'text-indigo-400' : 'opacity-0'}`} />
                     </div>
                   </th>
-                  <th onClick={() => handleSort('firstname')} className="px-8 py-6 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-900 transition-colors">
+                  <th onClick={() => handleSort('firstname')} className="px-4 py-3 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-900 transition-colors">
                     PROFILE INFO
                   </th>
-                  <th className="px-8 py-6 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">STATUS TAG</th>
-                  <th className="px-8 py-6 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">ORGANIZATION</th>
-                  <th onClick={() => handleSort('last_modified')} className="px-8 py-6 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-900 transition-colors">
+                  <th className="px-4 py-3 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">STATUS TAG</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">ORGANIZATION</th>
+                  <th onClick={() => handleSort('last_modified')} className="px-4 py-3 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-900 transition-colors">
                     LAST INTERACTION
                   </th>
                 </tr>
@@ -409,12 +409,12 @@ const ContactsExplorer: React.FC = () => {
                 {loading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td colSpan={6} className="px-8 py-10 border-b border-slate-200 bg-slate-50 opacity-70" />
+                      <td colSpan={6} className="px-4 py-6 border-b border-slate-200 bg-slate-50 opacity-70" />
                     </tr>
                   ))
                 ) : contacts.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-8 py-32 text-center">
+                    <td colSpan={6} className="px-4 py-32 text-center">
                       <div className="flex flex-col items-center gap-4">
                         <Database size={48} className="text-slate-800" />
                         <span className="text-slate-500 font-bold uppercase tracking-widest text-xs">No strategic records found</span>
@@ -432,7 +432,7 @@ const ContactsExplorer: React.FC = () => {
                         handleContactOpen(contact);
                       }}
                     >
-                      <td className="px-8 py-8">
+                      <td className="px-3 py-3">
                         <input 
                           aria-label={`Select contact ${contact.firstname} ${contact.lastname}`} 
                           type="checkbox" 
@@ -447,8 +447,8 @@ const ContactsExplorer: React.FC = () => {
                           className="accent-indigo-500"
                         />
                       </td>
-                      <td className="px-8 py-8">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-2xl transition-all group-hover:scale-110 ${
+                      <td className="px-3 py-3">
+                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-sm shadow-2xl transition-all group-hover:scale-110 ${
                           (contact.health_score || 0) >= 80 ? 'bg-gradient-to-br from-orange-500 to-red-600 text-slate-900 shadow-orange-500/20' : 
                           (contact.health_score || 0) >= 60 ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 
                           'bg-slate-100 text-slate-600 border border-slate-200'
@@ -456,69 +456,69 @@ const ContactsExplorer: React.FC = () => {
                           {contact.health_score || '0'}
                         </div>
                       </td>
-                      <td className="px-8 py-8">
-                        <div className="flex items-center gap-5">
-                          <div className={`w-12 h-12 rounded-xl border flex items-center justify-center text-lg font-black transition-all group-hover:rotate-6 ${
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-black transition-all group-hover:rotate-6 ${
                             (contact.health_score || 0) >= 80 ? 'bg-orange-500/10 border-orange-500/30 text-orange-500' : 'bg-slate-100 border-slate-200 text-slate-600'
                           }`}>
                             {(contact.firstname?.[0] || contact.email?.[0] || '?')}
                           </div>
                           <div>
-                            <div className="font-black text-lg text-slate-900 group-hover:text-slate-900 transition-colors tracking-tight">
+                            <div className="font-black text-sm text-slate-900 group-hover:text-slate-900 transition-colors tracking-tight">
                               {contact.firstname || 'Anonymous'} {contact.lastname || ''}
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-2 mt-0.5">
                               <Mail size={12} className="text-slate-600" />
-                              <span className="text-xs text-slate-500 font-bold lowecase">{contact.email}</span>
+                              <span className="text-[11px] text-slate-500 font-bold lowecase">{contact.email}</span>
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-8">
+                      <td className="px-3 py-3">
                         {contact.classification && (
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest ${getStatusColor(contact.classification)}`}>
+                            <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-md border text-[9px] font-black uppercase tracking-widest ${getStatusColor(contact.classification)}`}>
                               {getStatusIcon(contact.classification)}
                               {contact.classification}
                             </div>
                             {contact.classification === 'Active Client' && contact.lead_status && (
-                              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-500 border-indigo-500/20">
+                              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border text-[9px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-500 border-indigo-500/20">
                                 {contact.lead_status}
                               </div>
                             )}
                           </div>
                         )}
                       </td>
-                      <td className="px-8 py-8">
+                      <td className="px-3 py-3">
                         {contact.company ? (
                           <div className="flex items-center gap-3 group/company">
                             <Building size={16} className="text-slate-600 group-hover/company:text-indigo-400 transition-colors" />
-                            <span className="text-slate-300 font-bold tracking-tight">{contact.company}</span>
+                            <span className="text-slate-300 text-sm font-bold tracking-tight">{contact.company}</span>
                           </div>
                         ) : (
                           <div className="w-8 h-px bg-slate-800" />
                         )}
                       </td>
-                      <td className="px-8 py-8 text-right">
-                        <div className="text-lg font-black text-slate-200 tracking-tighter">{formatDate(contact.last_modified)}</div>
-                        <div className="flex items-center justify-end gap-2 mt-1.5 flex-wrap">
+                      <td className="px-3 py-3 text-right">
+                        <div className="text-sm font-black text-slate-200 tracking-tighter">{formatDate(contact.last_modified)}</div>
+                        <div className="flex items-center justify-end gap-2 mt-1 flex-wrap">
                            {/* Data Quality Heuristics */}
                            {!contact.email && (
-                             <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20" title="Missing email address">No Email ⚠️</span>
+                             <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20" title="Missing email address">No Email ⚠️</span>
                            )}
                            {!contact.hubspot_owner_id && (
-                             <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20" title="No assigned owner">No Owner</span>
+                             <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20" title="No assigned owner">No Owner</span>
                            )}
                            {contact.last_modified && (Date.now() - new Date(contact.last_modified).getTime() > 90 * 24 * 60 * 60 * 1000) && (
-                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-500/10 px-2 py-0.5 rounded-md border border-slate-500/20" title="No activity in 90+ days">Stale</span>
+                             <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest bg-slate-500/10 px-2 py-0.5 rounded-md border border-slate-500/20" title="No activity in 90+ days">Stale</span>
                            )}
                            {/* Hot Lead Indicator */}
                            {(contact.health_score || 0) >= 80 && contact.classification !== 'Active Client' && contact.classification !== 'Customer' && contact.classification !== 'Employee' && (
-                             <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest bg-orange-500/10 px-2 py-0.5 rounded-md border border-orange-500/20">Critical Lead 🔥</span>
+                             <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest bg-orange-500/10 px-2 py-0.5 rounded-md border border-orange-500/20">Critical Lead 🔥</span>
                            )}
                            {/* Ghost Opportunity */}
                            {contact.lifecyclestage === 'opportunity' && contact.last_modified && (Date.now() - new Date(contact.last_modified).getTime() > 30 * 24 * 60 * 60 * 1000) && (
-                             <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20" title="Opportunity with no recent activity">Ghost 👻</span>
+                             <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20" title="Opportunity with no recent activity">Ghost 👻</span>
                            )}
                         </div>
                       </td>

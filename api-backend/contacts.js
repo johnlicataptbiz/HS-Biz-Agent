@@ -91,6 +91,30 @@ export default async function handler(req, res) {
         paramIndex++;
       }
 
+      // Deal Stage Exclusion filter (supports comma-separated)
+      if (req.query.dealStageExclude) {
+        const excludedStages = req.query.dealStageExclude
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
+        if (excludedStages.length > 0) {
+          whereClause += ` AND EXISTS (
+            SELECT 1 FROM deals d 
+            WHERE d.contact_id = contacts.id 
+              AND (d.dealstage IS NULL OR lower(d.dealstage) <> ALL($${paramIndex}))
+          )`;
+          params.push(excludedStages);
+          paramIndex++;
+        }
+      }
+
+      // Has Deal filter
+      if (req.query.hasDeal === "true" && !req.query.daysInactive) {
+        whereClause += ` AND EXISTS (SELECT 1 FROM deals d WHERE d.contact_id = contacts.id)`;
+      } else if (req.query.hasDeal === "false") {
+        whereClause += ` AND NOT EXISTS (SELECT 1 FROM deals d WHERE d.contact_id = contacts.id)`;
+      }
+
       // Days Inactive filter (Dual mode: Contact Stale vs Ghosted Opps)
       if (req.query.daysInactive) {
         const days = parseInt(req.query.daysInactive);

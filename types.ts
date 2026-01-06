@@ -77,6 +77,17 @@ export interface Campaign {
   revenue: number | null;
   contacts: number;
   aiScore: number;
+  createdAt?: string | number | null;
+  updatedAt?: string | number | null;
+  startDate?: string | number | null;
+  endDate?: string | number | null;
+  sent?: number;
+  opens?: number;
+  clicks?: number;
+  submissions?: number;
+  visits?: number;
+  channel?: string | null;
+  source?: string | null;
   type?: 'MARKETING_CONTAINER' | 'EMAIL_BLAST' | 'LANDING_PAGE' | 'SITE_PAGE';
 }
 

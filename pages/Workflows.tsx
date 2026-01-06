@@ -133,7 +133,7 @@ const Workflows: React.FC = () => {
       )}
 
 	      {workflows.length > 0 && (
-	        <div className="glass-card overflow-hidden border-slate-200 shadow-2xl">
+	        <div id="workflows-table" className="glass-card overflow-hidden border-slate-200 shadow-2xl">
 	          <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-100 border-b border-slate-200 text-[10px] uppercase text-slate-600 font-extrabold tracking-[0.2em]">

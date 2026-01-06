@@ -108,7 +108,7 @@ const JourneyMap: React.FC = () => {
       {isConnected && journeyData && (
         <div className="space-y-12">
             {/* The Great Funnel */}
-            <div className="flex flex-col lg:flex-row gap-0 items-stretch">
+            <div id="journey-funnel" className="flex flex-col lg:flex-row gap-0 items-stretch">
                 {journeyData.stages.map((stage: any, idx: number) => (
                     <FunnelStage 
                         key={stage.id}

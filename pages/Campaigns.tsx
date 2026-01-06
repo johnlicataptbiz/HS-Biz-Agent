@@ -12,12 +12,14 @@ const Campaigns: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [portalId, setPortalId] = useState<number | null>(null);
   const [campaignPage, setCampaignPage] = useState(1);
   const [campaignPageSize, setCampaignPageSize] = useState(9);
   const [leadMagnetPage, setLeadMagnetPage] = useState(1);
   const [leadMagnetPageSize, setLeadMagnetPageSize] = useState(6);
   const [formPage, setFormPage] = useState(1);
   const [formPageSize, setFormPageSize] = useState(12);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [aiModal, setAiModal] = useState<{isOpen: boolean, contextName: string, initialPrompt: string, contextType: any}>({
       isOpen: false,
       contextName: '',
@@ -39,6 +41,8 @@ const Campaigns: React.FC = () => {
     
     if (validation.success) {
       try {
+        const portal = await hubSpotService.getPortalId();
+        setPortalId(portal);
         const [campData, formData] = await Promise.all([
             hubSpotService.fetchCampaigns(),
             hubSpotService.fetchForms()
@@ -56,6 +60,7 @@ const Campaigns: React.FC = () => {
     } else {
       setCampaigns([]);
       setForms([]);
+      setPortalId(null);
     }
     setIsLoading(false);
   };
@@ -73,6 +78,23 @@ const Campaigns: React.FC = () => {
       if (score > 80) return 'text-emerald-400';
       if (score > 50) return 'text-amber-400';
       return 'text-rose-400';
+  };
+
+  const formatNumber = (value: number | undefined | null) => {
+      if (!value) return '0';
+      return value.toLocaleString();
+  };
+
+  const formatDate = (value?: string | number | null) => {
+      if (!value) return 'N/A';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleDateString();
+  };
+
+  const getHubSpotCampaignUrl = (campaign: Campaign) => {
+      if (!portalId) return null;
+      return `https://app.hubspot.com/marketing/${portalId}/campaigns/${campaign.id}`;
   };
 
   const triggerOptimize = (item: any, type: 'campaign' | 'form') => {
@@ -99,10 +121,19 @@ const Campaigns: React.FC = () => {
   const leadMagnets = forms.filter(f => f.leadMagnet);
   const hasFormsError = forms.length === 0 && isConnected && !isLoading;
 
-  const campaignTotal = campaigns.length;
+  const sortedCampaigns = [...campaigns].sort((a, b) => {
+    const revenueDiff = (b.revenue || 0) - (a.revenue || 0);
+    if (revenueDiff !== 0) return revenueDiff;
+    const volumeDiff = (b.contacts || 0) - (a.contacts || 0);
+    if (volumeDiff !== 0) return volumeDiff;
+    const updatedA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+    const updatedB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+    return updatedB - updatedA;
+  });
+  const campaignTotal = sortedCampaigns.length;
   const campaignTotalPages = Math.max(1, Math.ceil(campaignTotal / campaignPageSize));
   const currentCampaignPage = Math.min(campaignPage, campaignTotalPages);
-  const pagedCampaigns = campaigns.slice((currentCampaignPage - 1) * campaignPageSize, currentCampaignPage * campaignPageSize);
+  const pagedCampaigns = sortedCampaigns.slice((currentCampaignPage - 1) * campaignPageSize, currentCampaignPage * campaignPageSize);
 
   const leadMagnetTotal = leadMagnets.length;
   const leadMagnetTotalPages = Math.max(1, Math.ceil(leadMagnetTotal / leadMagnetPageSize));
@@ -122,7 +153,7 @@ const Campaigns: React.FC = () => {
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-500'}`}></div>
             <span className="text-[10px] font-bold text-rose-400 uppercase tracking-[0.3em]">Marketing Intelligence</span>
           </div>
-          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
+          <h1 id="campaigns-header" className="text-5xl font-extrabold text-slate-900 tracking-tighter leading-tight">
             Campaign <span className="gradient-text">Intelligence.</span>
           </h1>
           <p className="text-slate-600 max-w-lg font-medium leading-relaxed">
@@ -219,9 +250,28 @@ const Campaigns: React.FC = () => {
 	          <>
 	            {campaigns.length > 0 ? (
                 <>
-	                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-	                {pagedCampaigns.map((camp) => (
-	                    <div key={camp.id} className="glass-card p-8 group hover:-translate-y-1 transition-all duration-500 border-slate-200 hover:border-rose-500/20">
+	                <div id="campaigns-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {pagedCampaigns.map((camp) => {
+                    const isEmail = camp.type === 'EMAIL_BLAST';
+                    const isPage = camp.type === 'LANDING_PAGE' || camp.type === 'SITE_PAGE';
+                    const volumeLabel = isEmail ? 'Sent' : isPage ? 'Submissions' : 'Contacts';
+                    const volumeValue = isEmail ? camp.sent : isPage ? camp.submissions : camp.contacts;
+                    const openRate = camp.sent ? Math.round(((camp.opens || 0) / camp.sent) * 100) : 0;
+                    const clickRate = camp.sent ? Math.round(((camp.clicks || 0) / camp.sent) * 100) : 0;
+
+                    return (
+                    <div
+                      key={camp.id}
+                      className="glass-card p-8 group hover:-translate-y-1 transition-all duration-500 border-slate-200 hover:border-rose-500/20 cursor-pointer"
+                      onClick={() => setSelectedCampaign(camp)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          setSelectedCampaign(camp);
+                        }
+                      }}
+                    >
                     <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-400 border border-rose-500/20">
@@ -237,14 +287,26 @@ const Campaigns: React.FC = () => {
                         </div>
                     </div>
 
+                    <div className="flex flex-wrap items-center gap-2 mb-5">
+                        {camp.type && (
+                          <span className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-lg bg-slate-100 text-slate-500 border border-slate-200">
+                            {camp.type.replace('_', ' ')}
+                          </span>
+                        )}
+                        {camp.channel && (
+                          <span className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                            {camp.channel}
+                          </span>
+                        )}
+                        <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-lg border ${getStatusColor(camp.status)}`}>
+                          {camp.status || 'Unknown'}
+                        </span>
+                    </div>
+
                     <div className="space-y-4 mb-6">
                         <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
-                            <span className="text-slate-500">Status</span>
-                            <span className={`px-3 py-1 rounded-lg border ${getStatusColor(camp.status)}`}>{camp.status || 'Unknown'}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
-                            <span className="text-slate-500">Volume</span>
-                            <span className="text-slate-900">{camp.contacts || 0} Sent</span>
+                            <span className="text-slate-500">{volumeLabel}</span>
+                            <span className="text-slate-900">{formatNumber(volumeValue || 0)}</span>
                         </div>
                         <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
                             <span className="text-slate-500">Revenue Influence</span>
@@ -256,23 +318,63 @@ const Campaigns: React.FC = () => {
                                 {camp.revenue && camp.budget ? `${Math.round(((camp.revenue - camp.budget) / camp.budget) * 100)}%` : 'N/A'}
                             </span>
                         </div>
+                        <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
+                            <span className="text-slate-500">Last Updated</span>
+                            <span className="text-slate-900">{formatDate(camp.updatedAt || camp.createdAt)}</span>
+                        </div>
                     </div>
+
+                    {(isEmail || isPage) && (
+                      <div className="grid grid-cols-2 gap-3 mb-6">
+                        {isEmail && (
+                          <>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                              <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Opens</div>
+                              <div className="text-base font-bold text-slate-900">{formatNumber(camp.opens || 0)} ({openRate}%)</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                              <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Clicks</div>
+                              <div className="text-base font-bold text-slate-900">{formatNumber(camp.clicks || 0)} ({clickRate}%)</div>
+                            </div>
+                          </>
+                        )}
+                        {isPage && (
+                          <>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                              <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Visits</div>
+                              <div className="text-base font-bold text-slate-900">{formatNumber(camp.visits || 0)}</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                              <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Submissions</div>
+                              <div className="text-base font-bold text-slate-900">{formatNumber(camp.submissions || 0)}</div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
 
                     <div className="pt-6 border-t border-slate-200 flex gap-2">
                         <button 
-                            onClick={() => triggerOptimize(camp, 'campaign')}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              triggerOptimize(camp, 'campaign');
+                            }}
                             className="flex-1 py-3 premium-gradient rounded-xl text-[10px] font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all text-slate-900"
                         >
                             <Sparkles size={14} />
                             Optimize
                         </button>
-                        <button className="w-12 h-11 glass-button flex items-center justify-center text-slate-600 hover:text-slate-900 transition-all">
+                        <button
+                          onClick={(event) => event.stopPropagation()}
+                          className="w-12 h-11 glass-button flex items-center justify-center text-slate-600 hover:text-slate-900 transition-all"
+                        >
                             <TrendingUp size={16} />
                         </button>
                     </div>
-	                    </div>
-	                ))}
-	                </div>
+                    </div>
+                    );
+                })}
+                </div>
                   <Pagination
                     page={currentCampaignPage}
                     pageSize={campaignPageSize}
@@ -433,6 +535,116 @@ const Campaigns: React.FC = () => {
         contextName={aiModal.contextName}
         initialPrompt={aiModal.initialPrompt}
       />
+
+      {selectedCampaign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6">
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 relative">
+            <button
+              onClick={() => setSelectedCampaign(null)}
+              className="absolute top-6 right-6 text-sm font-bold text-slate-500 hover:text-slate-900"
+            >
+              Close
+            </button>
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-rose-500">Campaign Insight</p>
+                <h3 className="text-3xl font-black text-slate-900">{selectedCampaign.name}</h3>
+                <p className="text-xs text-slate-500 mt-1 font-mono uppercase tracking-widest">ID: {selectedCampaign.id}</p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedCampaign.type && (
+                  <span className="px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200">
+                    {selectedCampaign.type.replace('_', ' ')}
+                  </span>
+                )}
+                {selectedCampaign.channel && (
+                  <span className="px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-widest bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                    {selectedCampaign.channel}
+                  </span>
+                )}
+                <span className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-widest border ${getStatusColor(selectedCampaign.status)}`}>
+                  {selectedCampaign.status || 'Unknown'}
+                </span>
+                <span className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-widest bg-slate-100 border border-slate-200 ${getScoreColor(selectedCampaign.aiScore || 0)}`}>
+                  Score: {selectedCampaign.aiScore || 0}%
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Contacts / Volume</div>
+                  <div className="text-xl font-bold text-slate-900">{formatNumber(selectedCampaign.contacts || 0)}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Revenue Influence</div>
+                  <div className="text-xl font-bold text-emerald-500">${formatNumber(selectedCampaign.revenue || 0)}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Last Updated</div>
+                  <div className="text-lg font-bold text-slate-900">{formatDate(selectedCampaign.updatedAt || selectedCampaign.createdAt)}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">ROI</div>
+                  <div className="text-lg font-bold text-slate-900">
+                    {selectedCampaign.revenue && selectedCampaign.budget
+                      ? `${Math.round(((selectedCampaign.revenue - selectedCampaign.budget) / selectedCampaign.budget) * 100)}%`
+                      : 'N/A'}
+                  </div>
+                </div>
+              </div>
+
+              {(selectedCampaign.sent || selectedCampaign.opens || selectedCampaign.clicks || selectedCampaign.submissions || selectedCampaign.visits) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedCampaign.sent !== undefined && (
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Sent</div>
+                      <div className="text-base font-bold text-slate-900">{formatNumber(selectedCampaign.sent || 0)}</div>
+                    </div>
+                  )}
+                  {selectedCampaign.opens !== undefined && (
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Opens</div>
+                      <div className="text-base font-bold text-slate-900">{formatNumber(selectedCampaign.opens || 0)}</div>
+                    </div>
+                  )}
+                  {selectedCampaign.clicks !== undefined && (
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Clicks</div>
+                      <div className="text-base font-bold text-slate-900">{formatNumber(selectedCampaign.clicks || 0)}</div>
+                    </div>
+                  )}
+                  {selectedCampaign.visits !== undefined && (
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Visits</div>
+                      <div className="text-base font-bold text-slate-900">{formatNumber(selectedCampaign.visits || 0)}</div>
+                    </div>
+                  )}
+                  {selectedCampaign.submissions !== undefined && (
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Submissions</div>
+                      <div className="text-base font-bold text-slate-900">{formatNumber(selectedCampaign.submissions || 0)}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="pt-2 flex justify-end gap-3">
+                {getHubSpotCampaignUrl(selectedCampaign) && (
+                  <a
+                    href={getHubSpotCampaignUrl(selectedCampaign) as string}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-5 py-2 rounded-xl border border-slate-200 text-xs font-extrabold uppercase tracking-widest text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-all"
+                  >
+                    View in HubSpot
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

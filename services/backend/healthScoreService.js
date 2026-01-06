@@ -45,7 +45,7 @@ export const classifyLead = (contact) => {
         memStatus.includes("member") ||
         leadStatus.includes("mm") ||
         leadStatus.includes("crm") ||
-        ['customer', 'evangelist', 'subscriber'].includes(stage)
+        ['customer', 'evangelist'].includes(stage)
     ) {
         return 'Active Client';
     }
@@ -114,7 +114,7 @@ export const calculateHealthScore = (contact) => {
         memStatus.includes("member") ||
         leadStatus.includes("mm") ||
         leadStatus.includes("crm") ||
-        ['customer', 'evangelist', 'subscriber'].includes(stage);
+        ['customer', 'evangelist'].includes(stage);
 
     if (isEmployee || isActiveClient) {
         return {

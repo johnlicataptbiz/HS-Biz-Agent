@@ -19,83 +19,137 @@ interface AppTourProps {
 const TOUR_STEPS: TourStep[] = [
   {
     targetId: 'center-screen',
-    title: 'Core UI by PT Biz',
-    description: 'Welcome. I am the Core Intelligence Assistant. This is your command center for high-velocity practice growth and CRM operations.',
+    title: 'Welcome to Core UI',
+    description: 'This guide walks you through the upgraded operating system for HubSpot: clarity-first views, actionable cohorts, and AI-powered diagnostics. You can replay this anytime from the Guide button.',
     position: 'center'
   },
   {
-    targetId: 'connection-status',
-    title: 'HubSpot Pulse',
-    description: 'We maintain a live link with your CRM database, monitoring health indices in real-time to ensure maximum operational efficiency.',
+    targetId: 'sidebar-container',
+    title: 'Navigation Stack',
+    description: 'Everything is organized into Core, Ops, and AI. Core is your daily command deck. Ops is deep diagnostics and reporting. AI is your execution layer for strategy and fixes.',
     position: 'right'
   },
   {
-    targetId: 'nav-link-strategic-audit', 
-    title: 'Neural Audit',
-    description: 'Run deep architectural heuristics on your portal to identify schema debt, ghost enrollments, and data decay.',
-    position: 'right',
-    route: 'dashboard'
-  },
-  {
-    targetId: 'stat-revenue-risk',
-    title: 'Commercial Velocity',
-    description: 'We track potential revenue stalled in your synchronization nodes. Our target is maximum practice scale through model alignment.',
-    position: 'bottom',
-    route: 'dashboard'
-  },
-  {
-    targetId: 'nav-link-journey',
-    title: 'Behavioral Journey',
-    description: 'Visualize the flow of leads—from cold contacts to active members. We find exactly where the pipeline is breaking.',
-    position: 'right',
-    route: 'journey'
+    targetId: 'connection-status',
+    title: 'Portal Connection',
+    description: 'This shows whether HubSpot is connected and live. If you see a warning light, open Settings to re-authenticate.',
+    position: 'right'
   },
   {
     targetId: 'nav-link-contacts',
-    title: 'Strategic Directory',
-    description: 'AI-classified leads organized into actionable cohorts: Hot 🔥, Nurture ⏳, Watch 👁️, and Ghost Opportunities 👻.',
+    title: 'Directory (Home Base)',
+    description: 'This is the primary dashboard. It mirrors your CRM contacts and applies lead intelligence, segmentation, and sorting so you can act fast.',
     position: 'right',
     route: 'contacts'
   },
   {
-    targetId: 'contacts-segment-sidebar',
-    title: 'Smart Segments',
-    description: 'Instantly pivot between high-priority cohorts. Filter by classification, health score, and lifecycle stage.',
-    position: 'right',
+    targetId: 'contacts-search-bar',
+    title: 'Search Heuristics',
+    description: 'Search by name, email, or company. Use this to quickly validate a lead or find a specific record before taking action.',
+    position: 'bottom',
+    route: 'contacts'
+  },
+  {
+    targetId: 'contacts-segments-row',
+    title: 'Strategic Segments',
+    description: 'Switch between Hot, New, Nurture, Watch, Active Clients, and cleanup views. These segments are your operational lanes.',
+    position: 'bottom',
     route: 'contacts'
   },
   {
     targetId: 'contacts-ai-rank-header',
-    title: 'AI Health Score',
-    description: 'Every record is indexed for "Propensity to Close" using engagement signals, deal activity, and recency metrics.',
+    title: 'AI Lead Rank',
+    description: 'Sort by score to see the highest priority leads. The score uses engagement, recency, and conversion signals.',
     position: 'bottom',
     route: 'contacts'
   },
   {
-    targetId: 'nav-link-data-quality',
-    title: 'Data Quality Engine',
-    description: 'Scan for missing emails, orphan records, stale contacts, and ghost opportunities. Maintain CRM hygiene at scale.',
+    targetId: 'contacts-data-grid',
+    title: 'Lead Insights (Click Any Row)',
+    description: 'Click a contact to open a CRM insight card. It shows why a lead is hot or critical: page views, conversions, source, and recency.',
+    position: 'top',
+    route: 'contacts'
+  },
+  {
+    targetId: 'nav-link-campaigns',
+    title: 'Campaign Intelligence',
+    description: 'Marketing performance is ranked by revenue influence and volume. Use this to spot winners and underperformers immediately.',
     position: 'right',
-    route: 'data-quality'
+    route: 'campaigns'
+  },
+  {
+    targetId: 'campaigns-grid',
+    title: 'Campaign Cards + HubSpot Link',
+    description: 'Cards are clickable. Open a lightweight insight panel, then jump to the campaign in HubSpot with one click.',
+    position: 'top',
+    route: 'campaigns'
+  },
+  {
+    targetId: 'nav-link-sequences',
+    title: 'Sequences',
+    description: 'Audit outbound sequences for engagement quality. Use Draft New Persona for AI-powered messaging and segmentation strategy.',
+    position: 'right',
+    route: 'sequences'
+  },
+  {
+    targetId: 'nav-link-journey',
+    title: 'Journey Map',
+    description: 'Visualize lifecycle flow from discovery to retention. This highlights where automation gaps or drop-offs happen.',
+    position: 'right',
+    route: 'journey'
+  },
+  {
+    targetId: 'journey-funnel',
+    title: 'Stage-by-Stage Conversion',
+    description: 'Each stage shows volume, drop-off, and automation coverage (workflows + sequences). Use it to prioritize fixes.',
+    position: 'top',
+    route: 'journey'
+  },
+  {
+    targetId: 'nav-link-workflows',
+    title: 'Workflows',
+    description: 'A full workflow inventory with AI audit flags. Fix issues fast by opening an optimization prompt.',
+    position: 'right',
+    route: 'workflows'
+  },
+  {
+    targetId: 'workflows-table',
+    title: 'Workflow Diagnostics',
+    description: 'This table highlights logic debt, broken branches, and optimization opportunities across your automation stack.',
+    position: 'top',
+    route: 'workflows'
   },
   {
     targetId: 'nav-link-data-model',
-    title: 'Model Optimizer',
-    description: 'Maintain a pristine CRM data model. This tool detects and repairs architectural flaws to keep your reporting and synchronization flawless.',
-    position: 'right'
+    title: 'Data Model',
+    description: 'Schema integrity controls reporting accuracy. Run audits to detect missing properties, inconsistent fields, and structural drift.',
+    position: 'right',
+    route: 'data-model'
   },
   {
-    targetId: 'nav-link-copilot',
-    title: 'Core Strategist',
-    description: 'Need a tactical plan? Your Practice Strategist is ready. It doesn\'t just chat—it executes CRM and operational improvements.',
-    position: 'right',
-    route: 'copilot'
+    targetId: 'run-audit-btn',
+    title: 'Run Model Audit',
+    description: 'Launch a structural scan that flags CRM field gaps and suggests concrete fixes.',
+    position: 'left',
+    route: 'data-model'
   },
   {
     targetId: 'ai-chat-trigger',
-    title: 'AI Command',
-    description: 'Trigger the global AI assistant from anywhere to perform mass updates or architectural audits.',
+    title: 'Global AI Command',
+    description: 'Access the AI assistant from anywhere for quick actions, deep analysis, or operational troubleshooting.',
     position: 'left'
+  },
+  {
+    targetId: 'sidebar-settings-btn',
+    title: 'Secure Tunnel Settings',
+    description: 'Reconnect HubSpot, manage tokens, and enable diagnostic tools. Use this if you see sync failures.',
+    position: 'right'
+  },
+  {
+    targetId: 'sidebar-guide-btn',
+    title: 'Replay This Guide',
+    description: 'Click Guide anytime to re-open this walkthrough.',
+    position: 'right'
   }
 ];
 

@@ -7,7 +7,6 @@ const Campaigns = lazy(() => import('./pages/Campaigns'));
 const ContactsExplorer = lazy(() => import('./pages/ContactsExplorer'));
 const DataModel = lazy(() => import('./pages/DataModel'));
 const BreezeTools = lazy(() => import('./pages/BreezeTools'));
-const CoPilot = lazy(() => import('./pages/CoPilot'));
 const Reports = lazy(() => import('./pages/Reports'));
 const JourneyMap = lazy(() => import('./pages/JourneyMap'));
 const Organization = lazy(() => import('./pages/Organization'));
@@ -89,7 +88,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // Handle deep linking on initial load
     const path = window.location.pathname.substring(1);
-    const validTabs = ['dashboard', 'reports', 'copilot', 'workflows', 'sequences', 'campaigns', 'contacts', 'datamodel', 'breezetools', 'journey', 'organization', 'revops', 'database', 'data-quality', 'attribution', 'segments', 'assets', 'win-loss', 'velocity'];
+    const validTabs = ['dashboard', 'reports', 'workflows', 'sequences', 'campaigns', 'contacts', 'datamodel', 'breezetools', 'journey', 'organization', 'revops', 'database', 'data-quality', 'attribution', 'segments', 'assets', 'win-loss', 'velocity'];
     if (path && validTabs.includes(path)) {
         setActiveTab(path);
     } else if (!path) {
@@ -97,7 +96,7 @@ const App: React.FC = () => {
     }
     
     // Check for first-time user tour (Intelligence Engine version)
-      const hasSeenTour = localStorage.getItem('has_seen_tour_intel_v2');
+      const hasSeenTour = localStorage.getItem('has_seen_tour_intel_v3');
       if (!hasSeenTour) {
           // Slight delay to ensure DOM is ready and page-state is stable
           setTimeout(() => setIsTourOpen(true), 1500);
@@ -106,7 +105,7 @@ const App: React.FC = () => {
 
   const handleTourDismiss = () => {
       setIsTourOpen(false);
-      localStorage.setItem('has_seen_tour_intel_v2', 'true');
+      localStorage.setItem('has_seen_tour_intel_v3', 'true');
   };
   const [globalModal, setGlobalModal] = useState<GlobalModalState>({
     isOpen: false,
@@ -195,7 +194,6 @@ const App: React.FC = () => {
       case 'contacts':
         return <ContactsExplorer />;
       case 'reports': return <Reports />;
-      case 'copilot': return <CoPilot />;
       case 'workflows': return <Workflows />;
       case 'sequences': return <Sequences />;
       case 'campaigns': return <Campaigns />;

@@ -139,6 +139,10 @@ export const getSyncProgress = async () => {
       "SELECT value, updated_at FROM sync_state WHERE key = $1",
       ["sync_status"]
     );
+    const errorState = await pool.query(
+      "SELECT value FROM sync_state WHERE key = $1",
+      ["sync_error"]
+    );
     let status = state.rows[0]?.value || "idle";
     const updatedAt = state.rows[0]?.updated_at
       ? new Date(state.rows[0].updated_at)
@@ -154,6 +158,7 @@ export const getSyncProgress = async () => {
     return {
       count: parseInt(res.rows[0].count),
       status,
+      error: errorState.rows[0]?.value || "",
     };
   } catch (e) {
     console.error("Database query failed:", e.message);
@@ -161,7 +166,7 @@ export const getSyncProgress = async () => {
   }
 };
 
-export const updateSyncStatus = async (status) => {
+export const updateSyncStatus = async (status, message = "") => {
   await pool.query(
     `
         INSERT INTO sync_state (key, value, updated_at) 
@@ -169,6 +174,15 @@ export const updateSyncStatus = async (status) => {
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
     `,
     [status]
+  );
+
+  await pool.query(
+    `
+        INSERT INTO sync_state (key, value, updated_at) 
+        VALUES ('sync_error', $1, CURRENT_TIMESTAMP)
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+    `,
+    [status === "failed" ? message : ""]
   );
 
   if (status === "completed") {

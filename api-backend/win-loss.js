@@ -1,4 +1,5 @@
 import { pool } from '../services/backend/dataService.js';
+import { dealStageFilters } from './utils/dealStage.js';
 
 /**
  * /api/win-loss - Win/Loss Laboratory
@@ -23,8 +24,8 @@ export default async function handler(req, res) {
             const cohortQuery = `
                 SELECT 
                     CASE 
-                        WHEN dealstage IN ('closedwon', 'closed won', '9567249') OR dealstage ILIKE '%won%' THEN 'won'
-                        WHEN dealstage IN ('closedlost', 'closed lost', 'closedlost') OR dealstage ILIKE '%lost%' THEN 'lost'
+                        WHEN ${dealStageFilters.wonFilter} THEN 'won'
+                        WHEN ${dealStageFilters.lostFilter} THEN 'lost'
                         ELSE 'open' 
                     END as status,
                     COUNT(*) as count,
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
                     )) as avg_days_to_close
                 FROM deals
                 WHERE closedate IS NOT NULL 
-                  AND (dealstage ILIKE '%won%' OR dealstage ILIKE '%lost%' OR dealstage IN ('closedwon', 'closedlost'))
+                  AND ${dealStageFilters.closedFilter}
                 GROUP BY 1
             `;
 
@@ -44,11 +45,11 @@ export default async function handler(req, res) {
                 SELECT 
                     COALESCE(lead_source, 'Unknown') as source,
                     COUNT(*) as total_deals,
-                    COUNT(CASE WHEN dealstage ILIKE '%won%' OR dealstage IN ('closedwon', 'closed won', '9567249') THEN 1 END) as won_count,
-                    COUNT(CASE WHEN dealstage ILIKE '%lost%' OR dealstage IN ('closedlost', 'closed lost') THEN 1 END) as lost_count,
-                    ROUND(SUM(CASE WHEN dealstage ILIKE '%won%' OR dealstage IN ('closedwon', 'closed won', '9567249') THEN amount ELSE 0 END)) as won_revenue
+                    COUNT(CASE WHEN ${dealStageFilters.wonFilter} THEN 1 END) as won_count,
+                    COUNT(CASE WHEN ${dealStageFilters.lostFilter} THEN 1 END) as lost_count,
+                    ROUND(SUM(CASE WHEN ${dealStageFilters.wonFilter} THEN amount ELSE 0 END)) as won_revenue
                 FROM deals
-                WHERE dealstage ILIKE '%won%' OR dealstage ILIKE '%lost%' OR dealstage IN ('closedwon', 'closedlost')
+                WHERE ${dealStageFilters.closedFilter}
                 GROUP BY 1
                 HAVING COUNT(*) > 0
                 ORDER BY won_count DESC
@@ -60,10 +61,10 @@ export default async function handler(req, res) {
                 SELECT 
                     COALESCE(deal_type, 'Other') as type,
                     COUNT(*) as total_deals,
-                    COUNT(CASE WHEN dealstage ILIKE '%won%' OR dealstage IN ('closedwon', 'closed won') THEN 1 END) as won_count,
-                    COUNT(CASE WHEN dealstage ILIKE '%lost%' OR dealstage IN ('closedlost', 'closed lost') THEN 1 END) as lost_count
+                    COUNT(CASE WHEN ${dealStageFilters.wonFilter} THEN 1 END) as won_count,
+                    COUNT(CASE WHEN ${dealStageFilters.lostFilter} THEN 1 END) as lost_count
                 FROM deals
-                WHERE dealstage ILIKE '%won%' OR dealstage ILIKE '%lost%' OR dealstage IN ('closedwon', 'closedlost')
+                WHERE ${dealStageFilters.closedFilter}
                 GROUP BY 1
                 ORDER BY won_count DESC
             `;
@@ -75,10 +76,16 @@ export default async function handler(req, res) {
             ]);
 
             // Calculate formatted Win Rates for client
-            const sourceAnalysis = sources.rows.map(s => ({
-                ...s,
-                winRate: s.total_deals > 0 ? ((s.won_count / s.total_deals) * 100).toFixed(1) : 0
-            }));
+            const sourceAnalysis = sources.rows.map(s => {
+                const total = parseInt(s.total_deals) || 0;
+                const won = parseInt(s.won_count) || 0;
+                const lost = parseInt(s.lost_count) || 0;
+                return {
+                    ...s,
+                    winRate: total > 0 ? ((won / total) * 100).toFixed(1) : 0,
+                    lossRate: total > 0 ? ((lost / total) * 100).toFixed(1) : 0
+                };
+            });
 
             return res.status(200).json({
                 success: true,

@@ -1,4 +1,5 @@
 import { pool } from '../services/backend/dataService.js';
+import { dealStageFilters } from './utils/dealStage.js';
 
 /**
  * /api/attribution-analytics - Customer Journey Attribution
@@ -26,8 +27,7 @@ export default async function handler(req, res) {
           SUM(COALESCE(amount, 0)) as total_revenue,
           ROUND(AVG(COALESCE(amount, 0))) as avg_deal_size
         FROM deals
-        WHERE dealstage IN ('closedwon', 'closed won', '9567249', 'closedwon_')
-           OR dealstage ILIKE '%won%'
+        WHERE ${dealStageFilters.wonFilter}
         GROUP BY deal_type
         ORDER BY total_revenue DESC
       `;
@@ -40,8 +40,7 @@ export default async function handler(req, res) {
           SUM(COALESCE(d.amount, 0)) as total_revenue
         FROM deals d
         LEFT JOIN contacts c ON d.contact_id = c.id
-        WHERE d.dealstage IN ('closedwon', 'closed won', '9567249')
-           OR d.dealstage ILIKE '%won%'
+        WHERE ${dealStageFilters.wonFilter.replace(/dealstage/g, "d.dealstage")}
         GROUP BY source
         ORDER BY total_revenue DESC
         LIMIT 10
@@ -56,8 +55,7 @@ export default async function handler(req, res) {
           d.deal_type
         FROM deals d
         LEFT JOIN contacts c ON d.contact_id = c.id
-        WHERE d.dealstage IN ('closedwon', 'closed won', '9567249')
-           OR d.dealstage ILIKE '%won%'
+        WHERE ${dealStageFilters.wonFilter.replace(/dealstage/g, "d.dealstage")}
         GROUP BY form_name, d.deal_type
         ORDER BY total_revenue DESC
         LIMIT 15
@@ -84,8 +82,7 @@ export default async function handler(req, res) {
           SUM(COALESCE(d.amount, 0)) as revenue
         FROM deals d
         LEFT JOIN contacts c ON d.contact_id = c.id
-        WHERE d.dealstage IN ('closedwon', 'closed won', '9567249')
-           OR d.dealstage ILIKE '%won%'
+        WHERE ${dealStageFilters.wonFilter.replace(/dealstage/g, "d.dealstage")}
         GROUP BY source, form, d.deal_type
         ORDER BY revenue DESC
         LIMIT 10
@@ -95,9 +92,10 @@ export default async function handler(req, res) {
       const summaryQuery = `
         SELECT 
           COUNT(*) as total_deals,
-          COUNT(CASE WHEN dealstage IN ('closedwon', 'closed won', '9567249') OR dealstage ILIKE '%won%' THEN 1 END) as closed_won,
-          SUM(CASE WHEN dealstage IN ('closedwon', 'closed won', '9567249') OR dealstage ILIKE '%won%' THEN COALESCE(amount, 0) ELSE 0 END) as closed_revenue,
-          SUM(CASE WHEN NOT (dealstage IN ('closedwon', 'closed won', 'closedlost', 'closed lost') OR dealstage ILIKE '%won%' OR dealstage ILIKE '%lost%') THEN COALESCE(amount, 0) ELSE 0 END) as pipeline_value
+          COUNT(CASE WHEN ${dealStageFilters.wonFilter} THEN 1 END) as closed_won,
+          COUNT(CASE WHEN ${dealStageFilters.lostFilter} THEN 1 END) as closed_lost,
+          SUM(CASE WHEN ${dealStageFilters.wonFilter} THEN COALESCE(amount, 0) ELSE 0 END) as closed_revenue,
+          SUM(CASE WHEN ${dealStageFilters.openFilter} THEN COALESCE(amount, 0) ELSE 0 END) as pipeline_value
         FROM deals
       `;
 
@@ -161,6 +159,7 @@ export default async function handler(req, res) {
           summary: {
             totalDeals: parseInt(summary.total_deals) || 0,
             closedWon: parseInt(summary.closed_won) || 0,
+            closedLost: parseInt(summary.closed_lost) || 0,
             closedRevenue: parseFloat(summary.closed_revenue) || 0,
             pipelineValue: parseFloat(summary.pipeline_value) || 0
           },

@@ -1,7 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Bot, Sparkles, ArrowRight, ShieldCheck, Zap, Activity, MessageSquare, Target, Cpu } from 'lucide-react';
+import AiModal from '../components/AiModal';
+
+const COPILOT_MODULES = [
+  { 
+    title: "Heuristic Portal Audit", 
+    desc: "Run a deep multi-vector diagnostic on workflows, relational data, and hidden architectural risks.", 
+    icon: Activity, 
+    color: "indigo",
+    contextType: "workflow",
+    prompt: "Perform a full portal audit. Identify automation gaps, data model risks, and high-impact fixes. Return a prioritized action list plus optional apiCalls.",
+  },
+  { 
+    title: "Cognitive Outreach Blueprint", 
+    desc: "Draft a high-conversion 5-step outbound sequence based on target persona heuristics.", 
+    icon: Target, 
+    color: "emerald",
+    contextType: "sequence",
+    prompt: "Draft a 5-step outbound sequence for a high-value persona. Include subject lines, timing, and personalization variables.",
+  },
+  { 
+    title: "Schema Neutralization", 
+    desc: "Identify and resolve redundant architectural nodes and CRM property contamination.", 
+    icon: Cpu, 
+    color: "amber",
+    contextType: "data",
+    prompt: "Find redundant or conflicting CRM properties. Propose a cleanup + migration plan with a safe mapping strategy.",
+  },
+  { 
+    title: "Automation Mapping", 
+    desc: "Design a comprehensive lifecycle stage automation map with fallback logic loops.", 
+    icon: Zap, 
+    color: "purple",
+    contextType: "workflow",
+    prompt: "Create a lifecycle automation map with triggers, branching logic, and fallback paths. Highlight missing stages and risks.",
+  }
+] as const;
 
 const CoPilot: React.FC = () => {
+  const [aiModal, setAiModal] = useState<{isOpen: boolean, contextName: string, initialPrompt: string, contextType: any}>({
+    isOpen: false,
+    contextName: '',
+    initialPrompt: '',
+    contextType: 'workflow'
+  });
+
   return (
     <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
       <div className="text-center space-y-6 pt-12 relative">
@@ -9,7 +52,7 @@ const CoPilot: React.FC = () => {
         
         <div className="inline-flex p-6 glass-card rounded-3xl mb-4 shadow-2xl relative">
             <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-3xl animate-pulse"></div>
-            <img src="/logo.png" alt="Heuristic Co-Pilot" className="w-16 h-16 object-contain relative z-10" />
+            <img src="/new_logo.jpeg" alt="Core UI by PT Biz" className="w-16 h-16 object-contain relative z-10" />
             <div className="absolute -top-1 -right-1 w-6 h-6 premium-gradient rounded-full flex items-center justify-center border-4 border-[#0f172a] shadow-lg">
                 <Sparkles size={10} className="text-slate-900" />
             </div>
@@ -27,36 +70,17 @@ const CoPilot: React.FC = () => {
 
       {/* Primary Interface Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {[
-            { 
-                title: "Heuristic Portal Audit", 
-                desc: "Run a deep multi-vector diagnostic on workflows, relational data, and hidden architectural risks.", 
-                icon: Activity, 
-                color: "indigo" 
-            },
-            { 
-                title: "Cognitive Outreach Blueprint", 
-                desc: "Draft a high-conversion 5-step outbound sequence based on target persona heuristics.", 
-                icon: Target, 
-                color: "emerald" 
-            },
-            { 
-                title: "Schema Neutralization", 
-                desc: "Identify and resolve redundant architectural nodes and CRM property contamination.", 
-                icon: Cpu, 
-                color: "amber" 
-            },
-            { 
-                title: "Automation Mapping", 
-                desc: "Design a comprehensive lifecycle stage automation map with fallback logic loops.", 
-                icon: Zap, 
-                color: "purple" 
-            }
-        ].map((action, i) => (
+        {COPILOT_MODULES.map((action, i) => (
             <button 
                 key={i} 
                 className="glass-card text-left p-10 group relative overflow-hidden transition-all duration-500 hover:-translate-y-2 border-slate-200 hover:border-indigo-500/30"
                 title={`Initialize ${action.title} Module`}
+                onClick={() => setAiModal({
+                  isOpen: true,
+                  contextName: action.title,
+                  initialPrompt: action.prompt,
+                  contextType: action.contextType
+                })}
             >
                 <div className={`absolute -right-10 -top-10 w-40 h-40 bg-${action.color}-500/5 rounded-full blur-[80px] group-hover:bg-${action.color}-500/10 transition-colors`}></div>
                 
@@ -106,6 +130,14 @@ const CoPilot: React.FC = () => {
             </div>
         </div>
       </div>
+
+      <AiModal 
+        isOpen={aiModal.isOpen} 
+        onClose={() => setAiModal(prev => ({ ...prev, isOpen: false }))} 
+        contextType={aiModal.contextType}
+        contextName={aiModal.contextName}
+        initialPrompt={aiModal.initialPrompt}
+      />
     </div>
   );
 };
