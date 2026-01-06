@@ -609,7 +609,19 @@ export default async function handler(req, res) {
         },
       });
       const result = await model.generateContent(prompt);
-      return res.status(200).json(JSON.parse(result.response.text()));
+      const raw = result?.response?.text?.() ?? "";
+      try {
+        return res.status(200).json(JSON.parse(raw));
+      } catch (parseError) {
+        console.error("❌ AI Schema JSON parse failed", {
+          mode,
+          rawPreview: raw.slice(0, 500),
+        });
+        return res.status(502).json({
+          error: "AI Generation Failed",
+          message: "Model returned invalid/empty JSON",
+        });
+      }
     }
 
     // DEFAULT MODE: CHAT with TOOL CALLING

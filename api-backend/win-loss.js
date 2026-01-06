@@ -21,6 +21,16 @@ export default async function handler(req, res) {
     try {
         const client = await pool.connect();
         try {
+            const querySafely = async (label, query) => {
+                try {
+                    const result = await client.query(query);
+                    return { result, error: null };
+                } catch (error) {
+                    console.error(`Win/Loss query failed: ${label}`, error);
+                    return { result: { rows: [] }, error: error.message };
+                }
+            };
+
             // 1. Overall Cohort Comparison
             const cohortQuery = `
                 SELECT 
@@ -96,13 +106,13 @@ export default async function handler(req, res) {
             `;
 
             const [cohorts, sources, types] = await Promise.all([
-                client.query(cohortQuery),
-                client.query(sourceQuery),
-                client.query(typeQuery)
+                querySafely('cohortQuery', cohortQuery),
+                querySafely('sourceQuery', sourceQuery),
+                querySafely('typeQuery', typeQuery)
             ]);
 
             // Calculate formatted Win Rates for client
-            const sourceAnalysis = sources.rows.map(s => {
+            const sourceAnalysis = sources.result.rows.map(s => {
                 const total = parseInt(s.total_deals) || 0;
                 const won = parseInt(s.won_count) || 0;
                 const lost = parseInt(s.lost_count) || 0;
@@ -119,9 +129,14 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 success: true,
-                cohorts: cohorts.rows.reduce((acc, row) => ({ ...acc, [row.status]: row }), {}),
+                cohorts: cohorts.result.rows.reduce((acc, row) => ({ ...acc, [row.status]: row }), {}),
                 sources: filteredSources,
-                types: types.rows
+                types: types.result.rows,
+                warnings: [
+                    cohorts.error && 'cohorts',
+                    sources.error && 'sources',
+                    types.error && 'types'
+                ].filter(Boolean)
             });
 
         } finally {
