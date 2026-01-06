@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
           <div className="relative">
             <div className="absolute inset-0 bg-indigo-500/15 blur-2xl rounded-full group-hover:bg-indigo-500/25 transition-all duration-500"></div>
             <img
-              src="/new_logo.jpeg"
+              src="/ChatGPT Image Jan 5, 2026, 10_35_59 PM.png"
               alt="Core UI by PT Biz"
               className="relative z-10 h-36 w-auto transition-transform duration-500 group-hover:scale-105"
             />
