@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onSettingsCli
             <img
               src="/new_logo.jpeg"
               alt="Core UI by PT Biz"
-              className="relative z-10 h-20 w-auto transition-transform duration-500 group-hover:scale-105"
+              className="relative z-10 h-36 w-auto transition-transform duration-500 group-hover:scale-105"
             />
           </div>
         </div>
