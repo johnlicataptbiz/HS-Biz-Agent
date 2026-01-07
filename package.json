@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "start": "node server.js",
     "server": "node server.js",
+    "railway:up": "npx --yes @railway/cli up",
     "verify:lead-magnets": "node scripts/verify-lead-magnets.mjs"
   },
   "dependencies": {
@@ -36,5 +37,8 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.8.2"
+  },
+  "engines": {
+    "node": "^20.19.0"
   }
 }
