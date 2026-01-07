@@ -58,11 +58,25 @@ const Workflows: React.FC = () => {
   const currentPage = Math.min(page, totalPages);
   const pagedWorkflows = workflows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-    if (score >= 60) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-    if (score === 0) return 'text-slate-600 bg-slate-100 border-slate-200';
-    return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+  const getScoreBadgeStyle = (score: number) => {
+    if (score === 0) {
+      return {
+        className: 'text-slate-600 bg-slate-100 border-slate-200',
+        style: {},
+      };
+    }
+
+    const clamped = Math.max(0, Math.min(100, score));
+    const hue = 210 - (200 * (clamped / 100));
+
+    return {
+      className: 'border',
+      style: {
+        backgroundColor: `hsla(${hue}, 85%, 55%, 0.18)`,
+        borderColor: `hsla(${hue}, 70%, 45%, 0.45)`,
+        color: `hsl(${hue}, 55%, 30%)`,
+      } as React.CSSProperties,
+    };
   };
 
   return (
@@ -180,10 +194,18 @@ const Workflows: React.FC = () => {
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex justify-center">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-extrabold uppercase tracking-widest ${getScoreColor(wf.aiScore)} shadow-sm`}>
+                      {(() => {
+                        const scoreStyles = getScoreBadgeStyle(wf.aiScore);
+                        return (
+                          <div
+                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest ${scoreStyles.className} shadow-sm`}
+                            style={scoreStyles.style}
+                          >
                           {wf.aiScore === 0 ? <RefreshCw size={14} className="text-slate-600" /> : (wf.aiScore < 80 ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />)}
                           {wf.aiScore === 0 ? 'PENDING' : `${wf.aiScore}%`}
-                        </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td className="px-8 py-6">

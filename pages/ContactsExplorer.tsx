@@ -66,6 +66,28 @@ const ContactsExplorer: React.FC = () => {
     return value.replace(/_/g, ' ').replace(/-/g, ' ').toUpperCase();
   };
 
+  const getScoreBadgeStyle = (score: number) => {
+    if (score <= 0) {
+      return {
+        className: 'bg-slate-100 text-slate-600 border border-slate-200',
+        style: {},
+      };
+    }
+
+    const clamped = Math.max(0, Math.min(100, score));
+    const hue = 210 - (200 * (clamped / 100));
+
+    return {
+      className: 'border',
+      style: {
+        backgroundColor: `hsla(${hue}, 85%, 55%, 0.18)`,
+        borderColor: `hsla(${hue}, 70%, 45%, 0.45)`,
+        color: `hsl(${hue}, 55%, 30%)`,
+        boxShadow: `0 10px 30px hsla(${hue}, 80%, 45%, 0.18)`,
+      } as React.CSSProperties,
+    };
+  };
+
   const isMeaningfulTag = (value: string | null) => {
     if (!value) return false;
     const trimmed = value.trim();
@@ -574,12 +596,12 @@ Output only the note body, no markdown.`;
                       <td className="px-3 py-2">
                         {(() => {
                           const scoreValue = Number(contact.health_score ?? 0);
+                          const scoreStyles = getScoreBadgeStyle(scoreValue);
                           return (
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shadow-2xl transition-all group-hover:scale-110 ${
-                              scoreValue >= 80 ? 'bg-gradient-to-br from-orange-500 to-red-600 text-slate-900 shadow-orange-500/20' : 
-                              scoreValue >= 60 ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 
-                              'bg-slate-100 text-slate-600 border border-slate-200'
-                            }`}>
+                            <div
+                              className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shadow-2xl transition-all group-hover:scale-110 ${scoreStyles.className}`}
+                              style={scoreStyles.style}
+                            >
                               {scoreValue.toFixed(1)}
                             </div>
                           );

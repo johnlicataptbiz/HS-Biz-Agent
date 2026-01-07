@@ -21,28 +21,33 @@ export const startBackgroundSync = async (token) => {
     (async () => {
         try {
             const lastSyncTime = await getLastSyncTime();
+            const lastSyncMs = lastSyncTime ? new Date(lastSyncTime).getTime() : null;
             let totalSynced = 0;
             const limit = 100;
             let batchCount = 0;
             
-            console.log(lastSyncTime 
-                ? `🔄 Starting Delta Sync (Last Sync: ${lastSyncTime})` 
+            const canDeltaSync = Number.isFinite(lastSyncMs);
+            if (lastSyncTime && !canDeltaSync) {
+                console.warn(`⚠️ Invalid last sync timestamp (${lastSyncTime}); falling back to full sync.`);
+            }
+            console.log(canDeltaSync
+                ? `🔄 Starting Delta Sync (Last Sync: ${lastSyncTime})`
                 : '🚀 Starting Full CRM Deep Sync...'
             );
 
             // Use Search API for Delta Sync if possible
-            if (lastSyncTime) {
+            if (canDeltaSync) {
                 let after = null;
                 while (true) {
                     const searchUrl = 'https://api.hubapi.com/crm/v3/objects/contacts/search';
-                    const response = await axios.post(searchUrl, {
+                    const payload = {
                         filterGroups: [
                             {
                                 filters: [
                                     {
                                         propertyName: 'lastmodifieddate',
                                         operator: 'GT',
-                                        value: String(new Date(lastSyncTime).getTime())
+                                        value: String(lastSyncMs)
                                     }
                                 ]
                             }
@@ -51,14 +56,20 @@ export const startBackgroundSync = async (token) => {
                             'email', 'firstname', 'lastname', 'phone', 'company', 'jobtitle',
                             'lifecyclestage', 'hubspot_owner_id', 'hs_lead_status',
                             'hs_analytics_source', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2',
+                            'hs_analytics_first_conversion_event_name',
                             'hs_analytics_num_page_views', 'hs_analytics_num_visits', 'hs_analytics_last_visit_timestamp',
                             'num_associated_deals', 'notes_last_updated', 'hs_email_last_open_date',
                             'hs_email_bounce', 'num_conversion_events', 'associatedcompanyid',
                             'createdate', 'lastmodifieddate'
                         ],
-                        limit: limit,
-                        after: after
-                    }, {
+                        limit: limit
+                    };
+
+                    if (after) {
+                        payload.after = after;
+                    }
+
+                    const response = await axios.post(searchUrl, payload, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 
@@ -89,6 +100,7 @@ export const startBackgroundSync = async (token) => {
                         'email', 'firstname', 'lastname', 'phone', 'company', 'jobtitle',
                         'lifecyclestage', 'hubspot_owner_id', 'hs_lead_status',
                         'hs_analytics_source', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2',
+                        'hs_analytics_first_conversion_event_name',
                         'hs_analytics_num_page_views', 'hs_analytics_num_visits', 'hs_analytics_last_visit_timestamp',
                         'num_associated_deals', 'notes_last_updated', 'hs_email_last_open_date',
                         'hs_email_bounce', 'num_conversion_events', 'associatedcompanyid',
@@ -104,6 +116,7 @@ export const startBackgroundSync = async (token) => {
                         'email', 'firstname', 'lastname', 'phone', 'company', 'jobtitle',
                         'lifecyclestage', 'hubspot_owner_id', 'hs_lead_status',
                         'hs_analytics_source', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2',
+                        'hs_analytics_first_conversion_event_name',
                         'hs_analytics_num_page_views', 'hs_analytics_num_visits', 'hs_analytics_last_visit_timestamp',
                         'num_associated_deals', 'notes_last_updated', 'hs_email_last_open_date',
                         'hs_email_bounce', 'num_conversion_events', 'associatedcompanyid',

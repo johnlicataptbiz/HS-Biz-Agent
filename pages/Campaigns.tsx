@@ -74,10 +74,44 @@ const Campaigns: React.FC = () => {
     }
   };
 
-  const getScoreColor = (score: number) => {
-      if (score > 80) return 'text-emerald-400';
-      if (score > 50) return 'text-amber-400';
-      return 'text-rose-400';
+  const getScoreTextStyle = (score: number) => {
+      if (score <= 0) {
+          return {
+              className: 'text-slate-400',
+              style: {},
+          };
+      }
+
+      const clamped = Math.max(0, Math.min(100, score));
+      const hue = 210 - (200 * (clamped / 100));
+
+      return {
+          className: '',
+          style: {
+              color: `hsl(${hue}, 55%, 35%)`,
+          } as React.CSSProperties,
+      };
+  };
+
+  const getScoreBadgeStyle = (score: number) => {
+      if (score <= 0) {
+          return {
+              className: 'text-slate-600 bg-slate-100 border-slate-200',
+              style: {},
+          };
+      }
+
+      const clamped = Math.max(0, Math.min(100, score));
+      const hue = 210 - (200 * (clamped / 100));
+
+      return {
+          className: 'border',
+          style: {
+              backgroundColor: `hsla(${hue}, 85%, 55%, 0.18)`,
+              borderColor: `hsla(${hue}, 70%, 45%, 0.45)`,
+              color: `hsl(${hue}, 55%, 30%)`,
+          } as React.CSSProperties,
+      };
   };
 
   const formatNumber = (value: number | undefined | null) => {
@@ -282,9 +316,14 @@ const Campaigns: React.FC = () => {
                             <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mt-1">ID: {camp.id}</p>
                         </div>
                         </div>
-                        <div className={`text-xl font-black ${getScoreColor(camp.aiScore || 0)}`}>
-                            {camp.aiScore}%
-                        </div>
+                        {(() => {
+                          const scoreStyles = getScoreTextStyle(camp.aiScore || 0);
+                          return (
+                            <div className={`text-xl font-black ${scoreStyles.className}`} style={scoreStyles.style}>
+                                {camp.aiScore}%
+                            </div>
+                          );
+                        })()}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 mb-5">
@@ -425,9 +464,14 @@ const Campaigns: React.FC = () => {
                                         <div className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                                             {form.submissions} Submissions
                                         </div>
-                                        <div className={`text-xs font-bold ${getScoreColor(form.aiScore || 0)}`}>
-                                            {form.aiScore}% Score
-                                        </div>
+                                        {(() => {
+                                          const scoreStyles = getScoreTextStyle(form.aiScore || 0);
+                                          return (
+                                            <div className={`text-xs font-bold ${scoreStyles.className}`} style={scoreStyles.style}>
+                                                {form.aiScore}% Score
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
                                   </div>
                                   <div className="mt-4">
@@ -490,7 +534,14 @@ const Campaigns: React.FC = () => {
                           </td>
                           <td className="px-8 py-6">
                               <div className="flex items-center gap-4">
-                                  <div className={`text-sm font-black w-10 ${getScoreColor(form.aiScore || 0)}`}>{form.aiScore}%</div>
+                                  {(() => {
+                                    const scoreStyles = getScoreTextStyle(form.aiScore || 0);
+                                    return (
+                                      <div className={`text-sm font-black w-10 ${scoreStyles.className}`} style={scoreStyles.style}>
+                                        {form.aiScore}%
+                                      </div>
+                                    );
+                                  })()}
                                   <button 
                                     onClick={() => triggerOptimize(form, 'form')}
                                     className="p-1.5 opacity-0 group-hover:opacity-100 bg-slate-100 rounded-lg text-slate-600 hover:text-rose-500 transition-all"
@@ -566,9 +617,17 @@ const Campaigns: React.FC = () => {
                 <span className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-widest border ${getStatusColor(selectedCampaign.status)}`}>
                   {selectedCampaign.status || 'Unknown'}
                 </span>
-                <span className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-widest bg-slate-100 border border-slate-200 ${getScoreColor(selectedCampaign.aiScore || 0)}`}>
-                  Score: {selectedCampaign.aiScore || 0}%
-                </span>
+                {(() => {
+                  const scoreStyles = getScoreBadgeStyle(selectedCampaign.aiScore || 0);
+                  return (
+                    <span
+                      className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-widest ${scoreStyles.className}`}
+                      style={scoreStyles.style}
+                    >
+                      Score: {selectedCampaign.aiScore || 0}%
+                    </span>
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-2">

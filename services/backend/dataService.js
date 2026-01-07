@@ -260,6 +260,8 @@ export const saveDeals = async (deals, contactMap = {}) => {
                     last_modified = EXCLUDED.last_modified,
                     deal_type = EXCLUDED.deal_type,
                     contact_id = EXCLUDED.contact_id,
+                    lead_source = EXCLUDED.lead_source,
+                    first_form = EXCLUDED.first_form,
                     raw_data = EXCLUDED.raw_data;
             `;
 

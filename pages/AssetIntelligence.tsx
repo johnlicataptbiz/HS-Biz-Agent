@@ -75,10 +75,25 @@ const AssetIntelligence: React.FC<{ onNavigate: (tab: string) => void }> = ({ on
     return `$${val}`;
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-    if (score >= 50) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-    return 'text-slate-600 bg-slate-500/10 border-slate-500/20';
+  const getScoreBadgeStyle = (score: number) => {
+    if (score <= 0) {
+      return {
+        className: 'text-slate-600 bg-slate-100 border-slate-200',
+        style: {},
+      };
+    }
+
+    const clamped = Math.max(0, Math.min(100, score));
+    const hue = 210 - (200 * (clamped / 100));
+
+    return {
+      className: 'border',
+      style: {
+        backgroundColor: `hsla(${hue}, 85%, 55%, 0.18)`,
+        borderColor: `hsla(${hue}, 70%, 45%, 0.45)`,
+        color: `hsl(${hue}, 55%, 30%)`,
+      } as React.CSSProperties,
+    };
   };
 
   return (
@@ -135,9 +150,17 @@ const AssetIntelligence: React.FC<{ onNavigate: (tab: string) => void }> = ({ on
                         <div className="w-12 h-12 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform duration-500">
                            <FileText size={22} />
                         </div>
-                        <div className={`px-3 py-1 rounded-lg border text-xs font-black uppercase tracking-widest ${getScoreColor(asset.avg_health_score)}`}>
-                           {Number(asset.avg_health_score).toFixed(1)} Quality
-                        </div>
+                        {(() => {
+                          const scoreStyles = getScoreBadgeStyle(asset.avg_health_score);
+                          return (
+                            <div
+                              className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest ${scoreStyles.className}`}
+                              style={scoreStyles.style}
+                            >
+                              {Number(asset.avg_health_score).toFixed(1)} Quality
+                            </div>
+                          );
+                        })()}
                      </div>
                      
                      <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2 leading-tight group-hover:text-pink-200 transition-colors" title={asset.form_name}>

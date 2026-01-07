@@ -46,11 +46,25 @@ const Sequences: React.FC = () => {
   const currentPage = Math.min(page, totalPages);
   const pagedSequences = sequences.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const getScoreColor = (score: number) => {
-    if (score === 0) return 'text-slate-600 bg-slate-100 border-slate-200';
-    if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-    if (score >= 60) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-    return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+  const getScoreBadgeStyle = (score: number) => {
+    if (score === 0) {
+      return {
+        className: 'text-slate-600 bg-slate-100 border-slate-200',
+        style: {},
+      };
+    }
+
+    const clamped = Math.max(0, Math.min(100, score));
+    const hue = 210 - (200 * (clamped / 100));
+
+    return {
+      className: 'border',
+      style: {
+        backgroundColor: `hsla(${hue}, 85%, 55%, 0.18)`,
+        borderColor: `hsla(${hue}, 70%, 45%, 0.45)`,
+        color: `hsl(${hue}, 55%, 30%)`,
+      } as React.CSSProperties,
+    };
   };
 
   const avgOpenRate =
@@ -164,9 +178,17 @@ const Sequences: React.FC = () => {
                         <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mt-1">ID: {seq.id}</p>
                     </div>
                   </div>
-                  <div className={`px-3 py-1.5 rounded-xl border text-[10px] font-extrabold uppercase tracking-widest ${getScoreColor(seq.aiScore)}`}>
-                    {seq.aiScore === 0 ? 'PENDING' : `Score: ${seq.aiScore}%`}
-                  </div>
+                  {(() => {
+                    const scoreStyles = getScoreBadgeStyle(seq.aiScore);
+                    return (
+                      <div
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest ${scoreStyles.className}`}
+                        style={scoreStyles.style}
+                      >
+                        {seq.aiScore === 0 ? 'PENDING' : `Score: ${seq.aiScore}%`}
+                      </div>
+                    );
+                  })()}
                </div>
 
                <div className="space-y-6 mb-8">
