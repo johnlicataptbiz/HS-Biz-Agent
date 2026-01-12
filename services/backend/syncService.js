@@ -35,59 +35,71 @@ export const startBackgroundSync = async (token) => {
                 : '🚀 Starting Full CRM Deep Sync...'
             );
 
-            // Use Search API for Delta Sync if possible
+            let needsFullSync = !canDeltaSync;
             if (canDeltaSync) {
-                let after = null;
-                while (true) {
-                    const searchUrl = 'https://api.hubapi.com/crm/v3/objects/contacts/search';
-                    const payload = {
-                        filterGroups: [
-                            {
-                                filters: [
-                                    {
-                                        propertyName: 'lastmodifieddate',
-                                        operator: 'GT',
-                                        value: String(lastSyncMs)
-                                    }
-                                ]
-                            }
-                        ],
-                        properties: [
-                            'email', 'firstname', 'lastname', 'phone', 'company', 'jobtitle',
-                            'lifecyclestage', 'hubspot_owner_id', 'hs_lead_status',
-                            'hs_analytics_source', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2',
-                            'hs_analytics_first_conversion_event_name',
-                            'hs_analytics_num_page_views', 'hs_analytics_num_visits', 'hs_analytics_last_visit_timestamp',
-                            'num_associated_deals', 'notes_last_updated', 'hs_email_last_open_date',
-                            'hs_email_bounce', 'num_conversion_events', 'associatedcompanyid',
-                            'createdate', 'lastmodifieddate'
-                        ],
-                        limit: limit
-                    };
+                try {
+                    let after = null;
+                    while (true) {
+                        const searchUrl = 'https://api.hubapi.com/crm/v3/objects/contacts/search';
+                        const payload = {
+                            filterGroups: [
+                                {
+                                    filters: [
+                                        {
+                                            propertyName: 'lastmodifieddate',
+                                            operator: 'GT',
+                                            value: String(lastSyncMs)
+                                        }
+                                    ]
+                                }
+                            ],
+                            properties: [
+                                'email', 'firstname', 'lastname', 'phone', 'company', 'jobtitle',
+                                'lifecyclestage', 'hubspot_owner_id', 'hs_lead_status',
+                                'hs_analytics_source', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2',
+                                'hs_analytics_first_conversion_event_name',
+                                'hs_analytics_num_page_views', 'hs_analytics_num_visits', 'hs_analytics_last_visit_timestamp',
+                                'num_associated_deals', 'notes_last_updated', 'hs_email_last_open_date',
+                                'hs_email_bounce', 'num_conversion_events', 'associatedcompanyid',
+                                'createdate', 'lastmodifieddate'
+                            ],
+                            limit: limit
+                        };
 
-                    if (after) {
-                        payload.after = after;
+                        if (after) {
+                            payload.after = after;
+                        }
+
+                        const response = await axios.post(searchUrl, payload, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+
+                        const data = response.data;
+                        if (!data.results || data.results.length === 0) break;
+
+                        await saveContacts(data.results);
+                        totalSynced += data.results.length;
+                        console.log(`📦 Synced ${totalSynced} changed records (Search API)...`);
+
+                        if (!data.paging || !data.paging.next || !data.paging.next.after) break;
+                        after = data.paging.next.after;
+
+                        // Throttle to respect rate limits
+                        await new Promise(r => setTimeout(r, 100));
                     }
-
-                    const response = await axios.post(searchUrl, payload, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-
-                    const data = response.data;
-                    if (!data.results || data.results.length === 0) break;
-
-                    await saveContacts(data.results);
-                    totalSynced += data.results.length;
-                    console.log(`📦 Synced ${totalSynced} changed records (Search API)...`);
-
-                    if (!data.paging || !data.paging.next || !data.paging.next.after) break;
-                    after = data.paging.next.after;
-                    
-                    // Throttle to respect rate limits
-                    await new Promise(r => setTimeout(r, 100));
+                } catch (e) {
+                    const status = e.response?.status;
+                    if (status === 400) {
+                        console.warn('⚠️ Delta sync Search API failed (400). Falling back to full sync.');
+                        needsFullSync = true;
+                    } else {
+                        throw e;
+                    }
                 }
-            } else {
-                // Initial Full Sync using standard pagination (more reliable for first pull)
+            }
+
+            if (needsFullSync) {
+                // Full Sync using standard pagination (more reliable for first pull or search failures)
                 let after = null;
                 // Dynamic Property Discovery: Fetch all available property names from HubSpot
                 let properties;
@@ -124,7 +136,7 @@ export const startBackgroundSync = async (token) => {
                         'membership_type', 'membership_status', 'hs_email_open_count', 'hs_email_click_count'
                     ].join(',');
                 }
-                
+
                 while (true) {
                     batchCount++;
                     const url = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}${after ? `&after=${after}` : ''}&properties=${properties}`;
@@ -166,6 +178,7 @@ export const startBackgroundSync = async (token) => {
             console.log(`✅ ========================================`);
             console.log(`✅ CONTACT SYNC COMPLETED: ${totalSynced} records reconciled`);
             console.log(`✅ ========================================`);
+            updateSyncStatus('completed', '');
 
             // --- DEAL SYNC PHASE ---
             console.log('💰 STARTING DEAL SYNC...');

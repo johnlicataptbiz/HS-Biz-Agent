@@ -7,8 +7,10 @@ import {
   Campaign,
   LeadStatus,
   Lead,
+  Metric,
   Pipeline,
   PipelineStage,
+  Form,
 } from "../types";
 import { getApiUrl } from "./config";
 
@@ -79,7 +81,8 @@ export class HubSpotService {
       ? window.location.origin
       : `${window.location.origin}/`;
     const clientId = useMcp
-      ? "9d7c3c51-862a-4604-9668-cad9bf5aed93"
+      ? import.meta.env.VITE_HUBSPOT_MCP_CLIENT_ID ||
+        "9d7c3c51-862a-4604-9668-cad9bf5aed93"
       : this.CLIENT_ID;
     if (!clientId) {
       if (onPopupError) onPopupError("HubSpot client ID missing.");
@@ -173,7 +176,9 @@ export class HubSpotService {
       );
 
       // If popup is blocked, fall back to a hidden iframe and provide a manual link
-      if (!popup) {
+      if (popup) {
+        popup.focus?.();
+      } else {
         if (onPopupError)
           onPopupError("Popup blocked — attempting silent iframe fallback.");
         try {
@@ -218,16 +223,13 @@ export class HubSpotService {
         }
       }
 
-      // Focus popup if possible
-      popup.focus?.();
-
       // Timeout: If code not received in 60s, show error
       setTimeout(() => {
         if (!popup?.closed) {
           if (onPopupError)
             onPopupError("OAuth popup timed out. Please try again.");
           try {
-            popup.close();
+            popup?.close();
           } catch {}
         }
       }, 60000);
@@ -664,11 +666,16 @@ export class HubSpotService {
       const shouldDisableFetch = (resp: Response) =>
         [400, 401, 403, 404].includes(resp.status);
 
-      const fetchDetail = async (sequenceId: string, userId?: string | null) => {
+      const fetchDetail = async (
+        sequenceId: string,
+        userId?: string | null
+      ) => {
         if (!allowDetailFetch) return null;
         const detailPaths = [
           `/automation/v4/sequences/${sequenceId}`,
-          userId ? `/automation/v4/sequences/${sequenceId}?userId=${userId}` : null,
+          userId
+            ? `/automation/v4/sequences/${sequenceId}?userId=${userId}`
+            : null,
           `/automation/v3/sequences/${sequenceId}`,
           `/automation/v2/sequences/${sequenceId}`,
         ].filter(Boolean) as string[];
@@ -812,7 +819,7 @@ export class HubSpotService {
       // This is primarily for V4 list endpoints which might be thin
       if (
         sequences.length > 0 &&
-        sequenceSource === "v2" &&
+        (sequenceSource === "v2" || sequenceSource === "v4") &&
         !sequences[0].steps &&
         !sequences[0].stats &&
         !sequences[0].enrollmentStats &&
@@ -827,7 +834,10 @@ export class HubSpotService {
           try {
             const sequenceId = String(s.id || s.hs_id || s.guid);
             const detail = await fetchDetail(sequenceId, sequenceUserId);
-            const performance = await fetchPerformance(sequenceId, sequenceUserId);
+            const performance = await fetchPerformance(
+              sequenceId,
+              sequenceUserId
+            );
             if (detail) {
               if (performance) {
                 detail.performance = performance;
@@ -850,27 +860,11 @@ export class HubSpotService {
         sequences = [...detailedSeqs, ...sequences.slice(deepScanLimit)];
       }
 
-      // Skip V4 deep scan to avoid noisy 400/404s on unsupported endpoints
-
       const normalizeRate = (value: any) => {
         const num = Number(value) || 0;
         if (num > 1 && num <= 100) return num / 100; // Convert percentage to decimal
         return num;
       };
-
-      if (sequences.length > 0) {
-        console.log(
-          "🧩 [DEBUG] First sequence keys:",
-          Object.keys(sequences[0])
-        );
-        console.log(
-          "🧩 [DEBUG] First sequence stats:",
-          sequences[0].stats ||
-            sequences[0].enrollmentStats ||
-            sequences[0].performance ||
-            "none"
-        );
-      }
 
       return sequences.map((seq: any) => {
         // Improved stats extraction - sequences stats can be found in several places
@@ -1331,6 +1325,65 @@ export class HubSpotService {
     return Math.min(99, Math.max(5, Math.round(score + (submissions % 7)))); // Use modulo for stable variance
   }
 
+  public async fetchAnalytics(): Promise<Metric[]> {
+    try {
+      console.log("🧩 Fetching analytics...");
+      // Scope: business-intelligence
+      // endpoint: /analytics/v2/reports/sources/total
+      // We need a date range. Let's do last 30 days.
+      const end = Date.now();
+      const start = end - 30 * 24 * 60 * 60 * 1000;
+
+      const response = await this.request(
+        `/analytics/v2/reports/sources/total?start=${start}&end=${end}`
+      );
+      if (!response.ok) {
+        if (response.status === 403 || response.status === 404) {
+          console.warn(`Analytics fetch restricted: ${response.status}`);
+          return [];
+        }
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      // data format: { breakdowns: [...], summary: { sessions, contacts, ... } }
+      // The summary is what we want.
+
+      // Note: The API response structure for 'totals' typically has a 'breakdowns' array
+      // where the 'total' row is often implicitly calculated or needed from 'summary'.
+      // However, sometimes it returns a 'total' object.
+      // Let's assume standard Analytics API response.
+
+      // Actually, /analytics/v2/reports/sources/total often returns top-level totals.
+      // Let's check keys.
+      const summary = data; // If it returns direct totals
+      // Or data.totals
+
+      const sessions = summary.sessions || 0;
+      const contacts = summary.contacts || 0;
+      const bounceRate = summary.bounceRate || 0;
+      const duration = summary.sessionDuration || 0;
+
+      return [
+        { label: "Total Sessions (30d)", value: sessions, trend: "up" },
+        { label: "New Contacts (Source)", value: contacts, trend: "neutral" },
+        {
+          label: "Bounce Rate",
+          value: `${Math.round(bounceRate * 100)}%`,
+          trend: bounceRate < 0.4 ? "up" : "down",
+        }, // Lower is better (up logic)
+        {
+          label: "Avg Duration",
+          value: `${Math.round(duration)}s`,
+          trend: "neutral",
+        },
+      ];
+    } catch (e) {
+      console.warn("Analytics fetch error (likely no traffic data):", e);
+      return [];
+    }
+  }
+
   public async fetchCampaigns(): Promise<Campaign[]> {
     try {
       const allCampaigns: Campaign[] = [];
@@ -1390,7 +1443,8 @@ export class HubSpotService {
             const clicks = toNumber(counters.clicks || counters.numClicks);
             return {
               id: String(c.id),
-              name: c.name || c.appName || c.subject || "Unnamed Email Campaign",
+              name:
+                c.name || c.appName || c.subject || "Unnamed Email Campaign",
               status: c.status || "SENT",
               budget: null,
               revenue: null,
@@ -1458,7 +1512,7 @@ export class HubSpotService {
           aiScore: subs > 50 ? 92 : 75,
           type: page.contentType === "SITE_PAGE" ? "SITE_PAGE" : "LANDING_PAGE",
           rawName: (page.name || "").toLowerCase(),
-        };
+        } as any as Campaign;
       });
       allCampaigns.push(...pageItems);
 
@@ -1636,7 +1690,7 @@ export class HubSpotService {
   }
 
   // --- FORMS & LEAD MAGNETS ---
-  public async fetchForms(): Promise<any[]> {
+  public async fetchForms(): Promise<Form[]> {
     try {
       // 1. Fetch BOTH Landing and Site Pages for matching (Full Audit)
       let pageSubmissionsMap: Record<string, number> = {};

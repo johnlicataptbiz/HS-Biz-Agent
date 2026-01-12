@@ -23,13 +23,19 @@ export default async function handler(req, res) {
       // 1. REVENUE BY DEAL TYPE
       const revenueByTypeQuery = `
         SELECT 
-          COALESCE(deal_type, 'Other') as deal_type,
+          CASE
+            WHEN COALESCE(deal_type, '') ILIKE '%mastermind%' OR COALESCE(dealname, '') ILIKE '%mastermind%' THEN 'Mastermind'
+            WHEN COALESCE(deal_type, '') ILIKE '%rainmaker%' OR COALESCE(deal_type, '') ILIKE '%clinical%'
+              OR COALESCE(dealname, '') ILIKE '%rainmaker%' OR COALESCE(dealname, '') ILIKE '%clinical%'
+              THEN 'Clinical Rainmaker'
+            ELSE 'Clinical Rainmaker'
+          END as deal_type,
           COUNT(*) as count,
           SUM(COALESCE(amount, 0)) as total_revenue,
           ROUND(AVG(COALESCE(amount, 0))) as avg_deal_size
         FROM deals
         WHERE ${dealStageFilters.wonFilter}
-        GROUP BY deal_type
+        GROUP BY 1
         ORDER BY total_revenue DESC
       `;
 
@@ -57,7 +63,12 @@ export default async function handler(req, res) {
         SELECT 
           COALESCE(
             NULLIF(c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name', ''),
+            NULLIF(c.raw_data->'properties'->>'hs_analytics_last_conversion_event_name', ''),
             NULLIF(d.first_form, ''),
+            NULLIF(d.raw_data->>'hs_analytics_first_conversion_event_name', ''),
+            NULLIF(d.raw_data->>'hs_analytics_last_conversion_event_name', ''),
+            NULLIF(d.raw_data->>'hs_analytics_source_data_2', ''),
+            NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_2', ''),
             'Direct/Unknown'
           ) as form_name,
           COUNT(d.id) as deals_count,
@@ -116,16 +127,27 @@ export default async function handler(req, res) {
           COALESCE(d.lead_source, c.raw_data->'properties'->>'hs_analytics_source', 'Unknown') as source,
           COALESCE(
             NULLIF(c.raw_data->'properties'->>'hs_analytics_first_conversion_event_name', ''),
+            NULLIF(c.raw_data->'properties'->>'hs_analytics_last_conversion_event_name', ''),
             NULLIF(d.first_form, ''),
+            NULLIF(d.raw_data->>'hs_analytics_first_conversion_event_name', ''),
+            NULLIF(d.raw_data->>'hs_analytics_last_conversion_event_name', ''),
+            NULLIF(d.raw_data->>'hs_analytics_source_data_2', ''),
+            NULLIF(c.raw_data->'properties'->>'hs_analytics_source_data_2', ''),
             'Direct'
           ) as form,
-          d.deal_type,
+          CASE
+            WHEN COALESCE(d.deal_type, '') ILIKE '%mastermind%' OR COALESCE(d.dealname, '') ILIKE '%mastermind%' THEN 'Mastermind'
+            WHEN COALESCE(d.deal_type, '') ILIKE '%rainmaker%' OR COALESCE(d.deal_type, '') ILIKE '%clinical%'
+              OR COALESCE(d.dealname, '') ILIKE '%rainmaker%' OR COALESCE(d.dealname, '') ILIKE '%clinical%'
+              THEN 'Clinical Rainmaker'
+            ELSE 'Clinical Rainmaker'
+          END as deal_type,
           COUNT(*) as conversions,
           SUM(COALESCE(d.amount, 0)) as revenue
         FROM deals d
         LEFT JOIN contacts c ON d.contact_id = c.id
         WHERE ${dealFilters.wonFilter}
-        GROUP BY source, form, d.deal_type
+        GROUP BY 1, 2, 3
         ORDER BY revenue DESC
         LIMIT 10
       `;
@@ -159,8 +181,9 @@ export default async function handler(req, res) {
               THEN c.raw_data->'properties'->>'hs_analytics_source_data_1'
             ELSE COALESCE(d.lead_source, c.raw_data->'properties'->>'hs_analytics_source', 'Unknown')
           END as entry_name,
-          SUM(CASE WHEN d.deal_type ILIKE '%mastermind%' THEN 1 ELSE 0 END) as mm_count,
-          SUM(CASE WHEN d.deal_type ILIKE '%rainmaker%' OR d.deal_type ILIKE '%clinical%' THEN 1 ELSE 0 END) as crm_count,
+          SUM(CASE WHEN d.deal_type ILIKE '%mastermind%' OR d.dealname ILIKE '%mastermind%' THEN 1 ELSE 0 END) as mm_count,
+          SUM(CASE WHEN d.deal_type ILIKE '%rainmaker%' OR d.deal_type ILIKE '%clinical%'
+            OR d.dealname ILIKE '%rainmaker%' OR d.dealname ILIKE '%clinical%' THEN 1 ELSE 0 END) as crm_count,
           COUNT(*) as total_count
         FROM deals d
         LEFT JOIN contacts c ON d.contact_id = c.id
@@ -258,17 +281,22 @@ export default async function handler(req, res) {
         totalCount: parseInt(row.total_count)
       }));
 
-      revenueByForm = filterLeadMagnets(revenueByForm, (row) => row.form);
-      revenueByLandingPage = filterLeadMagnets(
+      const filterOrFallback = (items, getValue) => {
+        const filtered = filterLeadMagnets(items, getValue);
+        return filtered.length > 0 ? filtered : items;
+      };
+
+      revenueByForm = filterOrFallback(revenueByForm, (row) => row.form);
+      revenueByLandingPage = filterOrFallback(
         revenueByLandingPage,
         (row) => row.landingPage
       );
-      revenueByPageTitle = filterLeadMagnets(
+      revenueByPageTitle = filterOrFallback(
         revenueByPageTitle,
         (row) => row.pageTitle
       );
-      topPaths = filterLeadMagnets(topPaths, (row) => row.form);
-      clientTypeByEntry = filterLeadMagnets(
+      topPaths = filterOrFallback(topPaths, (row) => row.form);
+      clientTypeByEntry = filterOrFallback(
         clientTypeByEntry,
         (row) => row.entryName
       );

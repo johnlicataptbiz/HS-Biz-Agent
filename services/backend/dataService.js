@@ -130,7 +130,7 @@ export const getSyncProgress = async () => {
   if (!process.env.DATABASE_URL) {
     return {
       count: 0,
-      status: "error",
+      status: "idle",
       error: "Mirror Offline: DATABASE_URL missing",
     };
   }
@@ -153,7 +153,9 @@ export const getSyncProgress = async () => {
       const staleMs = 30 * 60 * 1000;
       if (Date.now() - updatedAt.getTime() > staleMs) {
         status = parseInt(res.rows[0].count) > 0 ? "completed" : "idle";
-        await updateSyncStatus(status);
+        await updateSyncStatus(status).catch((e) =>
+          console.warn("Failed to auto-update stale status:", e.message)
+        );
       }
     }
     return {
@@ -162,39 +164,52 @@ export const getSyncProgress = async () => {
       error: errorState.rows[0]?.value || "",
     };
   } catch (e) {
+    // If DB is down, don't crash the server. Return "disconnected" state.
+    if (e.code === "ECONNREFUSED") {
+      return {
+        count: 0,
+        status: "db_disconnected",
+        error: "Local Database Offline",
+      };
+    }
     console.error("Database query failed:", e.message);
-    throw new Error(`Database query failed: ${e.message}`);
+    return { count: 0, status: "error", error: e.message };
   }
 };
 
 export const updateSyncStatus = async (status, message = "") => {
-  await pool.query(
-    `
+  try {
+    await pool.query(
+      `
         INSERT INTO sync_state (key, value, updated_at) 
         VALUES ('sync_status', $1, CURRENT_TIMESTAMP)
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
     `,
-    [status]
-  );
+      [status]
+    );
 
-  await pool.query(
-    `
+    await pool.query(
+      `
         INSERT INTO sync_state (key, value, updated_at) 
         VALUES ('sync_error', $1, CURRENT_TIMESTAMP)
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
     `,
-    [status === "failed" ? message : ""]
-  );
+      [status === "failed" ? message : ""]
+    );
 
-  if (status === "completed") {
-    await pool.query(
-      `
+    if (status === "completed") {
+      await pool.query(
+        `
             INSERT INTO sync_state (key, value, updated_at) 
             VALUES ('last_sync_time', $1, CURRENT_TIMESTAMP)
             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
         `,
-      [new Date().toISOString()]
-    );
+        [new Date().toISOString()]
+      );
+    }
+  } catch (e) {
+    if (e.code === "ECONNREFUSED") return; // Silent fail if DB is down
+    console.warn("Failed to update sync status:", e.message);
   }
 };
 

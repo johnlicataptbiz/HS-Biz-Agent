@@ -34,18 +34,28 @@ export default async function handler(req, res) {
     : "";
   let secretSource = "Standard";
 
-  // If this is the MCP App Client ID, we should ideally use the MCP Secret
+  // If this matches the configured MCP Client ID from environment
+  const configuredMcpId = process.env.VITE_HUBSPOT_MCP_CLIENT_ID;
+
   if (clientId === "9d7c3c51-862a-4604-9668-cad9bf5aed93") {
-    console.log("Detected MCP Client ID.");
+    // Legacy/Default MCP ID
+    console.log("Detected Default MCP Client ID.");
     if (process.env.HUBSPOT_MCP_CLIENT_SECRET) {
       clientSecret = process.env.HUBSPOT_MCP_CLIENT_SECRET.trim();
       secretSource = "MCP_Env_Var";
     } else {
       console.error(
-        "CRITICAL: MCP Client ID used but HUBSPOT_MCP_CLIENT_SECRET is missing!"
+        "CRITICAL: Default MCP Client ID used but Secret is missing."
       );
       secretSource = "MISSING_MCP_SECRET";
     }
+  } else if (configuredMcpId && clientId === configuredMcpId) {
+    // Custom User-Configured MCP App
+    console.log("Detected Custom MCP Client ID.");
+    clientSecret = process.env.HUBSPOT_MCP_CLIENT_SECRET
+      ? process.env.HUBSPOT_MCP_CLIENT_SECRET.trim()
+      : "";
+    secretSource = "Custom_MCP_Env_Var";
   }
 
   console.log(`Using Client ID: ${clientId}`);

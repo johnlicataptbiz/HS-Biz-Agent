@@ -13,18 +13,10 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       host: "0.0.0.0",
       proxy: {
-        "/api/hubspot": {
-          target: "https://api.hubapi.com",
+        "/api": {
+          target: "http://localhost:3001",
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/hubspot/, ""),
-          configure: (proxy, options) => {
-            proxy.on("proxyReq", (proxyReq, req) => {
-              // Forward Authorization header
-              if (req.headers.authorization) {
-                proxyReq.setHeader("Authorization", req.headers.authorization);
-              }
-            });
-          },
+          secure: false,
         },
       },
     },
