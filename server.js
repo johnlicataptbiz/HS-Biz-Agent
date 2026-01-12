@@ -8,13 +8,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const corsOrigin = process.env.CORS_ORIGIN || "*";
 const port = process.env.PORT || 3001;
 
 // 1. MIDDLEWARE
+// Log all incoming requests for debugging
+app.use((req, res, next) => {
+  console.log(`[REQ] ${req.method} ${req.url} | Origin: ${req.headers.origin}`);
+  next();
+});
+
+// Configure CORS
 app.use(
   cors({
-    origin: true, // Echoes the request origin, allowing all origins
+    origin: (origin, callback) => {
+      // Allow all origins
+      callback(null, true);
+    },
     credentials: true,
   })
 );
@@ -23,17 +32,23 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+    console.log(`[CORS] Set Access-Control-Allow-Origin to: ${origin}`);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
   }
+
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Authorization, Content-Type, X-Requested-With"
+    "Authorization, Content-Type, X-Requested-With, Accept"
   );
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET,POST,PUT,PATCH,DELETE,OPTIONS"
   );
+
   if (req.method === "OPTIONS") {
+    console.log(`[CORS] Handling OPTIONS for: ${req.url}`);
     return res.status(200).end();
   }
   next();
