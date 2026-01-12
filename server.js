@@ -14,12 +14,16 @@ const port = process.env.PORT || 3001;
 // 1. MIDDLEWARE
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: true, // Echoes the request origin, allowing all origins
     credentials: true,
   })
 );
+
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", corsOrigin);
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader(
     "Access-Control-Allow-Headers",
