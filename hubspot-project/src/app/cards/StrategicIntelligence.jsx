@@ -33,6 +33,18 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
   // Your Railway Backend Base URL
   const BACKEND_URL = "https://hubspot-proxy-production.up.railway.app/api";
 
+  const normalizeBody = (body) => {
+    if (!body) return null;
+    if (typeof body === "string") {
+      try {
+        return JSON.parse(body);
+      } catch (err) {
+        return null;
+      }
+    }
+    return body;
+  };
+
   const fetchStrategy = () => {
     setLoading(true);
     setError(null);
@@ -53,11 +65,12 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
       }
     })
       .then((resp) => {
-        if (resp.ok) {
-          setData(resp.body);
+        const body = normalizeBody(resp.body);
+        if (resp.ok && body) {
+          setData(body);
         } else {
           const message =
-            resp.body?.error || `Strategic Analysis Failed (${resp.status})`;
+            body?.error || `Strategic Analysis Failed (${resp.status})`;
           if (resp.status === 404) {
             setNeedsSync(true);
           }
@@ -72,10 +85,11 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
     setSyncError(null);
     hubspot.fetch(`${BACKEND_URL}/sync`, { method: 'GET' })
       .then((resp) => {
+        const body = normalizeBody(resp.body);
         if (resp.ok) {
-          setSyncStatus(resp.body);
+          setSyncStatus(body);
         } else {
-          setSyncError(resp.body?.error || `Sync status failed (${resp.status})`);
+          setSyncError(body?.error || `Sync status failed (${resp.status})`);
         }
       })
       .catch((err) => setSyncError(`Sync status error: ${err.message}`));
@@ -86,11 +100,12 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
     setSyncError(null);
     hubspot.fetch(`${BACKEND_URL}/sync`, { method: 'POST', body: {} })
       .then((resp) => {
+        const body = normalizeBody(resp.body);
         if (resp.ok) {
-          setSyncStatus(resp.body);
+          setSyncStatus(body);
           sendAlert({ message: "Sync started. Refresh in a moment.", type: "success" });
         } else {
-          const message = resp.body?.error || `Sync failed (${resp.status})`;
+          const message = body?.error || `Sync failed (${resp.status})`;
           setSyncError(message);
           sendAlert({ message, type: "danger" });
         }
@@ -117,11 +132,12 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
         targetStage: targetStage
       }
     }).then((resp) => {
+      const body = normalizeBody(resp.body);
       if (resp.ok) {
         sendAlert({ message: `Successfully promoted to ${targetStage}`, type: "success" });
         fetchStrategy(); // Refresh local state
       } else {
-        sendAlert({ message: resp.body?.error || "Promotion failed.", type: "danger" });
+        sendAlert({ message: body?.error || "Promotion failed.", type: "danger" });
       }
     })
     .catch((err) => sendAlert({ message: "Network error during promotion.", type: "danger" }))
@@ -138,13 +154,14 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
         status: targetStatus
       }
     }).then((resp) => {
+      const body = normalizeBody(resp.body);
       if (resp.ok) {
         setData((prev) =>
-          prev ? { ...prev, leadStatus: resp.body?.label || targetStatus } : prev
+          prev ? { ...prev, leadStatus: body?.label || targetStatus } : prev
         );
         sendAlert({ message: `Tagged as ${targetStatus}`, type: "success" });
       } else {
-        sendAlert({ message: resp.body?.error || "Tagging failed.", type: "danger" });
+        sendAlert({ message: body?.error || "Tagging failed.", type: "danger" });
       }
     })
     .catch((err) => sendAlert({ message: "Network error during tagging.", type: "danger" }))
