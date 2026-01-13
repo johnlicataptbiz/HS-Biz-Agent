@@ -19,6 +19,12 @@ export class HubSpotService {
   private readonly CLIENT_ID =
     import.meta.env.VITE_HUBSPOT_CLIENT_ID ||
     "c136fd2f-093b-4e73-9129-920280164fa6";
+  private readonly LEGACY_STANDARD_CLIENT_ID =
+    "7e3c1887-4c26-47a8-b750-9f215ed818f1";
+  private readonly MCP_CLIENT_IDS = new Set([
+    "9d7c3c51-862a-4604-9668-cad9bf5aed93",
+    "d2bf9ffa-49b2-434c-94a2-0860816de977",
+  ]);
   private readonly BASE_API_URL = getApiUrl("/api/hubspot"); // Dynamically resolved backend
 
   private readonly OAUTH_REQUEST_KEYS = {
@@ -248,9 +254,13 @@ export class HubSpotService {
 
     try {
       this.isExchanging = true;
-      const clientId =
-        localStorage.getItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID) ||
-        this.CLIENT_ID;
+      const storedClientId =
+        localStorage.getItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID) || "";
+      const isMcp = this.MCP_CLIENT_IDS.has(storedClientId);
+      const clientId = isMcp ? storedClientId : this.CLIENT_ID;
+      if (!isMcp && storedClientId && storedClientId !== this.CLIENT_ID) {
+        localStorage.setItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID, clientId);
+      }
       // Include PKCE code_verifier if present
       const codeVerifier =
         localStorage.getItem("hubspot_oauth_code_verifier") || undefined;
@@ -326,9 +336,13 @@ export class HubSpotService {
       );
       if (!refreshToken) return false;
 
-      const clientId =
-        localStorage.getItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID) ||
-        this.CLIENT_ID;
+      const storedClientId =
+        localStorage.getItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID) || "";
+      const isMcp = this.MCP_CLIENT_IDS.has(storedClientId);
+      const clientId = isMcp ? storedClientId : this.CLIENT_ID;
+      if (!isMcp && storedClientId && storedClientId !== this.CLIENT_ID) {
+        localStorage.setItem(this.STORAGE_KEYS.CONNECTED_CLIENT_ID, clientId);
+      }
 
       const response = await fetch(getApiUrl("/api/token"), {
         method: "POST",

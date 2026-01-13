@@ -21,12 +21,16 @@ export default async function handler(req, res) {
 
   // Initialize global map if not present
   if (!global.__oauthStateMap) global.__oauthStateMap = {};
+  const configuredClientId =
+    process.env.HUBSPOT_CLIENT_ID ||
+    process.env.VITE_HUBSPOT_CLIENT_ID ||
+    "c136fd2f-093b-4e73-9129-920280164fa6";
+  const legacyStandardClientId = "7e3c1887-4c26-47a8-b750-9f215ed818f1";
+  const initialClientId = client_id || configuredClientId;
+  const clientIdToStore =
+    initialClientId === legacyStandardClientId ? configuredClientId : initialClientId;
   global.__oauthStateMap[serverState] = {
-    clientId:
-    client_id ||
-      process.env.HUBSPOT_CLIENT_ID ||
-      process.env.VITE_HUBSPOT_CLIENT_ID ||
-      "c136fd2f-093b-4e73-9129-920280164fa6",
+    clientId: clientIdToStore,
     createdAt: Date.now(),
     redirectUri: redirect_uri || req.headers.origin || "",
   };
