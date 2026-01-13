@@ -2,6 +2,41 @@ import axios from 'axios';
 import { saveContacts, updateSyncStatus, getLastSyncTime } from './dataService.js';
 
 let isSyncing = false;
+const REQUEST_TIMEOUT_MS = 30_000;
+const RETRIABLE_CODES = new Set([
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'ECONNABORTED',
+    'EAI_AGAIN',
+    'ENOTFOUND',
+]);
+const RETRIABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const requestWithRetry = async (requestFn, label, retries = 3) => {
+    let attempt = 0;
+    let lastError;
+    while (attempt <= retries) {
+        try {
+            return await requestFn();
+        } catch (e) {
+            lastError = e;
+            const status = e.response?.status;
+            const code = e.code;
+            const retriable =
+                RETRIABLE_CODES.has(code) ||
+                RETRIABLE_STATUS.has(status);
+            if (!retriable || attempt === retries) {
+                break;
+            }
+            const backoff = 500 * Math.pow(2, attempt);
+            console.warn(`⚠️ ${label} failed (${code || status || 'unknown'}). Retrying in ${backoff}ms...`);
+            await sleep(backoff);
+            attempt += 1;
+        }
+    }
+    throw lastError;
+};
 
 /**
  * Professional-grade CRM Synchronization Service
@@ -70,9 +105,13 @@ export const startBackgroundSync = async (token) => {
                             payload.after = after;
                         }
 
-                        const response = await axios.post(searchUrl, payload, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
+                        const response = await requestWithRetry(
+                            () => axios.post(searchUrl, payload, {
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                timeout: REQUEST_TIMEOUT_MS,
+                            }),
+                            'Search contacts'
+                        );
 
                         const data = response.data;
                         if (!data.results || data.results.length === 0) break;
@@ -89,8 +128,15 @@ export const startBackgroundSync = async (token) => {
                     }
                 } catch (e) {
                     const status = e.response?.status;
-                    if (status === 400) {
-                        console.warn('⚠️ Delta sync Search API failed (400). Falling back to full sync.');
+                    const code = e.code;
+                    const shouldFallback =
+                        status === 400 ||
+                        RETRIABLE_STATUS.has(status) ||
+                        RETRIABLE_CODES.has(code);
+                    if (shouldFallback) {
+                        console.warn(
+                            `⚠️ Delta sync Search API failed (${code || status || 'unknown'}). Falling back to full sync.`
+                        );
                         needsFullSync = true;
                     } else {
                         throw e;
@@ -104,9 +150,13 @@ export const startBackgroundSync = async (token) => {
                 // Dynamic Property Discovery: Fetch all available property names from HubSpot
                 let properties;
                 try {
-                    const propsResp = await axios.get('https://api.hubapi.com/crm/v3/properties/contacts', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const propsResp = await requestWithRetry(
+                        () => axios.get('https://api.hubapi.com/crm/v3/properties/contacts', {
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            timeout: REQUEST_TIMEOUT_MS,
+                        }),
+                        'Discover contact properties'
+                    );
                     const discovered = propsResp.data.results.map(p => p.name);
                     const coreProps = new Set([
                         'email', 'firstname', 'lastname', 'phone', 'company', 'jobtitle',
@@ -143,9 +193,13 @@ export const startBackgroundSync = async (token) => {
                     
                     console.log(`📡 Batch ${batchCount}: Fetching ${limit} contacts${after ? ` (after: ${after})` : ' (initial)'}...`);
                     
-                    const response = await axios.get(url, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const response = await requestWithRetry(
+                        () => axios.get(url, {
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            timeout: REQUEST_TIMEOUT_MS,
+                        }),
+                        'Fetch contacts'
+                    );
 
                     const data = response.data;
                     console.log(`📥 Received ${data.results?.length || 0} contacts, hasNext: ${!!data.paging?.next}`);
@@ -194,9 +248,13 @@ export const startBackgroundSync = async (token) => {
 
                 console.log(`📡 Deal Batch ${dealBatchCount}: Fetching deals...`);
                 
-                const response = await axios.get(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await requestWithRetry(
+                    () => axios.get(url, {
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        timeout: REQUEST_TIMEOUT_MS,
+                    }),
+                    'Fetch deals'
+                );
 
                 const data = response.data;
                 const deals = (data.results || []).map(d => {

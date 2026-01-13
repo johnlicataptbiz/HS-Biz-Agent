@@ -20,10 +20,23 @@ export default async function handler(req, res) {
 
     // POST /api/sync -> Start
     if (req.method === 'POST') {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Missing Authorization header' });
-        
-        const token = authHeader.replace('Bearer ', '');
+        const authHeader = req.headers.authorization || '';
+        const bodyToken = req.body?.hubspotToken || req.body?.token || '';
+        const envToken =
+          process.env.PRIVATE_APP_ACCESS_TOKEN ||
+          process.env.HUBSPOT_ACCESS_TOKEN ||
+          '';
+        const token = authHeader
+          ? authHeader.replace(/^Bearer\s+/i, '')
+          : bodyToken || envToken;
+
+        if (!token) {
+          return res.status(401).json({
+            error:
+              'Missing HubSpot token. Provide Authorization header or set PRIVATE_APP_ACCESS_TOKEN.',
+          });
+        }
+
         try {
             const result = await startBackgroundSync(token);
             return res.status(200).json(result);
