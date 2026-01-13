@@ -1,11 +1,28 @@
 const { pool } = await import("../services/backend/dataService.js");
 
 export default async function handler(req, res) {
-  // 1. Log the incoming Breeze Agent Request
+  const redact = (value) => (value ? "[REDACTED]" : value);
+  const safeHeaders = { ...req.headers };
+  if ("authorization" in safeHeaders)
+    safeHeaders.authorization = redact(safeHeaders.authorization);
+  if ("x-hubspot-authorization" in safeHeaders)
+    safeHeaders["x-hubspot-authorization"] = redact(
+      safeHeaders["x-hubspot-authorization"]
+    );
+  if ("cookie" in safeHeaders) safeHeaders.cookie = redact(safeHeaders.cookie);
+  const safeBody =
+    req.body && typeof req.body === "object"
+      ? {
+          ...req.body,
+          hubspotToken: redact(req.body.hubspotToken),
+        }
+      : req.body;
+
+  // 1. Log the incoming Breeze Agent Request (redacted)
   console.log("🤖 [Breeze Agent Bridge] Incoming Request:", {
     method: req.method,
-    body: req.body,
-    headers: req.headers,
+    body: safeBody,
+    headers: safeHeaders,
   });
 
   if (req.method === "OPTIONS") {
@@ -23,11 +40,23 @@ export default async function handler(req, res) {
     const { action, contactId, targetStage, noteText, hubspotToken, status } =
       req.body;
 
+    const extractBearer = (value) => {
+      if (!value || typeof value !== "string") return null;
+      const match = value.match(/^Bearer\s+(.+)$/i);
+      const token = (match ? match[1] : value).trim();
+      if (!token || token === "undefined" || token === "null") return null;
+      return token;
+    };
+    const headerToken =
+      extractBearer(req.headers.authorization) ||
+      extractBearer(req.headers["x-hubspot-authorization"]);
+
     // Note: In a production App, the hubspotToken would ideally come from
     // your app's secure storage based on the portalId (originatingAccountId)
     // sent by HubSpot, but for this bridge we'll support both passed token or internal lookup.
 
     const token =
+      headerToken ||
       hubspotToken ||
       process.env.HUBSPOT_ACCESS_TOKEN ||
       process.env.PRIVATE_APP_ACCESS_TOKEN ||
