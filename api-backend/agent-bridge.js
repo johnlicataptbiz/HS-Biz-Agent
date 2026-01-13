@@ -55,12 +55,19 @@ export default async function handler(req, res) {
     // your app's secure storage based on the portalId (originatingAccountId)
     // sent by HubSpot, but for this bridge we'll support both passed token or internal lookup.
 
-    const token =
-      headerToken ||
-      hubspotToken ||
+    const envToken =
       process.env.HUBSPOT_ACCESS_TOKEN ||
       process.env.PRIVATE_APP_ACCESS_TOKEN ||
       process.env.HUBSPOT_TOKEN;
+    const token = envToken || headerToken || hubspotToken;
+    const tokenSource = envToken
+      ? "env"
+      : headerToken
+        ? "header"
+        : hubspotToken
+          ? "body"
+          : "none";
+    console.log("🤖 [Breeze Agent Bridge] Auth source:", tokenSource);
 
     // --- Action: Fetch Strategy Info (Tool Type: GET_DATA) ---
     if (action === "get_lead_strategy") {
