@@ -86,6 +86,27 @@ export default async function handler(req, res) {
           : Number(contact.health_score);
       const healthScore = Number.isFinite(storedScore) ? storedScore : null;
       let scoreBreakdown = [];
+      let rawContact = contact.raw_data;
+      if (typeof rawContact === "string") {
+        try {
+          rawContact = JSON.parse(rawContact);
+        } catch (err) {
+          rawContact = null;
+        }
+      }
+      const scoreFormula = [
+        { label: "Base score", points: 5 },
+        { label: "Engagement intent (page views, visits, conversions)", points: "up to 24" },
+        { label: "Commercial velocity (deals, lifecycle stage)", points: "up to 18" },
+        { label: "Create-date recency", points: "up to 10" },
+        { label: "Activity recency (last visit, email open)", points: "up to 16" },
+        { label: "Email interaction depth", points: "up to 11" },
+        { label: "Sales intensity (recent CRM notes)", points: "up to 8" },
+        { label: "Intent & fit signals (status, owner, phone, job, company, source)", points: "up to 19" },
+        { label: "Penalties (bounce, disqualified, stale, no activity)", points: "down to -100" },
+        { label: "Tie-break jitter", points: "up to +0.9" },
+        { label: "Cap: 90+ requires 3+ strong signals", points: "" },
+      ];
       const scoreSummary =
         "Base 5 + engagement + commercial + recency + activity + sales intensity + intent/fit - penalties. 90+ requires 3+ strong signals; slight jitter prevents ties.";
 
@@ -93,7 +114,7 @@ export default async function handler(req, res) {
         const { calculateHealthScore } = await import(
           "../services/backend/healthScoreService.js"
         );
-        const { breakdown } = calculateHealthScore(contact.raw_data || {});
+        const { breakdown } = calculateHealthScore(rawContact || {});
         scoreBreakdown = Array.isArray(breakdown) ? breakdown : [];
       } catch (err) {
         console.warn("Score breakdown unavailable:", err.message);
@@ -105,6 +126,7 @@ export default async function handler(req, res) {
         leadStatus,
         scoreSummary,
         scoreBreakdown,
+        scoreFormula,
         signals: {
           isHot: contact.classification === "Hot",
           isStale:

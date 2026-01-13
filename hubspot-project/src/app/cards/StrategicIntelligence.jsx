@@ -229,6 +229,7 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
     leadStatus,
     scoreSummary,
     scoreBreakdown,
+    scoreFormula,
   } = data || {};
   const scoreValue = Number.isFinite(healthScore)
     ? healthScore
@@ -304,7 +305,18 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
                 <Text key={`${item}-${idx}`} variant="microcopy">• {item}</Text>
               ))
             ) : (
-              <Text variant="microcopy">No breakdown available for this contact.</Text>
+              <>
+                <Text variant="microcopy">No per-contact breakdown available yet.</Text>
+                {scoreFormula?.length ? (
+                  scoreFormula.map((line, idx) => (
+                    <Text key={`${line.label}-${idx}`} variant="microcopy">
+                      • {line.label}{line.points ? ` (${line.points})` : ""}
+                    </Text>
+                  ))
+                ) : (
+                  <Text variant="microcopy">Formula: Base 5, engagement, commercial intent, recency, sales signals, penalties.</Text>
+                )}
+              </>
             )}
           </Box>
         )}
