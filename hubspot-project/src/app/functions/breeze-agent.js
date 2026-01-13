@@ -4,9 +4,9 @@ var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 
-// src/app/functions/source/utils/v3-validator.js
+// hubspot-project/src/app/functions/source/utils/v3-validator.js
 var require_v3_validator = __commonJS({
-  "src/app/functions/source/utils/v3-validator.js"(exports2) {
+  "hubspot-project/src/app/functions/source/utils/v3-validator.js"(exports2) {
     "use strict";
     var crypto = require("crypto");
     exports2.validateSignature = (req, clientSecret) => {
@@ -28,7 +28,7 @@ var require_v3_validator = __commonJS({
   }
 });
 
-// src/app/functions/source/breeze-agent.js
+// hubspot-project/src/app/functions/source/breeze-agent.js
 var { validateSignature } = require_v3_validator();
 exports.main = async (context = {}) => {
   const body = context.body || {};
