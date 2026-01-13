@@ -38,6 +38,7 @@ export default async function handler(req, res) {
   const scopes = useMcp
     ? [
         "crm.objects.contacts.read",
+        "crm.schemas.contacts.write",
         "crm.objects.companies.read",
         "crm.objects.deals.read",
         "oauth",
