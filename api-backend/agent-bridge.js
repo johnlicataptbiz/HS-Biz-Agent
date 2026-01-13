@@ -80,11 +80,31 @@ export default async function handler(req, res) {
       const contact = result.rows[0];
       const leadStatus =
         contact?.raw_data?.properties?.hs_lead_status || null;
+      const storedScore =
+        contact.health_score === null || contact.health_score === undefined
+          ? null
+          : Number(contact.health_score);
+      const healthScore = Number.isFinite(storedScore) ? storedScore : null;
+      let scoreBreakdown = [];
+      const scoreSummary =
+        "Base 5 + engagement + commercial + recency + activity + sales intensity + intent/fit - penalties. 90+ requires 3+ strong signals; slight jitter prevents ties.";
+
+      try {
+        const { calculateHealthScore } = await import(
+          "../services/backend/healthScoreService.js"
+        );
+        const { breakdown } = calculateHealthScore(contact.raw_data || {});
+        scoreBreakdown = Array.isArray(breakdown) ? breakdown : [];
+      } catch (err) {
+        console.warn("Score breakdown unavailable:", err.message);
+      }
       return res.status(200).json({
-        healthScore: contact.health_score,
+        healthScore,
         classification: contact.classification,
         lifecycleStage: contact.lifecyclestage,
         leadStatus,
+        scoreSummary,
+        scoreBreakdown,
         signals: {
           isHot: contact.classification === "Hot",
           isStale:

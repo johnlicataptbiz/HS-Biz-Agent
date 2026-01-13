@@ -29,6 +29,7 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
   const [syncStatus, setSyncStatus] = useState(null);
   const [syncError, setSyncError] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showScoreDetails, setShowScoreDetails] = useState(false);
 
   // Your Railway Backend Base URL
   const BACKEND_URL = "https://hubspot-proxy-production.up.railway.app/api";
@@ -43,6 +44,20 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
       }
     }
     return body;
+  };
+
+  const readResponseBody = async (resp) => {
+    if (!resp) return { body: null, rawBody: null, error: "No response" };
+    if (typeof resp.text === "function") {
+      try {
+        const text = await resp.text();
+        return { body: normalizeBody(text), rawBody: text, error: null };
+      } catch (err) {
+        return { body: null, rawBody: null, error: err.message };
+      }
+    }
+    const rawBody = resp.body;
+    return { body: normalizeBody(rawBody), rawBody, error: null };
   };
 
   const fetchStrategy = () => {
@@ -64,8 +79,8 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
         contactId: context.crm.objectId
       }
     })
-      .then((resp) => {
-        const body = normalizeBody(resp.body);
+      .then(async (resp) => {
+        const { body, rawBody, error: readError } = await readResponseBody(resp);
         if (resp.ok && body) {
           setData(body);
         } else {
@@ -84,8 +99,8 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
   const fetchSyncStatus = () => {
     setSyncError(null);
     hubspot.fetch(`${BACKEND_URL}/sync`, { method: 'GET' })
-      .then((resp) => {
-        const body = normalizeBody(resp.body);
+      .then(async (resp) => {
+        const { body } = await readResponseBody(resp);
         if (resp.ok) {
           setSyncStatus(body);
         } else {
@@ -99,8 +114,8 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
     setIsSyncing(true);
     setSyncError(null);
     hubspot.fetch(`${BACKEND_URL}/sync`, { method: 'POST', body: {} })
-      .then((resp) => {
-        const body = normalizeBody(resp.body);
+      .then(async (resp) => {
+        const { body } = await readResponseBody(resp);
         if (resp.ok) {
           setSyncStatus(body);
           sendAlert({ message: "Sync started. Refresh in a moment.", type: "success" });
@@ -131,8 +146,8 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
         contactId: context.crm.objectId,
         targetStage: targetStage
       }
-    }).then((resp) => {
-      const body = normalizeBody(resp.body);
+    }).then(async (resp) => {
+      const { body } = await readResponseBody(resp);
       if (resp.ok) {
         sendAlert({ message: `Successfully promoted to ${targetStage}`, type: "success" });
         fetchStrategy(); // Refresh local state
@@ -153,8 +168,8 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
         contactId: context.crm.objectId,
         status: targetStatus
       }
-    }).then((resp) => {
-      const body = normalizeBody(resp.body);
+    }).then(async (resp) => {
+      const { body } = await readResponseBody(resp);
       if (resp.ok) {
         setData((prev) =>
           prev ? { ...prev, leadStatus: body?.label || targetStatus } : prev
@@ -212,7 +227,13 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
     signals,
     context: analysisContext,
     leadStatus,
+    scoreSummary,
+    scoreBreakdown,
   } = data || {};
+  const scoreValue = Number.isFinite(healthScore)
+    ? healthScore
+    : Number.parseFloat(healthScore || 0);
+  const scoreDisplay = Number.isFinite(scoreValue) ? scoreValue : 0;
 
   const TAG_OPTIONS = [
     "Hot",
@@ -246,12 +267,12 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
       <Tile>
         <Flex justify="between" align="center">
           <Text format={{ fontWeight: "bold", fontSize: "small" }} variant="microcopy" uppercase>Strategic Health</Text>
-          <Tag variant={healthScore > 70 ? "success" : (healthScore > 30 ? "warning" : "danger")}>
+          <Tag variant={scoreDisplay > 70 ? "success" : (scoreDisplay > 30 ? "warning" : "danger")}>
             {classification || "Neutral"}
           </Tag>
         </Flex>
         <Box padding={{ top: "sm" }}>
-           <Text variant="title">{healthScore || 0}% Match</Text>
+           <Text variant="title">{scoreDisplay}% Match</Text>
         </Box>
       </Tile>
 
@@ -261,6 +282,32 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
         <Text format={{ italic: true }}>
           {analysisContext || "No active strategic insights for this contact."}
         </Text>
+      </Box>
+
+      <Box>
+        <Flex justify="between" align="center">
+          <Text format={{ fontWeight: "bold" }} variant="microcopy" uppercase>Score Details</Text>
+          <Button
+            variant="secondary"
+            onClick={() => setShowScoreDetails((prev) => !prev)}
+          >
+            {showScoreDetails ? "Hide" : "Show"}
+          </Button>
+        </Flex>
+        <Text variant="microcopy">
+          {scoreSummary || "Score uses engagement, commercial intent, recency, sales signals, and penalties."}
+        </Text>
+        {showScoreDetails && (
+          <Box padding={{ top: "xs" }}>
+            {scoreBreakdown?.length ? (
+              scoreBreakdown.map((item, idx) => (
+                <Text key={`${item}-${idx}`} variant="microcopy">• {item}</Text>
+              ))
+            ) : (
+              <Text variant="microcopy">No breakdown available for this contact.</Text>
+            )}
+          </Box>
+        )}
       </Box>
 
       {/* 3. Status Tagging */}
@@ -333,6 +380,7 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
           </Button>
         </Flex>
       </Box>
+
     </Flex>
   );
 };
