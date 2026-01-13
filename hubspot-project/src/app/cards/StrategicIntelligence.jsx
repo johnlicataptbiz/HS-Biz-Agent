@@ -151,6 +151,15 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
     .finally(() => setIsTagging(false));
   };
 
+  const handleApplySuggested = () => {
+    if (!suggestedTag) return;
+    const confirmed = window.confirm(
+      `Apply suggested status tag "${suggestedTag}" to this contact?`
+    );
+    if (!confirmed) return;
+    handleTagChange(suggestedTag);
+  };
+
   if (loading) return <Text>Analyzing lead health...</Text>;
 
   if (error) {
@@ -245,7 +254,16 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
         </Flex>
         {suggestedTag && (
           <Box padding={{ top: "xs" }}>
-            <Text variant="microcopy">Suggested: {suggestedTag}</Text>
+            <Flex justify="between" align="center" wrap="wrap" gap="xs">
+              <Text variant="microcopy">Suggested: {suggestedTag}</Text>
+              <Button
+                variant="primary"
+                onClick={handleApplySuggested}
+                disabled={isTagging || suggestedTag === currentTag}
+              >
+                Apply Suggested
+              </Button>
+            </Flex>
           </Box>
         )}
         <Flex gap="xs" direction="row" wrap="wrap" padding={{ top: "sm" }}>
