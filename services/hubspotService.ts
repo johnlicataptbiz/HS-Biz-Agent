@@ -77,9 +77,12 @@ export class HubSpotService {
     useMcp: boolean = false,
     onPopupError?: (msg: string) => void
   ): Promise<Window | null> {
-    const redirectUri = window.location.origin.endsWith("/")
-      ? window.location.origin
-      : `${window.location.origin}/`;
+    const origin = window.location.origin;
+    const redirectUri = useMcp
+      ? `${origin}/contacts`
+      : origin.endsWith("/")
+        ? origin
+        : `${origin}/`;
     const clientId = useMcp
       ? import.meta.env.VITE_HUBSPOT_MCP_CLIENT_ID ||
         "9d7c3c51-862a-4604-9668-cad9bf5aed93"
@@ -135,40 +138,6 @@ export class HubSpotService {
     const screenHeight = window.screen?.height || 768;
     const left = screenWidth / 2 - width / 2;
     const top = screenHeight / 2 - height / 2;
-    const scopes = useMcp
-      ? [
-          "crm.objects.contacts.read",
-          "crm.schemas.contacts.write",
-          "crm.objects.companies.read",
-          "crm.objects.deals.read",
-          "oauth",
-        ]
-      : [
-          "crm.objects.contacts.read",
-          "crm.objects.contacts.write",
-          "crm.schemas.contacts.write",
-          "crm.objects.companies.read",
-          "crm.objects.companies.write",
-          "crm.objects.deals.read",
-          "crm.objects.deals.write",
-          "crm.objects.owners.read",
-          "crm.lists.read",
-          "automation",
-          "automation.sequences.read",
-          "content",
-          "forms",
-          "marketing.campaigns.read",
-          "business-intelligence",
-          "oauth",
-        ];
-    authUrl =
-      `https://app.hubspot.com/oauth/authorize?` +
-      `response_type=code&` +
-      `client_id=${encodeURIComponent(clientId)}&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `scope=${encodeURIComponent(scopes.join(" "))}&` +
-      `state=${encodeURIComponent(serverState)}` +
-      `&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256`;
     let popup: Window | null = null;
     try {
       popup = window.open(

@@ -35,34 +35,32 @@ export default async function handler(req, res) {
   const clientIdToUse = global.__oauthStateMap[serverState].clientId;
   const redirectUriFinal =
     redirect_uri || (req.headers.origin ? `${req.headers.origin}/` : "");
-  const scopes = useMcp
-    ? [
-        "crm.objects.contacts.read",
-        "crm.schemas.contacts.write",
-        "crm.objects.companies.read",
-        "crm.objects.deals.read",
-        "oauth",
-      ]
-    : [
-        "crm.objects.contacts.read",
-        "crm.objects.contacts.write",
-        "crm.schemas.contacts.write",
-        "crm.objects.companies.read",
-        "crm.objects.companies.write",
-        "crm.objects.deals.read",
-        "crm.objects.deals.write",
-        "crm.objects.owners.read",
-        "crm.lists.read",
-        "automation",
-        "automation.sequences.read",
-        "content",
-        "forms",
-        "marketing.campaigns.read",
-        "business-intelligence",
-        "oauth",
-      ];
+  const standardScopes = [
+    "crm.objects.contacts.read",
+    "crm.objects.contacts.write",
+    "crm.schemas.contacts.write",
+    "crm.objects.companies.read",
+    "crm.objects.companies.write",
+    "crm.objects.deals.read",
+    "crm.objects.deals.write",
+    "crm.objects.owners.read",
+    "crm.lists.read",
+    "automation",
+    "automation.sequences.read",
+    "content",
+    "forms",
+    "marketing.campaigns.read",
+    "business-intelligence",
+    "oauth",
+  ];
 
-  const authUrl = `https://app.hubspot.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(clientIdToUse)}&redirect_uri=${encodeURIComponent(redirectUriFinal)}&scope=${encodeURIComponent(scopes.join(" "))}&state=${encodeURIComponent(serverState)}${code_challenge ? `&code_challenge=${encodeURIComponent(code_challenge)}&code_challenge_method=S256` : ""}`;
+  const mcpScopes = [...standardScopes];
+  const scopes = useMcp ? mcpScopes : standardScopes;
+  const authBaseUrl = useMcp
+    ? "https://mcp.hubspot.com/oauth/authorize/user"
+    : "https://app.hubspot.com/oauth/authorize";
+
+  const authUrl = `${authBaseUrl}?response_type=code&client_id=${encodeURIComponent(clientIdToUse)}&redirect_uri=${encodeURIComponent(redirectUriFinal)}&scope=${encodeURIComponent(scopes.join(" "))}&state=${encodeURIComponent(serverState)}${code_challenge ? `&code_challenge=${encodeURIComponent(code_challenge)}&code_challenge_method=S256` : ""}`;
 
   return res.status(200).json({ authUrl, state: serverState });
 }
