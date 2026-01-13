@@ -20,7 +20,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { action, contactId, targetStage, noteText, hubspotToken } = req.body;
+    const { action, contactId, targetStage, noteText, hubspotToken, status } =
+      req.body;
 
     // Note: In a production App, the hubspotToken would ideally come from
     // your app's secure storage based on the portalId (originatingAccountId)
@@ -47,10 +48,13 @@ export default async function handler(req, res) {
       }
 
       const contact = result.rows[0];
+      const leadStatus =
+        contact?.raw_data?.properties?.hs_lead_status || null;
       return res.status(200).json({
         healthScore: contact.health_score,
         classification: contact.classification,
         lifecycleStage: contact.lifecyclestage,
+        leadStatus,
         signals: {
           isHot: contact.classification === "Hot",
           isStale:
@@ -155,6 +159,75 @@ export default async function handler(req, res) {
           .status(resp.status)
           .json({ success: false, error: error.message });
       }
+    }
+
+    // --- Action: Tag Lead Status (Tool Type: ACT_ON_DATA) ---
+    if (action === "tag_lead") {
+      if (!token)
+        return res
+          .status(401)
+          .json({ error: "Missing HubSpot Authorization for tagging actions" });
+      if (!contactId || !status) {
+        return res
+          .status(400)
+          .json({ error: "contactId and status required" });
+      }
+
+      const STATUS_MAP = {
+        Hot: "HOT",
+        Nurture: "NURTURE",
+        Watch: "WATCH",
+        New: "NEW",
+        Unqualified: "UNQUALIFIED",
+        "Active Client": "ACTIVE_CLIENT",
+        "Past Client": "PAST_CLIENT",
+        Rejected: "REJECTED",
+        Trash: "TRASH",
+        Employee: "EMPLOYEE",
+      };
+      const normalized = String(status).trim();
+      const statusKey = Object.keys(STATUS_MAP).find(
+        (key) => key.toLowerCase() === normalized.toLowerCase()
+      );
+      const hubspotValue = statusKey
+        ? STATUS_MAP[statusKey]
+        : Object.values(STATUS_MAP).includes(normalized.toUpperCase())
+          ? normalized.toUpperCase()
+          : null;
+
+      if (!hubspotValue) {
+        return res.status(400).json({
+          error: `Unsupported status: ${status}`,
+        });
+      }
+
+      const resp = await fetch(
+        `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            properties: { hs_lead_status: hubspotValue },
+          }),
+        }
+      );
+
+      if (resp.ok) {
+        return res.status(200).json({
+          success: true,
+          status: hubspotValue,
+          label: statusKey || normalized,
+        });
+      }
+
+      const error = await resp.json();
+      return res.status(resp.status).json({
+        success: false,
+        error: error.message,
+      });
     }
 
     return res.status(404).json({ error: "Agent Capability not implemented" });

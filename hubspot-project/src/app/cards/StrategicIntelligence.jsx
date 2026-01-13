@@ -24,6 +24,7 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isTagging, setIsTagging] = useState(false);
   const [needsSync, setNeedsSync] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
   const [syncError, setSyncError] = useState(null);
@@ -127,6 +128,29 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
     .finally(() => setIsUpdating(false));
   };
 
+  const handleTagChange = (targetStatus) => {
+    setIsTagging(true);
+    hubspot.fetch(`${BACKEND_URL}/agent-bridge`, {
+      method: 'POST',
+      body: {
+        action: 'tag_lead',
+        contactId: context.crm.objectId,
+        status: targetStatus
+      }
+    }).then((resp) => {
+      if (resp.ok) {
+        setData((prev) =>
+          prev ? { ...prev, leadStatus: resp.body?.label || targetStatus } : prev
+        );
+        sendAlert({ message: `Tagged as ${targetStatus}`, type: "success" });
+      } else {
+        sendAlert({ message: resp.body?.error || "Tagging failed.", type: "danger" });
+      }
+    })
+    .catch((err) => sendAlert({ message: "Network error during tagging.", type: "danger" }))
+    .finally(() => setIsTagging(false));
+  };
+
   if (loading) return <Text>Analyzing lead health...</Text>;
 
   if (error) {
@@ -156,7 +180,39 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
     );
   }
 
-  const { healthScore, classification, signals, context: analysisContext } = data || {};
+  const {
+    healthScore,
+    classification,
+    signals,
+    context: analysisContext,
+    leadStatus,
+  } = data || {};
+
+  const TAG_OPTIONS = [
+    "Hot",
+    "Nurture",
+    "Watch",
+    "New",
+    "Unqualified",
+    "Active Client",
+    "Past Client",
+    "Rejected",
+    "Trash",
+  ];
+
+  const normalizeTagLabel = (value) => {
+    if (!value) return "";
+    const match = TAG_OPTIONS.find(
+      (opt) => opt.toLowerCase() === String(value).toLowerCase()
+    );
+    if (match) return match;
+    return String(value).replace(/_/g, " ").replace(/-/g, " ");
+  };
+
+  const suggestedTag = TAG_OPTIONS.find(
+    (opt) => opt.toLowerCase() === String(classification || "").toLowerCase()
+  );
+  const currentTag = normalizeTagLabel(leadStatus || classification || "");
 
   return (
     <Flex direction="column" gap="md">
@@ -181,7 +237,32 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
         </Text>
       </Box>
 
-      {/* 3. Signals / Conflict Detection */}
+      {/* 3. Status Tagging */}
+      <Box>
+        <Flex justify="between" align="center">
+          <Text format={{ fontWeight: "bold" }} variant="microcopy" uppercase>Status Tag</Text>
+          {currentTag ? <Tag>{currentTag}</Tag> : null}
+        </Flex>
+        {suggestedTag && (
+          <Box padding={{ top: "xs" }}>
+            <Text variant="microcopy">Suggested: {suggestedTag}</Text>
+          </Box>
+        )}
+        <Flex gap="xs" direction="row" wrap="wrap" padding={{ top: "sm" }}>
+          {TAG_OPTIONS.map((tag) => (
+            <Button
+              key={tag}
+              variant={tag === suggestedTag ? "primary" : "secondary"}
+              onClick={() => handleTagChange(tag)}
+              disabled={isTagging}
+            >
+              {tag}
+            </Button>
+          ))}
+        </Flex>
+      </Box>
+
+      {/* 4. Signals / Conflict Detection */}
       {signals?.hasConflict && (
         <Alert variant="warning" title="Architectural Debt Detected">
           <Text>This contact is a 'Customer' but has 'Closed Lost' deal history. Data remediation recommended.</Text>
@@ -190,7 +271,7 @@ const StrategicIntelligence = ({ context, sendAlert }) => {
 
       <Divider />
 
-      {/* 4. Action Suite (The Promoter) */}
+      {/* 5. Action Suite (The Promoter) */}
       <Box>
         <Text format={{ fontWeight: "bold" }} variant="microcopy" uppercase>Quick Promote</Text>
         <Flex gap="xs" direction="row" wrap="wrap" padding={{ top: "sm" }}>
