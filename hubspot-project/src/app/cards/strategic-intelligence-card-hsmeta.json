@@ -1,0 +1,11 @@
+{
+  "uid": "strategic_intelligence_card",
+  "type": "card",
+  "config": {
+    "name": "PT Biz Strategic Intelligence",
+    "description": "AI-powered strategic lead intelligence sidebar card.",
+    "entrypoint": "/app/cards/StrategicIntelligence.jsx",
+    "location": "crm.record.sidebar",
+    "objectTypes": ["contact"]
+  }
+}

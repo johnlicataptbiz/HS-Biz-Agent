@@ -1,0 +1,64 @@
+{
+  "uid": "strategic_promoter_tool",
+  "type": "workflow-action",
+  "config": {
+    "actionUrl": "https://hubspot-proxy-production.up.railway.app/api/agent-bridge",
+    "isPublished": true,
+    "supportedClients": [
+      {
+        "client": "AGENTS",
+        "toolType": "TAKE_ACTION",
+        "llmConfig": {
+          "actionDescription": "Promotes high-intent leads to SQL, Opportunity, or Customer stages based on their engagement scores and architectural alignment. Use this to move leads forward in the sales pipeline."
+        }
+      }
+    ],
+    "inputFields": [
+      {
+        "typeDefinition": {
+          "name": "contactId",
+          "type": "string",
+          "fieldType": "text"
+        },
+        "supportedValueTypes": ["STATIC_VALUE"],
+        "isRequired": true
+      },
+      {
+        "typeDefinition": {
+          "name": "targetStage",
+          "type": "string",
+          "fieldType": "text"
+        },
+        "supportedValueTypes": ["STATIC_VALUE"],
+        "isRequired": true
+      },
+      {
+        "typeDefinition": {
+          "name": "action",
+          "type": "string",
+          "fieldType": "text"
+        },
+        "supportedValueTypes": ["STATIC_VALUE"],
+        "isRequired": true
+      }
+    ],
+    "labels": {
+      "en": {
+        "actionName": "PT Biz: Strategic Promoter",
+        "actionDescription": "AI-powered lead promotion tool for Breeze Agents.",
+        "actionCardContent": "Promoting Lead to new Lifecycle Stage",
+        "inputFieldLabels": {
+          "contactId": "Contact ID",
+          "targetStage": "Target Lifecycle Stage",
+          "action": "Action Type"
+        },
+        "inputFieldDescriptions": {
+          "contactId": "The unique ID of the HubSpot contact.",
+          "targetStage": "The lifecycle stage internal name (e.g., marketingqualifiedlead, opportunity).",
+          "action": "The internal action string (e.g., remediate_lead)."
+        }
+      }
+    },
+    "objectTypes": ["CONTACT"]
+  }
+}

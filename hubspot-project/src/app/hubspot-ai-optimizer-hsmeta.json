@@ -1,5 +1,15 @@
 {
+  "uid": "hubspot-ai-optimizer",
+  "type": "app",
   "config": {
+    "name": "HubSpot AI Optimizer",
+    "description": "AI copilot that audits your HubSpot portal, then designs and deploys optimized workflows, sequences, segments and journeys.",
+    "logo": "/app/app-logo.png",
+    "distribution": "MARKETPLACE",
+    "support": {
+      "supportEmail": "jack@physicaltherapybiz.com",
+      "supportPhone": "+18174703476"
+    },
     "auth": {
       "type": "oauth",
       "redirectUrls": [
@@ -8,9 +18,9 @@
         "https://core-ui-ptbiz.surge.sh/",
         "http://localhost:3000/",
         "http://localhost:3002/",
-        "https://web-production-249d7e.up.railway.app/"
+        "https://web-production-249d7e.up.railway.app/",
+        "https://hubspot-proxy-production.up.railway.app/api/token"
       ],
-      "optionalScopes": [],
       "requiredScopes": [
         "crm.objects.contacts.read",
         "crm.objects.contacts.write",
@@ -27,29 +37,18 @@
         "marketing.campaigns.read",
         "business-intelligence",
         "oauth"
-      ],
-      "conditionallyRequiredScopes": []
+      ]
     },
-    "logo": "/app/app-logo.png",
-    "name": "HubSpot AI Optimizer",
-    "support": {
-      "supportEmail": "jack@physicaltherapybiz.com",
-      "supportPhone": "+18174703476"
-    },
-    "description": "AI copilot that audits your HubSpot portal, then designs and deploys optimized workflows, sequences, segments and journeys. Spot issues, auto-generate best-practice automation and keep your CRM, data model and RevOps running clean.",
-    "isUserLevel": false,
-    "distribution": "MARKETPLACE",
     "permittedUrls": {
-      "img": [],
       "fetch": [
         "https://hubspot-ai-optimizer-murex.vercel.app",
         "https://hubspot-ai-optimizer.vercel.app",
         "https://core-ui-ptbiz.surge.sh",
-        "https://web-production-249d7e.up.railway.app"
+        "https://web-production-249d7e.up.railway.app",
+        "https://hubspot-proxy-production.up.railway.app"
       ],
-      "iframe": []
+      "iframe": [],
+      "img": []
     }
-  },
-  "uid": "hubspot-ai-optimizer",
-  "type": "app"
+  }
 }

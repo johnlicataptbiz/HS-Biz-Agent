@@ -1,0 +1,23 @@
+{
+  "uid": "lifecycle_sync_webhooks",
+  "type": "webhooks",
+  "config": {
+    "settings": {
+      "targetUrl": "https://hubspot-proxy-production.up.railway.app/api/webhooks/lifecycle",
+      "maxConcurrentRequests": 20
+    },
+    "subscriptions": {
+      "legacyCrmObjects": [
+        {
+          "subscriptionType": "contact.propertyChange",
+          "propertyName": "lifecyclestage",
+          "active": true
+        },
+        {
+          "subscriptionType": "contact.creation",
+          "active": true
+        }
+      ]
+    }
+  }
+}

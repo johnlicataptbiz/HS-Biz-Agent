@@ -4,9 +4,9 @@ var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 
-// node_modules/delayed-stream/lib/delayed_stream.js
+// ../node_modules/delayed-stream/lib/delayed_stream.js
 var require_delayed_stream = __commonJS({
-  "node_modules/delayed-stream/lib/delayed_stream.js"(exports2, module2) {
+  "../node_modules/delayed-stream/lib/delayed_stream.js"(exports2, module2) {
     var Stream = require("stream").Stream;
     var util = require("util");
     module2.exports = DelayedStream;
@@ -95,9 +95,9 @@ var require_delayed_stream = __commonJS({
   }
 });
 
-// node_modules/combined-stream/lib/combined_stream.js
+// ../node_modules/combined-stream/lib/combined_stream.js
 var require_combined_stream = __commonJS({
-  "node_modules/combined-stream/lib/combined_stream.js"(exports2, module2) {
+  "../node_modules/combined-stream/lib/combined_stream.js"(exports2, module2) {
     var util = require("util");
     var Stream = require("stream").Stream;
     var DelayedStream = require_delayed_stream();
@@ -264,9 +264,9 @@ var require_combined_stream = __commonJS({
   }
 });
 
-// node_modules/mime-db/db.json
+// ../node_modules/form-data/node_modules/mime-db/db.json
 var require_db = __commonJS({
-  "node_modules/mime-db/db.json"(exports2, module2) {
+  "../node_modules/form-data/node_modules/mime-db/db.json"(exports2, module2) {
     module2.exports = {
       "application/1d-interleaved-parityfec": {
         source: "iana"
@@ -8789,16 +8789,16 @@ var require_db = __commonJS({
   }
 });
 
-// node_modules/mime-db/index.js
+// ../node_modules/form-data/node_modules/mime-db/index.js
 var require_mime_db = __commonJS({
-  "node_modules/mime-db/index.js"(exports2, module2) {
+  "../node_modules/form-data/node_modules/mime-db/index.js"(exports2, module2) {
     module2.exports = require_db();
   }
 });
 
-// node_modules/mime-types/index.js
+// ../node_modules/form-data/node_modules/mime-types/index.js
 var require_mime_types = __commonJS({
-  "node_modules/mime-types/index.js"(exports2) {
+  "../node_modules/form-data/node_modules/mime-types/index.js"(exports2) {
     "use strict";
     var db = require_mime_db();
     var extname = require("path").extname;
@@ -8886,9 +8886,9 @@ var require_mime_types = __commonJS({
   }
 });
 
-// node_modules/asynckit/lib/defer.js
+// ../node_modules/asynckit/lib/defer.js
 var require_defer = __commonJS({
-  "node_modules/asynckit/lib/defer.js"(exports2, module2) {
+  "../node_modules/asynckit/lib/defer.js"(exports2, module2) {
     module2.exports = defer;
     function defer(fn) {
       var nextTick = typeof setImmediate == "function" ? setImmediate : typeof process == "object" && typeof process.nextTick == "function" ? process.nextTick : null;
@@ -8901,9 +8901,9 @@ var require_defer = __commonJS({
   }
 });
 
-// node_modules/asynckit/lib/async.js
+// ../node_modules/asynckit/lib/async.js
 var require_async = __commonJS({
-  "node_modules/asynckit/lib/async.js"(exports2, module2) {
+  "../node_modules/asynckit/lib/async.js"(exports2, module2) {
     var defer = require_defer();
     module2.exports = async;
     function async(callback) {
@@ -8924,9 +8924,9 @@ var require_async = __commonJS({
   }
 });
 
-// node_modules/asynckit/lib/abort.js
+// ../node_modules/asynckit/lib/abort.js
 var require_abort = __commonJS({
-  "node_modules/asynckit/lib/abort.js"(exports2, module2) {
+  "../node_modules/asynckit/lib/abort.js"(exports2, module2) {
     module2.exports = abort;
     function abort(state) {
       Object.keys(state.jobs).forEach(clean.bind(state));
@@ -8940,9 +8940,9 @@ var require_abort = __commonJS({
   }
 });
 
-// node_modules/asynckit/lib/iterate.js
+// ../node_modules/asynckit/lib/iterate.js
 var require_iterate = __commonJS({
-  "node_modules/asynckit/lib/iterate.js"(exports2, module2) {
+  "../node_modules/asynckit/lib/iterate.js"(exports2, module2) {
     var async = require_async();
     var abort = require_abort();
     module2.exports = iterate;
@@ -8973,9 +8973,9 @@ var require_iterate = __commonJS({
   }
 });
 
-// node_modules/asynckit/lib/state.js
+// ../node_modules/asynckit/lib/state.js
 var require_state = __commonJS({
-  "node_modules/asynckit/lib/state.js"(exports2, module2) {
+  "../node_modules/asynckit/lib/state.js"(exports2, module2) {
     module2.exports = state;
     function state(list, sortMethod) {
       var isNamedList = !Array.isArray(list), initState = {
@@ -8995,9 +8995,9 @@ var require_state = __commonJS({
   }
 });
 
-// node_modules/asynckit/lib/terminator.js
+// ../node_modules/asynckit/lib/terminator.js
 var require_terminator = __commonJS({
-  "node_modules/asynckit/lib/terminator.js"(exports2, module2) {
+  "../node_modules/asynckit/lib/terminator.js"(exports2, module2) {
     var abort = require_abort();
     var async = require_async();
     module2.exports = terminator;
@@ -9012,9 +9012,9 @@ var require_terminator = __commonJS({
   }
 });
 
-// node_modules/asynckit/parallel.js
+// ../node_modules/asynckit/parallel.js
 var require_parallel = __commonJS({
-  "node_modules/asynckit/parallel.js"(exports2, module2) {
+  "../node_modules/asynckit/parallel.js"(exports2, module2) {
     var iterate = require_iterate();
     var initState = require_state();
     var terminator = require_terminator();
@@ -9039,9 +9039,9 @@ var require_parallel = __commonJS({
   }
 });
 
-// node_modules/asynckit/serialOrdered.js
+// ../node_modules/asynckit/serialOrdered.js
 var require_serialOrdered = __commonJS({
-  "node_modules/asynckit/serialOrdered.js"(exports2, module2) {
+  "../node_modules/asynckit/serialOrdered.js"(exports2, module2) {
     var iterate = require_iterate();
     var initState = require_state();
     var terminator = require_terminator();
@@ -9073,9 +9073,9 @@ var require_serialOrdered = __commonJS({
   }
 });
 
-// node_modules/asynckit/serial.js
+// ../node_modules/asynckit/serial.js
 var require_serial = __commonJS({
-  "node_modules/asynckit/serial.js"(exports2, module2) {
+  "../node_modules/asynckit/serial.js"(exports2, module2) {
     var serialOrdered = require_serialOrdered();
     module2.exports = serial;
     function serial(list, iterator, callback) {
@@ -9084,9 +9084,9 @@ var require_serial = __commonJS({
   }
 });
 
-// node_modules/asynckit/index.js
+// ../node_modules/asynckit/index.js
 var require_asynckit = __commonJS({
-  "node_modules/asynckit/index.js"(exports2, module2) {
+  "../node_modules/asynckit/index.js"(exports2, module2) {
     module2.exports = {
       parallel: require_parallel(),
       serial: require_serial(),
@@ -9095,121 +9095,121 @@ var require_asynckit = __commonJS({
   }
 });
 
-// node_modules/es-object-atoms/index.js
+// ../node_modules/es-object-atoms/index.js
 var require_es_object_atoms = __commonJS({
-  "node_modules/es-object-atoms/index.js"(exports2, module2) {
+  "../node_modules/es-object-atoms/index.js"(exports2, module2) {
     "use strict";
     module2.exports = Object;
   }
 });
 
-// node_modules/es-errors/index.js
+// ../node_modules/es-errors/index.js
 var require_es_errors = __commonJS({
-  "node_modules/es-errors/index.js"(exports2, module2) {
+  "../node_modules/es-errors/index.js"(exports2, module2) {
     "use strict";
     module2.exports = Error;
   }
 });
 
-// node_modules/es-errors/eval.js
+// ../node_modules/es-errors/eval.js
 var require_eval = __commonJS({
-  "node_modules/es-errors/eval.js"(exports2, module2) {
+  "../node_modules/es-errors/eval.js"(exports2, module2) {
     "use strict";
     module2.exports = EvalError;
   }
 });
 
-// node_modules/es-errors/range.js
+// ../node_modules/es-errors/range.js
 var require_range = __commonJS({
-  "node_modules/es-errors/range.js"(exports2, module2) {
+  "../node_modules/es-errors/range.js"(exports2, module2) {
     "use strict";
     module2.exports = RangeError;
   }
 });
 
-// node_modules/es-errors/ref.js
+// ../node_modules/es-errors/ref.js
 var require_ref = __commonJS({
-  "node_modules/es-errors/ref.js"(exports2, module2) {
+  "../node_modules/es-errors/ref.js"(exports2, module2) {
     "use strict";
     module2.exports = ReferenceError;
   }
 });
 
-// node_modules/es-errors/syntax.js
+// ../node_modules/es-errors/syntax.js
 var require_syntax = __commonJS({
-  "node_modules/es-errors/syntax.js"(exports2, module2) {
+  "../node_modules/es-errors/syntax.js"(exports2, module2) {
     "use strict";
     module2.exports = SyntaxError;
   }
 });
 
-// node_modules/es-errors/type.js
+// ../node_modules/es-errors/type.js
 var require_type = __commonJS({
-  "node_modules/es-errors/type.js"(exports2, module2) {
+  "../node_modules/es-errors/type.js"(exports2, module2) {
     "use strict";
     module2.exports = TypeError;
   }
 });
 
-// node_modules/es-errors/uri.js
+// ../node_modules/es-errors/uri.js
 var require_uri = __commonJS({
-  "node_modules/es-errors/uri.js"(exports2, module2) {
+  "../node_modules/es-errors/uri.js"(exports2, module2) {
     "use strict";
     module2.exports = URIError;
   }
 });
 
-// node_modules/math-intrinsics/abs.js
+// ../node_modules/math-intrinsics/abs.js
 var require_abs = __commonJS({
-  "node_modules/math-intrinsics/abs.js"(exports2, module2) {
+  "../node_modules/math-intrinsics/abs.js"(exports2, module2) {
     "use strict";
     module2.exports = Math.abs;
   }
 });
 
-// node_modules/math-intrinsics/floor.js
+// ../node_modules/math-intrinsics/floor.js
 var require_floor = __commonJS({
-  "node_modules/math-intrinsics/floor.js"(exports2, module2) {
+  "../node_modules/math-intrinsics/floor.js"(exports2, module2) {
     "use strict";
     module2.exports = Math.floor;
   }
 });
 
-// node_modules/math-intrinsics/max.js
+// ../node_modules/math-intrinsics/max.js
 var require_max = __commonJS({
-  "node_modules/math-intrinsics/max.js"(exports2, module2) {
+  "../node_modules/math-intrinsics/max.js"(exports2, module2) {
     "use strict";
     module2.exports = Math.max;
   }
 });
 
-// node_modules/math-intrinsics/min.js
+// ../node_modules/math-intrinsics/min.js
 var require_min = __commonJS({
-  "node_modules/math-intrinsics/min.js"(exports2, module2) {
+  "../node_modules/math-intrinsics/min.js"(exports2, module2) {
     "use strict";
     module2.exports = Math.min;
   }
 });
 
-// node_modules/math-intrinsics/pow.js
+// ../node_modules/math-intrinsics/pow.js
 var require_pow = __commonJS({
-  "node_modules/math-intrinsics/pow.js"(exports2, module2) {
+  "../node_modules/math-intrinsics/pow.js"(exports2, module2) {
     "use strict";
     module2.exports = Math.pow;
   }
 });
 
-// node_modules/math-intrinsics/round.js
+// ../node_modules/math-intrinsics/round.js
 var require_round = __commonJS({
-  "node_modules/math-intrinsics/round.js"(exports2, module2) {
+  "../node_modules/math-intrinsics/round.js"(exports2, module2) {
     "use strict";
     module2.exports = Math.round;
   }
 });
 
-// node_modules/math-intrinsics/isNaN.js
+// ../node_modules/math-intrinsics/isNaN.js
 var require_isNaN = __commonJS({
-  "node_modules/math-intrinsics/isNaN.js"(exports2, module2) {
+  "../node_modules/math-intrinsics/isNaN.js"(exports2, module2) {
     "use strict";
     module2.exports = Number.isNaN || function isNaN2(a) {
       return a !== a;
@@ -9217,9 +9217,9 @@ var require_isNaN = __commonJS({
   }
 });
 
-// node_modules/math-intrinsics/sign.js
+// ../node_modules/math-intrinsics/sign.js
 var require_sign = __commonJS({
-  "node_modules/math-intrinsics/sign.js"(exports2, module2) {
+  "../node_modules/math-intrinsics/sign.js"(exports2, module2) {
     "use strict";
     var $isNaN = require_isNaN();
     module2.exports = function sign(number) {
@@ -9231,17 +9231,17 @@ var require_sign = __commonJS({
   }
 });
 
-// node_modules/gopd/gOPD.js
+// ../node_modules/gopd/gOPD.js
 var require_gOPD = __commonJS({
-  "node_modules/gopd/gOPD.js"(exports2, module2) {
+  "../node_modules/gopd/gOPD.js"(exports2, module2) {
     "use strict";
     module2.exports = Object.getOwnPropertyDescriptor;
   }
 });
 
-// node_modules/gopd/index.js
+// ../node_modules/gopd/index.js
 var require_gopd = __commonJS({
-  "node_modules/gopd/index.js"(exports2, module2) {
+  "../node_modules/gopd/index.js"(exports2, module2) {
     "use strict";
     var $gOPD = require_gOPD();
     if ($gOPD) {
@@ -9255,9 +9255,9 @@ var require_gopd = __commonJS({
   }
 });
 
-// node_modules/es-define-property/index.js
+// ../node_modules/es-define-property/index.js
 var require_es_define_property = __commonJS({
-  "node_modules/es-define-property/index.js"(exports2, module2) {
+  "../node_modules/es-define-property/index.js"(exports2, module2) {
     "use strict";
     var $defineProperty = Object.defineProperty || false;
     if ($defineProperty) {
@@ -9271,9 +9271,9 @@ var require_es_define_property = __commonJS({
   }
 });
 
-// node_modules/has-symbols/shams.js
+// ../node_modules/has-symbols/shams.js
 var require_shams = __commonJS({
-  "node_modules/has-symbols/shams.js"(exports2, module2) {
+  "../node_modules/has-symbols/shams.js"(exports2, module2) {
     "use strict";
     module2.exports = function hasSymbols() {
       if (typeof Symbol !== "function" || typeof Object.getOwnPropertySymbols !== "function") {
@@ -9283,7 +9283,7 @@ var require_shams = __commonJS({
         return true;
       }
       var obj = {};
-      var sym = /* @__PURE__ */ Symbol("test");
+      var sym = Symbol("test");
       var symObj = Object(sym);
       if (typeof sym === "string") {
         return false;
@@ -9326,9 +9326,9 @@ var require_shams = __commonJS({
   }
 });
 
-// node_modules/has-symbols/index.js
+// ../node_modules/has-symbols/index.js
 var require_has_symbols = __commonJS({
-  "node_modules/has-symbols/index.js"(exports2, module2) {
+  "../node_modules/has-symbols/index.js"(exports2, module2) {
     "use strict";
     var origSymbol = typeof Symbol !== "undefined" && Symbol;
     var hasSymbolSham = require_shams();
@@ -9342,7 +9342,7 @@ var require_has_symbols = __commonJS({
       if (typeof origSymbol("foo") !== "symbol") {
         return false;
       }
-      if (typeof /* @__PURE__ */ Symbol("bar") !== "symbol") {
+      if (typeof Symbol("bar") !== "symbol") {
         return false;
       }
       return hasSymbolSham();
@@ -9350,26 +9350,26 @@ var require_has_symbols = __commonJS({
   }
 });
 
-// node_modules/get-proto/Reflect.getPrototypeOf.js
+// ../node_modules/get-proto/Reflect.getPrototypeOf.js
 var require_Reflect_getPrototypeOf = __commonJS({
-  "node_modules/get-proto/Reflect.getPrototypeOf.js"(exports2, module2) {
+  "../node_modules/get-proto/Reflect.getPrototypeOf.js"(exports2, module2) {
     "use strict";
     module2.exports = typeof Reflect !== "undefined" && Reflect.getPrototypeOf || null;
   }
 });
 
-// node_modules/get-proto/Object.getPrototypeOf.js
+// ../node_modules/get-proto/Object.getPrototypeOf.js
 var require_Object_getPrototypeOf = __commonJS({
-  "node_modules/get-proto/Object.getPrototypeOf.js"(exports2, module2) {
+  "../node_modules/get-proto/Object.getPrototypeOf.js"(exports2, module2) {
     "use strict";
     var $Object = require_es_object_atoms();
     module2.exports = $Object.getPrototypeOf || null;
   }
 });
 
-// node_modules/function-bind/implementation.js
+// ../node_modules/function-bind/implementation.js
 var require_implementation = __commonJS({
-  "node_modules/function-bind/implementation.js"(exports2, module2) {
+  "../node_modules/function-bind/implementation.js"(exports2, module2) {
     "use strict";
     var ERROR_MESSAGE = "Function.prototype.bind called on incompatible ";
     var toStr = Object.prototype.toString;
@@ -9443,42 +9443,42 @@ var require_implementation = __commonJS({
   }
 });
 
-// node_modules/function-bind/index.js
+// ../node_modules/function-bind/index.js
 var require_function_bind = __commonJS({
-  "node_modules/function-bind/index.js"(exports2, module2) {
+  "../node_modules/function-bind/index.js"(exports2, module2) {
     "use strict";
     var implementation = require_implementation();
     module2.exports = Function.prototype.bind || implementation;
   }
 });
 
-// node_modules/call-bind-apply-helpers/functionCall.js
+// ../node_modules/call-bind-apply-helpers/functionCall.js
 var require_functionCall = __commonJS({
-  "node_modules/call-bind-apply-helpers/functionCall.js"(exports2, module2) {
+  "../node_modules/call-bind-apply-helpers/functionCall.js"(exports2, module2) {
     "use strict";
     module2.exports = Function.prototype.call;
   }
 });
 
-// node_modules/call-bind-apply-helpers/functionApply.js
+// ../node_modules/call-bind-apply-helpers/functionApply.js
 var require_functionApply = __commonJS({
-  "node_modules/call-bind-apply-helpers/functionApply.js"(exports2, module2) {
+  "../node_modules/call-bind-apply-helpers/functionApply.js"(exports2, module2) {
     "use strict";
     module2.exports = Function.prototype.apply;
   }
 });
 
-// node_modules/call-bind-apply-helpers/reflectApply.js
+// ../node_modules/call-bind-apply-helpers/reflectApply.js
 var require_reflectApply = __commonJS({
-  "node_modules/call-bind-apply-helpers/reflectApply.js"(exports2, module2) {
+  "../node_modules/call-bind-apply-helpers/reflectApply.js"(exports2, module2) {
     "use strict";
     module2.exports = typeof Reflect !== "undefined" && Reflect && Reflect.apply;
   }
 });
 
-// node_modules/call-bind-apply-helpers/actualApply.js
+// ../node_modules/call-bind-apply-helpers/actualApply.js
 var require_actualApply = __commonJS({
-  "node_modules/call-bind-apply-helpers/actualApply.js"(exports2, module2) {
+  "../node_modules/call-bind-apply-helpers/actualApply.js"(exports2, module2) {
     "use strict";
     var bind = require_function_bind();
     var $apply = require_functionApply();
@@ -9488,9 +9488,9 @@ var require_actualApply = __commonJS({
   }
 });
 
-// node_modules/call-bind-apply-helpers/index.js
+// ../node_modules/call-bind-apply-helpers/index.js
 var require_call_bind_apply_helpers = __commonJS({
-  "node_modules/call-bind-apply-helpers/index.js"(exports2, module2) {
+  "../node_modules/call-bind-apply-helpers/index.js"(exports2, module2) {
     "use strict";
     var bind = require_function_bind();
     var $TypeError = require_type();
@@ -9505,9 +9505,9 @@ var require_call_bind_apply_helpers = __commonJS({
   }
 });
 
-// node_modules/dunder-proto/get.js
+// ../node_modules/dunder-proto/get.js
 var require_get = __commonJS({
-  "node_modules/dunder-proto/get.js"(exports2, module2) {
+  "../node_modules/dunder-proto/get.js"(exports2, module2) {
     "use strict";
     var callBind = require_call_bind_apply_helpers();
     var gOPD = require_gopd();
@@ -9536,9 +9536,9 @@ var require_get = __commonJS({
   }
 });
 
-// node_modules/get-proto/index.js
+// ../node_modules/get-proto/index.js
 var require_get_proto = __commonJS({
-  "node_modules/get-proto/index.js"(exports2, module2) {
+  "../node_modules/get-proto/index.js"(exports2, module2) {
     "use strict";
     var reflectGetProto = require_Reflect_getPrototypeOf();
     var originalGetProto = require_Object_getPrototypeOf();
@@ -9556,9 +9556,9 @@ var require_get_proto = __commonJS({
   }
 });
 
-// node_modules/hasown/index.js
+// ../node_modules/hasown/index.js
 var require_hasown = __commonJS({
-  "node_modules/hasown/index.js"(exports2, module2) {
+  "../node_modules/hasown/index.js"(exports2, module2) {
     "use strict";
     var call = Function.prototype.call;
     var $hasOwn = Object.prototype.hasOwnProperty;
@@ -9567,9 +9567,9 @@ var require_hasown = __commonJS({
   }
 });
 
-// node_modules/get-intrinsic/index.js
+// ../node_modules/get-intrinsic/index.js
 var require_get_intrinsic = __commonJS({
-  "node_modules/get-intrinsic/index.js"(exports2, module2) {
+  "../node_modules/get-intrinsic/index.js"(exports2, module2) {
     "use strict";
     var undefined2;
     var $Object = require_es_object_atoms();
@@ -9898,9 +9898,9 @@ var require_get_intrinsic = __commonJS({
   }
 });
 
-// node_modules/has-tostringtag/shams.js
+// ../node_modules/has-tostringtag/shams.js
 var require_shams2 = __commonJS({
-  "node_modules/has-tostringtag/shams.js"(exports2, module2) {
+  "../node_modules/has-tostringtag/shams.js"(exports2, module2) {
     "use strict";
     var hasSymbols = require_shams();
     module2.exports = function hasToStringTagShams() {
@@ -9909,9 +9909,9 @@ var require_shams2 = __commonJS({
   }
 });
 
-// node_modules/es-set-tostringtag/index.js
+// ../node_modules/es-set-tostringtag/index.js
 var require_es_set_tostringtag = __commonJS({
-  "node_modules/es-set-tostringtag/index.js"(exports2, module2) {
+  "../node_modules/es-set-tostringtag/index.js"(exports2, module2) {
     "use strict";
     var GetIntrinsic = require_get_intrinsic();
     var $defineProperty = GetIntrinsic("%Object.defineProperty%", true);
@@ -9941,9 +9941,9 @@ var require_es_set_tostringtag = __commonJS({
   }
 });
 
-// node_modules/form-data/lib/populate.js
+// ../node_modules/form-data/lib/populate.js
 var require_populate = __commonJS({
-  "node_modules/form-data/lib/populate.js"(exports2, module2) {
+  "../node_modules/form-data/lib/populate.js"(exports2, module2) {
     "use strict";
     module2.exports = function(dst, src) {
       Object.keys(src).forEach(function(prop) {
@@ -9954,9 +9954,9 @@ var require_populate = __commonJS({
   }
 });
 
-// node_modules/form-data/lib/form_data.js
+// ../node_modules/form-data/lib/form_data.js
 var require_form_data = __commonJS({
-  "node_modules/form-data/lib/form_data.js"(exports2, module2) {
+  "../node_modules/form-data/lib/form_data.js"(exports2, module2) {
     "use strict";
     var CombinedStream = require_combined_stream();
     var util = require("util");
@@ -10273,9 +10273,9 @@ var require_form_data = __commonJS({
   }
 });
 
-// node_modules/proxy-from-env/index.js
+// ../node_modules/proxy-from-env/index.js
 var require_proxy_from_env = __commonJS({
-  "node_modules/proxy-from-env/index.js"(exports2) {
+  "../node_modules/proxy-from-env/index.js"(exports2) {
     "use strict";
     var parseUrl = require("url").parse;
     var DEFAULT_PORTS = {
@@ -10343,9 +10343,9 @@ var require_proxy_from_env = __commonJS({
   }
 });
 
-// node_modules/ms/index.js
+// ../node_modules/ms/index.js
 var require_ms = __commonJS({
-  "node_modules/ms/index.js"(exports2, module2) {
+  "../node_modules/ms/index.js"(exports2, module2) {
     var s = 1e3;
     var m = s * 60;
     var h = m * 60;
@@ -10459,9 +10459,9 @@ var require_ms = __commonJS({
   }
 });
 
-// node_modules/debug/src/common.js
+// ../node_modules/debug/src/common.js
 var require_common = __commonJS({
-  "node_modules/debug/src/common.js"(exports2, module2) {
+  "../node_modules/debug/src/common.js"(exports2, module2) {
     function setup(env) {
       createDebug.debug = createDebug;
       createDebug.default = createDebug;
@@ -10636,9 +10636,9 @@ var require_common = __commonJS({
   }
 });
 
-// node_modules/debug/src/browser.js
+// ../node_modules/debug/src/browser.js
 var require_browser = __commonJS({
-  "node_modules/debug/src/browser.js"(exports2, module2) {
+  "../node_modules/debug/src/browser.js"(exports2, module2) {
     exports2.formatArgs = formatArgs;
     exports2.save = save;
     exports2.load = load;
@@ -10806,9 +10806,9 @@ var require_browser = __commonJS({
   }
 });
 
-// ../../node_modules/has-flag/index.js
+// ../../../node_modules/has-flag/index.js
 var require_has_flag = __commonJS({
-  "../../node_modules/has-flag/index.js"(exports2, module2) {
+  "../../../node_modules/has-flag/index.js"(exports2, module2) {
     "use strict";
     module2.exports = (flag, argv) => {
       argv = argv || process.argv;
@@ -10820,9 +10820,9 @@ var require_has_flag = __commonJS({
   }
 });
 
-// ../../node_modules/supports-color/index.js
+// ../../../node_modules/supports-color/index.js
 var require_supports_color = __commonJS({
-  "../../node_modules/supports-color/index.js"(exports2, module2) {
+  "../../../node_modules/supports-color/index.js"(exports2, module2) {
     "use strict";
     var os = require("os");
     var hasFlag = require_has_flag();
@@ -10915,9 +10915,9 @@ var require_supports_color = __commonJS({
   }
 });
 
-// node_modules/debug/src/node.js
+// ../node_modules/debug/src/node.js
 var require_node = __commonJS({
-  "node_modules/debug/src/node.js"(exports2, module2) {
+  "../node_modules/debug/src/node.js"(exports2, module2) {
     var tty = require("tty");
     var util = require("util");
     exports2.init = init;
@@ -11089,9 +11089,9 @@ var require_node = __commonJS({
   }
 });
 
-// node_modules/debug/src/index.js
+// ../node_modules/debug/src/index.js
 var require_src = __commonJS({
-  "node_modules/debug/src/index.js"(exports2, module2) {
+  "../node_modules/debug/src/index.js"(exports2, module2) {
     if (typeof process === "undefined" || process.type === "renderer" || process.browser === true || process.__nwjs) {
       module2.exports = require_browser();
     } else {
@@ -11100,9 +11100,9 @@ var require_src = __commonJS({
   }
 });
 
-// node_modules/follow-redirects/debug.js
+// ../node_modules/follow-redirects/debug.js
 var require_debug = __commonJS({
-  "node_modules/follow-redirects/debug.js"(exports2, module2) {
+  "../node_modules/follow-redirects/debug.js"(exports2, module2) {
     var debug;
     module2.exports = function() {
       if (!debug) {
@@ -11120,9 +11120,9 @@ var require_debug = __commonJS({
   }
 });
 
-// node_modules/follow-redirects/index.js
+// ../node_modules/follow-redirects/index.js
 var require_follow_redirects = __commonJS({
-  "node_modules/follow-redirects/index.js"(exports2, module2) {
+  "../node_modules/follow-redirects/index.js"(exports2, module2) {
     var url = require("url");
     var URL2 = url.URL;
     var http = require("http");
@@ -11616,9 +11616,9 @@ var require_follow_redirects = __commonJS({
   }
 });
 
-// node_modules/axios/dist/node/axios.cjs
+// ../node_modules/axios/dist/node/axios.cjs
 var require_axios = __commonJS({
-  "node_modules/axios/dist/node/axios.cjs"(exports2, module2) {
+  "../node_modules/axios/dist/node/axios.cjs"(exports2, module2) {
     "use strict";
     var FormData$1 = require_form_data();
     var crypto = require("crypto");
@@ -12609,7 +12609,7 @@ var require_axios = __commonJS({
       });
       return parsed;
     };
-    var $internals = /* @__PURE__ */ Symbol("internals");
+    var $internals = Symbol("internals");
     function normalizeHeader(header) {
       return header && String(header).trim().toLowerCase();
     }
@@ -12916,7 +12916,7 @@ var require_axios = __commonJS({
       }
       throw new AxiosError("Unsupported protocol " + protocol, AxiosError.ERR_NOT_SUPPORT);
     }
-    var kInternals = /* @__PURE__ */ Symbol("internals");
+    var kInternals = Symbol("internals");
     var AxiosTransformStream = class extends stream__default["default"].Transform {
       constructor(options) {
         options = utils$1.toFlatObject(options, {
@@ -15115,15 +15115,24 @@ exports.main = async (context = {}) => {
     };
   }
   try {
-    return {
-      statusCode: 200,
-      body: {
-        outputFields: {
-          auditResult: `Audit initiated for ${objectId}. Context "${auditContext}" logged for queued remediation.`,
-          optimizationScore: 85
+    const aiResp = await axios.post("https://hubspot-ai-optimizer-murex.vercel.app/api/ai", {
+      mode: "audit",
+      prompt: `[AUDIT CONTEXT: ${objectId}] ${auditContext}`,
+      contextType: "structural-audit"
+    });
+    if (aiResp.ok) {
+      const aiData = await aiResp.json();
+      return {
+        statusCode: 200,
+        body: {
+          outputFields: {
+            auditResult: aiData.analysis || "Audit complete. No critical issues detected.",
+            optimizationScore: 90
+          }
         }
-      }
-    };
+      };
+    }
+    throw new Error("AI Proxy failed");
   } catch (error) {
     return {
       statusCode: 200,

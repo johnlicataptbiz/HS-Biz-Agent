@@ -113,6 +113,12 @@ apiRouter.all("/notes", wrap("./api-backend/notes.js"));
 apiRouter.all("/sync", wrap("./api-backend/sync.js"));
 apiRouter.all("/sync/status", wrap("./api-backend/sync.js"));
 apiRouter.all("/sync/start", wrap("./api-backend/sync.js"));
+apiRouter.all("/remediate", wrap("./api-backend/remediate.js"));
+apiRouter.all("/agent-bridge", wrap("./api-backend/agent-bridge.js"));
+apiRouter.all(
+  "/webhooks-lifecycle",
+  wrap("./api-backend/webhooks-lifecycle.js")
+);
 apiRouter.all("/debug-ping", (req, res) =>
   res.json({ pong: true, env: process.env.NODE_ENV })
 );

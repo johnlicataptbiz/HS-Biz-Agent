@@ -1,0 +1,53 @@
+{
+  "uid": "intelligence_scout_tool",
+  "type": "workflow-action",
+  "config": {
+    "actionUrl": "https://hubspot-proxy-production.up.railway.app/api/agent-bridge",
+    "isPublished": true,
+    "supportedClients": [
+      {
+        "client": "AGENTS",
+        "toolType": "GET_DATA",
+        "llmConfig": {
+          "actionDescription": "Retrieves the strategic health score, engagement classification (Hot, Nurture, etc.), and potential architectural conflicts for a contact. Use this to understand if a lead is ready for promotion or requires remediation."
+        }
+      }
+    ],
+    "inputFields": [
+      {
+        "typeDefinition": {
+          "name": "contactId",
+          "type": "string",
+          "fieldType": "text"
+        },
+        "supportedValueTypes": ["STATIC_VALUE"],
+        "isRequired": true
+      },
+      {
+        "typeDefinition": {
+          "name": "action",
+          "type": "string",
+          "fieldType": "text"
+        },
+        "supportedValueTypes": ["STATIC_VALUE"],
+        "isRequired": true
+      }
+    ],
+    "labels": {
+      "en": {
+        "actionName": "PT Biz: Intelligence Scout",
+        "actionDescription": "AI data-fetcher for lead strategic context.",
+        "actionCardContent": "Fetching Strategic Health Metrics",
+        "inputFieldLabels": {
+          "contactId": "Contact ID",
+          "action": "Action Type"
+        },
+        "inputFieldDescriptions": {
+          "contactId": "The unique ID of the HubSpot contact to analyze.",
+          "action": "The specific strategic action to perform (e.g., get_lead_strategy)."
+        }
+      }
+    },
+    "objectTypes": ["CONTACT"]
+  }
+}
