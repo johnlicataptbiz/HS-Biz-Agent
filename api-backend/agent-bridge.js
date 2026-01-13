@@ -30,7 +30,8 @@ export default async function handler(req, res) {
     const token =
       hubspotToken ||
       process.env.HUBSPOT_ACCESS_TOKEN ||
-      process.env.PRIVATE_APP_ACCESS_TOKEN;
+      process.env.PRIVATE_APP_ACCESS_TOKEN ||
+      process.env.HUBSPOT_TOKEN;
 
     // --- Action: Fetch Strategy Info (Tool Type: GET_DATA) ---
     if (action === "get_lead_strategy") {
