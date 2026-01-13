@@ -145,6 +145,7 @@ export class HubSpotService {
       : [
           "crm.objects.contacts.read",
           "crm.objects.contacts.write",
+          "crm.schemas.contacts.write",
           "crm.objects.companies.read",
           "crm.objects.companies.write",
           "crm.objects.deals.read",
