@@ -21,14 +21,15 @@ export default async function handler(req, res) {
     // POST /api/sync -> Start
     if (req.method === 'POST') {
         const authHeader = req.headers.authorization || '';
+        const authToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+        const badAuthToken =
+          !authToken || authToken === 'undefined' || authToken === 'null';
         const bodyToken = req.body?.hubspotToken || req.body?.token || '';
         const envToken =
           process.env.PRIVATE_APP_ACCESS_TOKEN ||
           process.env.HUBSPOT_ACCESS_TOKEN ||
           '';
-        const token = authHeader
-          ? authHeader.replace(/^Bearer\s+/i, '')
-          : bodyToken || envToken;
+        const token = !badAuthToken ? authToken : bodyToken || envToken;
 
         if (!token) {
           return res.status(401).json({

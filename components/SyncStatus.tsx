@@ -43,16 +43,15 @@ const SyncStatus: React.FC = () => {
             const refreshed = await hubSpotService.refreshAccessToken();
             token = localStorage.getItem('hubspot_access_token') || '';
             if (!refreshed || !token) {
-                setHasFailed(true);
-                setErrorMessage('HubSpot token refresh failed.');
-                return;
+                token = '';
             }
         }
 
         try {
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
             const resp = await fetch(getApiUrl('/api/sync/start'), {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers
             });
             if (!resp.ok && resp.status === 401) {
                 const refreshed = await hubSpotService.refreshAccessToken();
@@ -70,9 +69,16 @@ const SyncStatus: React.FC = () => {
                         return;
                     }
                 } else {
-                    setHasFailed(true);
-                    setErrorMessage('HubSpot token refresh failed.');
-                    return;
+                    const retry = await fetch(getApiUrl('/api/sync/start'), {
+                        method: 'POST'
+                    });
+                    if (!retry.ok) {
+                        const message = await retry.text();
+                        console.error("Sync start failed:", message);
+                        setHasFailed(true);
+                        setErrorMessage(message || 'Sync start failed.');
+                        return;
+                    }
                 }
             } else if (!resp.ok) {
                 const message = await resp.text();
