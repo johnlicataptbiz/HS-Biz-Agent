@@ -2,7 +2,7 @@
   "uid": "hubspot-ai-optimizer",
   "type": "app",
   "config": {
-    "name": "HubSpot AI Optimizer",
+    "name": "Core UI",
     "description": "AI copilot that audits your HubSpot portal, then designs and deploys optimized workflows, sequences, segments and journeys.",
     "logo": "/app/app-logo.png",
     "distribution": "MARKETPLACE",

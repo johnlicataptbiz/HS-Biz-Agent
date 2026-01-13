@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   const defaultClientId =
     process.env.HUBSPOT_CLIENT_ID ||
     process.env.VITE_HUBSPOT_CLIENT_ID ||
-    "7e3c1887-4c26-47a8-b750-9f215ed818f1";
+    "c136fd2f-093b-4e73-9129-920280164fa6";
   let clientId = (client_id || defaultClientId).trim();
 
   // Select the correct secret based on the client ID

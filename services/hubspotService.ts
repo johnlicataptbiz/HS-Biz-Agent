@@ -18,7 +18,7 @@ export class HubSpotService {
   private static instance: HubSpotService;
   private readonly CLIENT_ID =
     import.meta.env.VITE_HUBSPOT_CLIENT_ID ||
-    "7e3c1887-4c26-47a8-b750-9f215ed818f1";
+    "c136fd2f-093b-4e73-9129-920280164fa6";
   private readonly BASE_API_URL = getApiUrl("/api/hubspot"); // Dynamically resolved backend
 
   private readonly OAUTH_REQUEST_KEYS = {

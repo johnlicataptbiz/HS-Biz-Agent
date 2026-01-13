@@ -23,10 +23,10 @@ export default async function handler(req, res) {
   if (!global.__oauthStateMap) global.__oauthStateMap = {};
   global.__oauthStateMap[serverState] = {
     clientId:
-      client_id ||
+    client_id ||
       process.env.HUBSPOT_CLIENT_ID ||
       process.env.VITE_HUBSPOT_CLIENT_ID ||
-      "7e3c1887-4c26-47a8-b750-9f215ed818f1",
+      "c136fd2f-093b-4e73-9129-920280164fa6",
     createdAt: Date.now(),
     redirectUri: redirect_uri || req.headers.origin || "",
   };

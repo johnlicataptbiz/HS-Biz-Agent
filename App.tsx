@@ -171,6 +171,14 @@ const App: React.FC = () => {
           console.error('Direct OAuth Exchange Failed:', err);
         });
       }
+    } else if (code && !state && !savedState && !processedCodesRef.current.has(code)) {
+      processedCodesRef.current.add(code);
+      hubSpotService.exchangeCodeForToken(code).then(() => {
+        const newUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }).catch(err => {
+        console.error('Direct OAuth Exchange Failed:', err);
+      });
     } else if (import.meta.env.DEV && code) {
       console.warn('OAuth code present but ignored (missing/mismatched state or stale request).');
     }
