@@ -78,14 +78,10 @@ export class HubSpotService {
     onPopupError?: (msg: string) => void
   ): Promise<Window | null> {
     const origin = window.location.origin;
-    const redirectUri = useMcp
-      ? `${origin}/contacts`
-      : origin.endsWith("/")
-        ? origin
-        : `${origin}/`;
+    const redirectUri = origin.endsWith("/") ? origin : `${origin}/`;
     const clientId = useMcp
       ? import.meta.env.VITE_HUBSPOT_MCP_CLIENT_ID ||
-        "9d7c3c51-862a-4604-9668-cad9bf5aed93"
+        "d2bf9ffa-49b2-434c-94a2-0860816de977"
       : this.CLIENT_ID;
     if (!clientId) {
       if (onPopupError) onPopupError("HubSpot client ID missing.");

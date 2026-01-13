@@ -15,9 +15,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [copiedField, setCopiedField] = useState<'token' | 'clientId' | null>(null);
 
+  const mcpClientId =
+    import.meta.env.VITE_HUBSPOT_MCP_CLIENT_ID ||
+    'd2bf9ffa-49b2-434c-94a2-0860816de977';
   const isMcpIdent = React.useMemo(() => 
-    localStorage.getItem('hubspot_client_id') === '9d7c3c51-862a-4604-9668-cad9bf5aed93'
-  , [connectionStatus]);
+    localStorage.getItem('hubspot_client_id') === mcpClientId
+  , [connectionStatus, mcpClientId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -285,11 +288,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }: Settin
                       <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">MCP Client ID</p>
                       <div className="flex gap-2">
                         <div className="flex-1 px-3 py-2 bg-black/40 border border-slate-200 rounded-xl font-mono text-[10px] text-slate-600">
-                          9d7c3c51-862a-4604-9668-cad9bf5aed93
+                          {mcpClientId}
                         </div>
                         <button 
                           onClick={() => {
-                            navigator.clipboard.writeText('9d7c3c51-862a-4604-9668-cad9bf5aed93');
+                            navigator.clipboard.writeText(mcpClientId);
                             setCopiedField('clientId');
                             setTimeout(() => setCopiedField(null), 2000);
                           }}
