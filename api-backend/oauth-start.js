@@ -26,11 +26,17 @@ export default async function handler(req, res) {
     process.env.VITE_HUBSPOT_CLIENT_ID ||
     "c136fd2f-093b-4e73-9129-920280164fa6";
   const legacyStandardClientId = "7e3c1887-4c26-47a8-b750-9f215ed818f1";
-  const initialClientId = client_id || configuredClientId;
-  const clientIdToStore =
-    initialClientId === legacyStandardClientId ? configuredClientId : initialClientId;
+  const clientIdToStore = useMcp
+    ? client_id ||
+      process.env.VITE_HUBSPOT_MCP_CLIENT_ID ||
+      "d2bf9ffa-49b2-434c-94a2-0860816de977"
+    : configuredClientId;
+  const normalizedClientId =
+    clientIdToStore === legacyStandardClientId
+      ? configuredClientId
+      : clientIdToStore;
   global.__oauthStateMap[serverState] = {
-    clientId: clientIdToStore,
+    clientId: normalizedClientId,
     createdAt: Date.now(),
     redirectUri: redirect_uri || req.headers.origin || "",
   };

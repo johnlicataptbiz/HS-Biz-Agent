@@ -28,7 +28,15 @@ export default async function handler(req, res) {
     "c136fd2f-093b-4e73-9129-920280164fa6";
   let clientId = (client_id || defaultClientId).trim();
   const legacyStandardClientId = "7e3c1887-4c26-47a8-b750-9f215ed818f1";
-  if (
+  const legacyMcpClientId = "9d7c3c51-862a-4604-9668-cad9bf5aed93";
+  const defaultMcpClientId = "d2bf9ffa-49b2-434c-94a2-0860816de977";
+
+  // Force standard OAuth to use configured client ID, ignoring stale legacy IDs.
+  const isMcpClient =
+    clientId === legacyMcpClientId || clientId === defaultMcpClientId;
+  if (!isMcpClient) {
+    clientId = defaultClientId.trim();
+  } else if (
     clientId === legacyStandardClientId &&
     process.env.HUBSPOT_CLIENT_ID &&
     process.env.HUBSPOT_CLIENT_ID.trim()
@@ -44,8 +52,6 @@ export default async function handler(req, res) {
 
   // If this matches the configured MCP Client ID from environment
   const configuredMcpId = process.env.VITE_HUBSPOT_MCP_CLIENT_ID;
-  const legacyMcpClientId = "9d7c3c51-862a-4604-9668-cad9bf5aed93";
-  const defaultMcpClientId = "d2bf9ffa-49b2-434c-94a2-0860816de977";
 
   if (
     clientId === legacyMcpClientId ||
