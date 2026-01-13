@@ -100,6 +100,7 @@ apiRouter.all(
   "/contacts-analytics",
   wrap("./api-backend/contacts-analytics.js")
 );
+apiRouter.all("/contacts/:id", wrap("./api-backend/contacts.js"));
 apiRouter.all("/contacts", wrap("./api-backend/contacts.js"));
 apiRouter.all("/segments", wrap("./api-backend/segments.js"));
 apiRouter.all("/assets", wrap("./api-backend/assets.js"));

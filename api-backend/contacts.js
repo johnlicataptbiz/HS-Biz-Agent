@@ -22,6 +22,32 @@ export default async function handler(req, res) {
   // GET /api/contacts - List contacts with pagination and filters
   if (req.method === "GET") {
     try {
+      const requestedId = req.params?.id || req.query.id;
+      if (requestedId) {
+        const fullResult = await pool.query(
+          "SELECT * FROM contacts WHERE id = $1",
+          [String(requestedId)]
+        );
+        const fullRow = fullResult.rows[0];
+        if (!fullRow) {
+          return res
+            .status(404)
+            .json({ error: "Contact not found in mirror", id: requestedId });
+        }
+        if (fullRow.classification === "Customer") {
+          fullRow.classification = "Active Client";
+        }
+        if (
+          fullRow.classification === "Active Client" ||
+          fullRow.classification === "Employee"
+        ) {
+          fullRow.health_score = 0;
+        } else if (fullRow.health_score !== null) {
+          fullRow.health_score = parseFloat(fullRow.health_score);
+        }
+        return res.status(200).json(fullRow);
+      }
+
       const {
         page = 1,
         limit = 50,
@@ -270,27 +296,6 @@ export default async function handler(req, res) {
         }
         return { ...row, classification: normalized, health_score: scoreValue };
       });
-
-      // If a specific ID was requested, return the first result with FULL raw_data
-      const { id } = req.query;
-      if (id && result.rows.length > 0) {
-        const fullResult = await pool.query(
-          "SELECT * FROM contacts WHERE id = $1",
-          [id]
-        );
-        const fullRow = fullResult.rows[0];
-        if (fullRow) {
-          if (fullRow.classification === "Customer") {
-            fullRow.classification = "Active Client";
-          }
-          if (fullRow.classification === "Active Client" || fullRow.classification === "Employee") {
-            fullRow.health_score = 0;
-          } else if (fullRow.health_score !== null) {
-            fullRow.health_score = parseFloat(fullRow.health_score);
-          }
-        }
-        return res.status(200).json(fullRow);
-      }
 
       return res.status(200).json({
         contacts: adjustedRows,
